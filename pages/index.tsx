@@ -15,7 +15,7 @@ export default function Home() {
         <meta property="og:site_name" content="Sharukh Rahman | Software Engineer & Technology Specialist"/>
         <meta property="og:title" content="Sharukh Rahman | Software Engineer & Technology Specialist"/>
         <meta property="og:description" content="I&#x27;m a technology lead based in Jakarta, Indonesia specializing in crafting (and occasionally designing) exceptional, highly-effective websites and applications."/>
-        <meta name="google-site-verification" content="4e6bkdYdRn50D2_8F26rb9jMXvMCPxT_8MVaI_v9m90" />
+        <meta name="google-site-verification" content="ow_oF7MNe6yvFGciKZqQyl9EIpr-DJ8yxzjhHfY3tIY" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
