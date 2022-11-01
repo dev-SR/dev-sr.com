@@ -8,7 +8,7 @@ export default function Document() {
 				<meta name="google-site-verification" content="ow_oF7MNe6yvFGciKZqQyl9EIpr-DJ8yxzjhHfY3tIY" />
         <link rel="icon" href="/favicon.ico" />
 			</Head>
-      <body className='bg-white'>
+      <body className='bg-white dark:bg-dark'>
         <Main />
         <NextScript />
       </body>
