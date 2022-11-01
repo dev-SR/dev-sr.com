@@ -211,7 +211,7 @@ const NavBar = ({ posts_metadata }: Partial<PostListProps>) => {
 					height: y > 100 ? 60 : 120
 				}}
 				className={classNames(
-					'w-screen fixed top-0 z-10 backdrop-blur dark:bg-[#16181d]/5 transition-colors ease-in-out duration-300',
+					'w-screen fixed top-0 z-10 backdrop-blur dark:bg-dark/5 transition-colors ease-in-out duration-300',
 					y > 10 ? 'border-b border-black/10 dark:border-white/10 ' : 'border-b border-white/0'
 				)}>
 				<div className='max-w-sm md:max-w-4xl mx-auto flex items-center justify-between h-full py-2'>
@@ -221,7 +221,7 @@ const NavBar = ({ posts_metadata }: Partial<PostListProps>) => {
 					<div className='h-full flex items-center flex-shrink-0 justify-center space-x-4'>
 						<div className='relative group'>
 							<button
-								className='w-11 h-11 relative rounded-md p-2 flex justify-center items-center border  border-transparent hover:border-[2px] group-hover:border-[#5685f4] transition ease-in-out duration-300 group-hover:shadow-[0px_0px_30px_1px_rgb(86,133,244,.5)] bg-slate-600/10  dark:bg-slate-600/30'
+								className='w-11 h-11 relative rounded-md p-2 flex justify-center items-center border  border-transparent hover:border-[2px] group-hover:border-[#5685f4] transition ease-in-out duration-300 group-hover:shadow-[0px_0px_30px_1px_rgb(86,133,244,.5)] bg-dark-light/10  dark:bg-dark-light'
 								onClick={() => setIsOpen((prev) => !prev)}>
 								{!isOpen && (
 									<SearchIcon className='w-8 h-8  dark:text-gray-200 text-gray-700 group-hover:text-[#5685f4]' />
@@ -229,7 +229,7 @@ const NavBar = ({ posts_metadata }: Partial<PostListProps>) => {
 							</button>
 						</div>
 						<div className='relative group'>
-							<button className='w-11 h-11 relative rounded-md p-2 flex justify-center items-center border  border-transparent hover:border-[2px] group-hover:border-[#5685f4] transition ease-in-out duration-300 group-hover:shadow-[0px_0px_30px_1px_rgb(86,133,244,.5)] bg-slate-600/10  dark:bg-slate-600/30 '>
+							<button className='w-11 h-11 relative rounded-md p-2 flex justify-center items-center border  border-transparent hover:border-[2px] group-hover:border-[#5685f4] transition ease-in-out duration-300 group-hover:shadow-[0px_0px_30px_1px_rgb(86,133,244,.5)] bg-dark-light/10  dark:bg-dark-light '>
 								<a href='https://github.com/dev-SR' target='_blank' rel='noopener noreferrer'>
 									<BsGithub
 										className={classNames(
@@ -244,7 +244,7 @@ const NavBar = ({ posts_metadata }: Partial<PostListProps>) => {
 							{/* <div className='absolute inset-0 bg-indigo-600 blur opacity-0 group-hover:opacity-100 transition duration-300'></div> */}
 							<button
 								className={classNames(
-									' w-11 h-11 relative rounded-md p-1 flex justify-center items-center border border-transparent hover:border-[2px] group-hover:border-[#5685f4] transition ease-in-out duration-300 group-hover:shadow-[0px_2px_40px_-4px_rgb(86,133,244,.5)] bg-slate-600/10  dark:bg-slate-600/30 '
+									' w-11 h-11 relative rounded-md p-1 flex justify-center items-center border border-transparent hover:border-[2px] group-hover:border-[#5685f4] transition ease-in-out duration-300 group-hover:shadow-[0px_2px_40px_-4px_rgb(86,133,244,.5)] bg-dark-light/10  dark:bg-dark-light '
 								)}
 								onClick={setTheme}>
 								{theme == 'dark' ? (

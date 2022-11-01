@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import NavBar from '../components/NavBar';
 import { classNames } from '../libs/classNames';
+import { NextSeo } from 'next-seo';
 
 type PostsType = {
 	title: string;
@@ -35,14 +36,18 @@ const chipsColorClasses: {
 
 const cardClasses = {
 	cardContainer:
-		'rounded-md px-4 py-6 transition duration-300 ease-in-out bg-[#16181d]/5 hover:bg-[#16181d]/10 dark:bg-zinc-800/40 hover:dark:bg-zinc-800/80',
+		'rounded-md px-4 py-6 transition duration-300 ease-in-out bg-dark/5 hover:bg-dark/10 dark:bg-dark-medium hover:dark:bg-dark-light',
 	cardBody: 'flex flex-col',
 	chips: 'uppercase text-xs px-2 rounded text-white border cursor-pointer'
 };
 
 export default function Home({ posts_metadata }: PostListProps) {
 	return (
-		<div className='dark:bg-[#16181d] flex flex-col min-h-screen overflow-x-hidden'>
+		<div className='dark:bg-dark flex flex-col min-h-screen overflow-x-hidden'>
+			 <NextSeo
+      title="Sharukh Rahman | Software Developer & Researcher"
+      description="I'm a fullstack web engineer, machine learning and deep learning enthusiast. Along the way, I like sharing what I learn about web technologies and software related soft skills."
+    />
 			<NavBar posts_metadata={posts_metadata} />
 			<div className='h-32'></div>
 			<div className='max-w-sm md:max-w-4xl mx-auto my-4'>
@@ -126,7 +131,7 @@ export const getStaticProps: GetStaticProps = async () => {
 		})
 		.sort((a, b) => {
 			return new Date(b.date).getTime() - new Date(a.date).getTime();
-		});
+		}).slice(0,5);
 	// console.log(posts_metadata);
 
 	return {

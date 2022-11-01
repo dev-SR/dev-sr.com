@@ -12,10 +12,20 @@ module.exports = {
 		fontFamily: {
 			code: ['Fira Code', 'monospace']
 		},
+
 		extend: {
 			fontFamily: {
 				sans: ['Inter', ...defaultTheme.fontFamily.sans]
 			},
+			colors:{
+				dark:{
+					DEFAULT: '#16181d',
+					medium: '#1e2127',
+					light: '#2a2e36'
+				}
+
+			}
+			,
 			keyframes: {
 				wiggle: {
 					'0%, 100%': { transform: 'rotate(-5deg)' },
