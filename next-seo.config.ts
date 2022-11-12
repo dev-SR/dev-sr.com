@@ -10,9 +10,9 @@ export default {
 		siteName: 'Sharukh Rahman | Software Developer & Researcher',
 		images: [
 			{
-				url: 'https://dev-sr.vercel.app/static/og/singnature.png',
-				width: 1092,
-				height: 320,
+				url: 'https://dev-sr.vercel.app/static/og/singnature-default.png',
+				width: 1200,
+				height: 630,
 				alt: 'Sharukh Rahman | Software Developer & Researcher'
 			}
 		]

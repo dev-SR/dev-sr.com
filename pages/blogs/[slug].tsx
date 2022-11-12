@@ -259,9 +259,10 @@ const SingleBlogPost = ({ frontMatter, mdSource, posts_metadata, slug }: Props) 
 					description: frontMatter.description,
 					images: [
 						{
-							url: frontMatter.image,
-							width: 800,
-							height: 600,
+							// url: frontMatter.image,
+							url: 'https://dev-sr.vercel.app/static/og/singnature-default.png',
+							width: 1200,
+							height: 630,
 							alt: frontMatter.title
 						}
 					],
