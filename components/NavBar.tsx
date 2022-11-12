@@ -4,10 +4,10 @@ import { motion } from 'framer-motion';
 import { BsGithub } from 'react-icons/bs';
 import { useDarkMode } from '../libs/useDarkMode';
 import Link from 'next/link';
-import { PostListProps } from '../pages';
 import Modal from './Modal';
 import { format } from 'date-fns';
 import { classNames } from '../libs/classNames';
+import { PostListProps } from '../libs/mdxLibs';
 
 export const transition = {
 	type: 'spring',

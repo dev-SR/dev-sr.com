@@ -1,5 +1,11 @@
 import { GetStaticProps } from 'next/types';
-import { getMdxPath, getPostFiles } from '../libs/mdxLibs';
+import {
+	getAllPostsMetadata,
+	getMdxPath,
+	getPostFiles,
+	PostListProps,
+	PostsType
+} from '../libs/mdxLibs';
 import path from 'path';
 import fs from 'fs';
 import matter from 'gray-matter';
@@ -8,20 +14,7 @@ import Link from 'next/link';
 import NavBar from '../components/NavBar';
 import { classNames } from '../libs/classNames';
 import { NextSeo } from 'next-seo';
-
-type PostsType = {
-	title: string;
-	date: string;
-	tags: string[];
-	description: string;
-	author: string;
-	slug: string;
-	url: string;
-};
-
-export type PostListProps = {
-	posts_metadata: PostsType[];
-};
+import Layout from '../components/Layout';
 
 const chipsColorClasses: {
 	[key: string]: string;
@@ -43,13 +36,7 @@ const cardClasses = {
 
 export default function Home({ posts_metadata }: PostListProps) {
 	return (
-		<div className='dark:bg-dark flex flex-col min-h-screen overflow-x-hidden'>
-			 <NextSeo
-      title="Sharukh Rahman | Software Developer & Researcher"
-      description="I'm a fullstack web engineer, machine learning and deep learning enthusiast. Along the way, I like sharing what I learn about web technologies and software related soft skills."
-    />
-			<NavBar posts_metadata={posts_metadata} />
-			<div className='h-32'></div>
+		<Layout posts_metadata={posts_metadata}>
 			<div className='max-w-sm md:max-w-4xl mx-auto my-4'>
 				<div className='flex items-center flex-wrap'>
 					<h1 className='text-4xl font-bold text-gray-800 dark:text-gray-200'>Hey</h1>
@@ -113,27 +100,16 @@ export default function Home({ posts_metadata }: PostListProps) {
 					</div>
 				))}
 			</div>
-		</div>
+		</Layout>
 	);
 }
 
 export const getStaticProps: GetStaticProps = async () => {
-	const posts_metadata = getPostFiles
-		.map((postFile) => {
-			// read all the md files
-			const content = fs.readFileSync(path.join(getMdxPath, postFile), 'utf-8');
-			// parse the frontmatter
-			const { data: postFrontMatterMetaData } = matter(content);
-			return {
-				...(postFrontMatterMetaData as PostsType),
-				slug: postFile.replace('.md', '')
-			};
-		})
+	const posts_metadata = getAllPostsMetadata()
 		.sort((a, b) => {
 			return new Date(b.date).getTime() - new Date(a.date).getTime();
-		}).slice(0,5);
-	// console.log(posts_metadata);
-
+		})
+		.slice(0, 5);
 	return {
 		props: {
 			posts_metadata: JSON.parse(JSON.stringify(posts_metadata))

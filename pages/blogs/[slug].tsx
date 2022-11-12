@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { serialize } from 'next-mdx-remote/serialize';
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote';
-import { getMdxPath, getPostFiles } from '../../libs/mdxLibs';
+import { getAllPostsMetadata, getMdxPath, getPostFiles, PostsType } from '../../libs/mdxLibs';
 import matter from 'gray-matter';
 import Head from 'next/head';
 import Image from 'next/image';
@@ -32,7 +32,8 @@ import Container from '../../components/MDXcomponent/Container';
 import CodeOutput from '../../components/MDXcomponent/CodeOutput';
 import Quiz from '../../components/MDXcomponent/Quiz';
 import NavBar from '../../components/NavBar';
-
+import Layout from '../../components/Layout';
+import { NextSeo } from 'next-seo';
 
 const customComponents = {
 	Container,
@@ -51,6 +52,8 @@ type Props = {
 		[key: string]: any;
 	};
 	mdSource: MDXRemoteSerializeResult<Record<string, unknown>, Record<string, string>>;
+	posts_metadata: PostsType[];
+	slug: string;
 };
 
 type ProcessedCodeText = {
@@ -151,7 +154,7 @@ const HighlightedCodeText = (props: any) => {
 							const lineNo = i + 1;
 							return (
 								<div
-								key={i}
+									key={i}
 									{...getLineProps({
 										line,
 										key: i,
@@ -242,38 +245,58 @@ const components = {
 		return <span {...props} />;
 	}
 };
-const myLoader = ({ src, width, quality }:{src:string, width:string, quality:string}) => {
-  return `https://example.com/${src}?w=${width}&q=${quality || 75}`
-}
 
-const SingleBlogPost = ({ frontMatter, mdSource }: Props) => {
+const SingleBlogPost = ({ frontMatter, mdSource, posts_metadata, slug }: Props) => {
 	return (
-		<div className=' dark:bg-[#16181d] py-10 flex flex-col min-h-screen '>
-			<NavBar />
+		<Layout posts_metadata={posts_metadata}>
+			<NextSeo
+				title={frontMatter.title}
+				description={frontMatter.description}
+				canonical={`https://dev-sr.vercel.app/blogs/${slug}`}
+				openGraph={{
+					url: `https://dev-sr.vercel.app/blogs/${slug}`,
+					title: frontMatter.title,
+					description: frontMatter.description,
+					images: [
+						{
+							url: frontMatter.image,
+							width: 800,
+							height: 600,
+							alt: frontMatter.title
+						}
+					],
+					site_name: 'Sharukh Rahman | Software Developer & Researcher'
+				}}
+			/>
 			<div className='px-2 md:px-72'>
 				<div className='h-32'></div>
-				<Head>
-					<title>{frontMatter.title}</title>
-					<meta name='description' content={frontMatter.description} />
-				</Head>
-				<Link href={'/'}>
-					<div className='flex item-center space-x-2 w-full py-2 cursor-pointer text-white hover:text-indigo-500 transition-colors duration-300 ease-in-out hover:translate-x-1 transform'>
-						<div className='flex items-center justify-center'>
-							<BiArrowBack className='h-4 w-4 ' />
+				<div className='group'>
+					<Link href={'/'}>
+						<div
+							className='flex item-center space-x-2 text-gray-800 dark:text-gray-200
+						transition duration-300 ease-in-out transform cursor-pointer
+						 group-hover:text-indigo-500
+						'>
+							<div className='flex items-center justify-center group-hover:-translate-x-px'>
+								<BiArrowBack className='h-4 w-4 ' />
+							</div>
+							<div className='flex-shrink-0'>
+								<p className='text-center'>Home</p>
+							</div>
 						</div>
-						<p className='text-center'>Home</p>
-					</div>
-				</Link>
+					</Link>
+				</div>
 				<div>
-					<div className='relative w-full'>
-				{/* title */}
-						<h1 className='text-4xl text-white'>{frontMatter.title}</h1>
+					<div className='w-full py-8'>
+						<h1 className='text-4xl font-bold text-gray-800 dark:text-gray-200'>
+							{frontMatter.title}
+						</h1>
 					</div>
 				</div>
 			</div>
 			{/*@ts-ignore */}
 			<MDXRemote {...mdSource} components={components} />
-		</div>
+		</Layout>
 	);
 };
 
@@ -293,6 +316,8 @@ export const getStaticPaths: GetStaticPaths = async () => {
 };
 
 export const getStaticProps: GetStaticProps = async (context) => {
+	const posts_metadata = getAllPostsMetadata();
+
 	const slug = context.params?.slug as string;
 	const filePath = path.join(getMdxPath, `${slug}.md`);
 	const fileContent = fs.readFileSync(filePath, 'utf-8');
@@ -327,7 +352,8 @@ export const getStaticProps: GetStaticProps = async (context) => {
 		props: {
 			slug,
 			mdSource,
-			frontMatter: JSON.parse(JSON.stringify(frontMatter))
+			frontMatter: JSON.parse(JSON.stringify(frontMatter)),
+			posts_metadata: JSON.parse(JSON.stringify(posts_metadata))
 		}
 	};
 };
