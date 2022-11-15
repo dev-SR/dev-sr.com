@@ -7,7 +7,7 @@ import Link from 'next/link';
 import Modal from './Modal';
 import { format } from 'date-fns';
 import { classNames } from '../libs/classNames';
-import { PostListProps } from '../libs/mdxLibs';
+import { PostListProps } from '@libs/type-defs';
 
 export const transition = {
 	type: 'spring',
@@ -156,7 +156,7 @@ const ModalContent = ({ posts_metadata }: Partial<PostListProps>) => {
 			});
 			setFilteredPosts(filtered);
 		}
-	}, [input,posts_metadata]);
+	}, [input, posts_metadata]);
 
 	return (
 		<div className='flex flex-col space-y-2 w-full'>

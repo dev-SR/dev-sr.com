@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import React from 'react';
-import { PostListProps } from '../../libs/mdxLibs';
 import { format } from 'date-fns';
-import { classNames } from '../../libs/classNames';
+import { PostListProps } from '@libs/type-defs';
+import { classNames } from '@libs/classNames';
+
 const cardClasses = {
 	cardContainer:
 		'rounded-md px-4 py-6 transition duration-300 ease-in-out bg-dark/5 hover:bg-dark/10 dark:bg-dark-medium hover:dark:bg-dark-light',
@@ -23,7 +24,7 @@ const RecentPosts = ({ posts_metadata }: PostListProps) => {
 	return (
 		<div className='flex flex-col space-y-4 mt-10'>
 			<div className='flex items-center justify-between w-full'>
-				<h2 className='text-xl font-bold text-gray-800 dark:text-gray-200'>Recent Posts</h2>
+				<h2 className='text-xl font-bold text-gray-800 dark:text-[#e8e8fd] '>Recent Posts</h2>
 				<Link href={`blog`}>
 					<p className='text-md text-gray-800 dark:text-gray-400 underline cursor-pointer hover:text-indigo-400 hover:dark:text-indigo-400'>
 						View all
@@ -46,7 +47,7 @@ const RecentPosts = ({ posts_metadata }: PostListProps) => {
 												1,000 views
 											</p>
 										</div>
-										<h2 className='text-xl font-medium text-gray-800 dark:text-gray-200'>
+										<h2 className='text-xl font-medium text-gray-800 dark:text-[#e8e8fd] '>
 											{post.title}
 										</h2>
 										<p className='text-md pb-2 text-gray-800 dark:text-gray-400'>
