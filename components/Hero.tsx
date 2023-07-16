@@ -68,7 +68,7 @@ const Hero = () => {
 						</Link>
 					</div>
 				</div>
-				<div className='absolute top-0 -right-[420px] md:right-0'>
+				<div className='absolute top-0 hidden md:block md:right-0'>
 					<Matrix />
 				</div>
 			</motion.div>
