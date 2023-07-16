@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap');
+@layer base {
+	:root {
+		--background: 0 0% 100%;
+		--foreground: 222.2 84% 4.9%;
+
+		--muted: 210 40% 96.1%;
+		--muted-foreground: 215.4 16.3% 46.9%;
+
+		--popover: 0 0% 100%;
+		--popover-foreground: 222.2 84% 4.9%;
+
+		--card: 0 0% 100%;
+		--card-foreground: 222.2 84% 4.9%;
+
+		--border: 214.3 31.8% 91.4%;
+		--input: 214.3 31.8% 91.4%;
+
+		--primary: 198 93% 60%;
+		--primary-foreground: 0 0% 100%;
+
+		--secondary: 210 40% 96.1%;
+		--secondary-foreground: 198 93% 60%;
+
+		--accent: 210 40% 96.1%;
+		--accent-foreground: 198 93% 60%;
+
+		--destructive: 0 84.2% 60.2%;
+		--destructive-foreground: 198 93% 60%;
+
+		--ring: 215 20.2% 65.1%;
+		--radius: 0.5rem;
+	}
+
+	.dark {
+		/* Default background color of <body />...etc */
+		--background: 0 0% 9%;
+		--foreground: 232 25% 94%;
+		/* Muted backgrounds such as <TabsList />, <Skeleton /> and <Switch /> */
+		--muted: 0 0% 15%;
+		--muted-foreground: 0 0% 50%;
+		/* Background color for popovers such as <DropdownMenu />, <HoverCard />, <Popover /> */
+		--popover: 222.2 84% 4.9%;
+		--popover-foreground: 198 93% 60%;
+
+		/* Background color for <Card /> */
+		--card: 0 0% 8%;
+		--card-foreground: 232 25% 94%;
+
+		/* Default border color */
+		--border: 0 0% 15%;
+		/* Border color for inputs such as <Input />, <Select />, <Textarea /> */
+		--input: 0 0% 15%;
+
+		/* Primary colors for <Button /> */
+		--primary: 198 93% 60%;
+		--primary-foreground: 222.2 47.4% 11.2%;
+
+		/* Secondary colors for <Button /> */
+		--secondary: 0 0% 15%;
+		--secondary-foreground: 198 93% 60%;
+
+		/* Used for accents such as hover effects on <DropdownMenuItem>, <SelectItem>...etc */
+		--accent: 0 0% 15%;
+		--accent-foreground: 198 93% 60%;
+
+		--destructive: 0 62.8% 30.6%;
+		--destructive-foreground: 0 85.7% 97.3%;
+
+		/* Used for focus ring */
+		--ring: 0 0% 15%;
+	}
+}
+
+@layer base {
+	* {
+		@apply border-border;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+
+	/* Pre/Code Container */
+	div[data-rehype-pretty-code-fragment] {
+		@apply relative bg-card rounded-lg border border-border  border-opacity-20;
+	}
+
+	div[data-rehype-pretty-code-fragment] div#copy-button {
+		@apply absolute top-1.5 right-2;
+	}
+
+	/* Block Titles */
+	div[data-rehype-pretty-code-title] {
+		@apply rounded-t-lg border-b border-opacity-20  p-3 text-xs;
+	}
+
+	/* Line Highlights START*/
+	div[data-rehype-pretty-code-fragment] span[data-line] {
+		@apply pl-2 pr-3 border-l-[3px] border-transparent;
+	}
+	div[data-rehype-pretty-code-fragment] span[data-highlighted-line] {
+		@apply border-l-[3px] border-green-400 bg-border/70 w-full inline-block;
+	}
+	/* Line Highlights END */
+
+	span[data-chars-id='i'] {
+		@apply bg-indigo-600 rounded px-1;
+	}
+
+	span[data-chars-id='b'] {
+		@apply bg-blue-600 rounded px-1;
+	}
+}
+
+/* Line Number
+ */
+code {
+	counter-reset: line;
+}
+
+code > [data-line]::before {
+	counter-increment: line;
+	content: counter(line);
+
+	display: inline-block;
+	width: 1rem;
+	margin-right: 2rem;
+	text-align: right;
+	color: rgb(255 255 255 / 0.2);
+}
+
+code[data-line-numbers-max-digits='2'] > [data-line]::before {
+	width: 2rem;
+}
+
+code[data-line-numbers-max-digits='3'] > [data-line]::before {
+	width: 3rem;
+}
