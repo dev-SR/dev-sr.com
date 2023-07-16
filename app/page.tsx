@@ -2,6 +2,7 @@ import { allPosts } from '~/.contentlayer/generated';
 import FeaturedPosts from '~/components/FeaturedPosts';
 import Footer from '~/components/Footer';
 import Hero from '~/components/Hero';
+import RecentPosts from '~/components/RecentPosts';
 import PageWrapper from '~/components/page-wrapper';
 
 export default function Home() {
@@ -12,6 +13,7 @@ export default function Home() {
 				<div className='col-span-10 sm:col-span-10 md:col-span-8'>
 					<Hero />
 					<FeaturedPosts posts={allPosts} />
+					<RecentPosts posts={allPosts} />
 				</div>
 				<div className='col-span-1 sm:col-span-1 md:col-span-2'></div>
 			</div>

@@ -42,7 +42,7 @@ const TopNavBar: React.FC<Props> = () => {
 		<header
 			className={`fixed grid grid-cols-12 w-full z-50 ${
 				isScrolled ? 'mt-0' : 'mt-6 md:mt-10'
-			} transition-all duration-300 ease-in-out`}>
+			} transition-all duration-200 ease-in-out`}>
 			<link
 				rel='stylesheet'
 				href='https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css'

@@ -28,7 +28,7 @@ export default function FeaturedPosts({ posts }: FeaturedPostsProps) {
 						<div className='text-4xl font-black'>Featured</div>
 						<div className='text-primary text-6xl flex-grow-0 font-black'>.</div>
 					</div>
-					<Separator className='shrink h-[3px] mb-2' />
+					<Separator className='shrink h-[3px] mb-4' />
 				</div>
 			</div>
 			<div className='flex flex-col space-y-4'>
@@ -39,26 +39,26 @@ export default function FeaturedPosts({ posts }: FeaturedPostsProps) {
 								<Card>
 									<CardHeader>
 										<CardTitle>{post.title}</CardTitle>
-
 										<CardDescription>
 											{isClient && (
-												<div className='flex py-1 space-x-2 items-center flex-wrap'>
+												<div className='w-full flex items-center py-1 flex-wrap gap-2'>
 													{post.tags.split(',').map((tag, j) => (
-														<Badge key={j} variant={'outline'} className='text-muted-foreground'>
+														<Badge
+															key={j}
+															variant={'outline'}
+															className='text-muted-foreground max-w-min'>
 															{tag}
 														</Badge>
 													))}
-													<p className='text-xs flex space-x-2 items-center'>
-														<span className='flex items-center space-x-2'>
-															<LuCalendarDays className='h-4 w-4' />
-															<span>{format(new Date(post.date), 'PPP')}</span>
-														</span>
-														<span> / </span>
-														<span className='flex items-center space-x-2'>
-															<LuTimer className='h-4 w-4' />
-															<span>{readingTime(post.body.raw).text}</span>
-														</span>
-													</p>
+													<span className='text-xs flex items-center space-x-2'>
+														<LuCalendarDays className='h-4 w-4' />
+														<span>{format(new Date(post.date), 'PPP')}</span>
+													</span>
+													<span> / </span>
+													<span className='text-xs flex items-center space-x-2'>
+														<LuTimer className='h-4 w-4' />
+														<span>{readingTime(post.body.raw).text}</span>
+													</span>
 												</div>
 											)}
 										</CardDescription>

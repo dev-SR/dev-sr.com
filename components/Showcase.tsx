@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useMotionValue, transform, useAnimation } from 'framer-motion';
 import { useTheme } from 'next-themes';
 
@@ -63,7 +63,11 @@ export default function Matrix() {
 	}, [loopAnimation, stopAnimation]);
 
 	const theme = useTheme();
-	const borderColor = theme.theme === 'dark' ? '#4D535C' : '#D1D5DB';
+
+	const [borderColor, setBorderColor] = useState('#4D535C');
+	useEffect(() => {
+		setBorderColor(theme.theme === 'dark' ? '#4D535C' : '#D1D5DB');
+	}, [theme]);
 
 	return (
 		<div

@@ -44,14 +44,18 @@ const Hero = () => {
 						</div>
 					</div>
 				</div>
-				<div className='md:text-lg z-10 text-foreground/60 text-justify hyphens-auto'>
-					As a passionate machine learning enthusiast with a strong background in Computer Science
-					and Engineering, I actively contribute to research in the field. My work includes
-					publishing a conference paper on article recommendation techniques to facilitate
-					chronological learning and developing a novel topic modeling technique that utilizes
-					graphs and transformers to identify researchers’ expertise. Join me in exploring the
-					exciting world of Natural Language Processing (NLP), machine learning, and web
-					development.
+				<div className='md:text-lg z-10 text-justify hyphens-auto'>
+					<span className='text-foreground/70'>Greeting!</span>
+					<span className='animate-wiggle inline-flex text-foreground'>👋🏼</span>
+					<span className='text-foreground/70'>
+						I am a machine learning enthusiast with a solid foundation in Computer Science and
+						Engineering. I actively engage in research within the field, and one of my contributions
+						include writing a conference paper on strategies for article recommendations that
+						facilitate chronological learning. I&apos;m currently working on a novel topic modeling
+						strategy that combines graphs and transformers to identify researchers&apos; expertise.
+						Let&apos;s take a thrilling journey together to investigate the interesting fields of
+						Natural Language Processing (NLP), machine learning, and web development.
+					</span>
 				</div>
 				<div className='flex space-x-4 z-10 '>
 					<Button>Contact Me</Button>
