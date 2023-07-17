@@ -45,13 +45,13 @@ const Hero = () => {
 					</div>
 				</div>
 				<div className='md:text-lg z-10 text-justify hyphens-auto'>
-					<span className='text-foreground/70'>Greeting!</span>
-					<span className='animate-wiggle inline-flex text-foreground'>👋🏼</span>
+					<span className='text-foreground/70'>Greetings!</span>
+					<span className='animate-wiggle inline-flex text-foreground mx-[.5px]'>👋🏼</span>
 					<span className='text-foreground/70'>
 						I am a machine learning enthusiast with a solid foundation in Computer Science and
 						Engineering. I actively engage in research within the field, and one of my contributions
-						include writing a conference paper on strategies for article recommendations that
-						facilitate chronological learning. I&apos;m currently working on a novel topic modeling
+						includes writing a conference paper on strategies for article recommendations that
+						facilitate chronological learning. Currently, I am working on a novel topic modeling
 						strategy that combines graphs and transformers to identify researchers&apos; expertise.
 						Let&apos;s take a thrilling journey together to investigate the interesting fields of
 						Natural Language Processing (NLP), machine learning, and web development.
