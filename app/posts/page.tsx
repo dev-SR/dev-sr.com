@@ -1,12 +1,9 @@
 import { allPosts } from 'contentlayer/generated';
-import { format } from 'date-fns';
-import readingTime from 'reading-time';
 import { Metadata } from 'next';
-import Link from 'next/link';
 import Footer from '~/components/Footer';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '~/components/ui/card';
-import { Badge } from '~/components/ui/badge';
 import PageWrapper from '~/components/page-wrapper';
+import PostCard from '~/components/PostCard';
+import { Separator } from '~/components/ui/separator';
 
 interface BlogPostParam {
 	params: {
@@ -47,38 +44,26 @@ export async function generateStaticParams(): Promise<BlogPostParam['params'][]>
 export default async function BlogPostPage() {
 	return (
 		<PageWrapper>
-			<article className='grid grid-cols-12 w-full mt-60'>
+			<div className='grid grid-cols-12 w-full mt-32'>
+				<div className='col-span-1 sm:col-span-1 md:col-span-2'></div>
+				<div className='col-span-10 sm:col-span-10 md:col-span-8'>
+					<div className='flex w-full items-end space-x-4'>
+						<div className='flex items-end font-bold flex-shrink-0'>
+							<div className='text-4xl font-black flex-shrink-0'>All Posts</div>
+							<div className='text-primary text-6xl flex-grow-0 font-black'>.</div>
+						</div>
+						<Separator className='shrink h-[3px] mb-4' />
+					</div>
+				</div>
+				<div className='col-span-1 sm:col-span-1 md:col-span-2'></div>
+			</div>
+			<article className='grid grid-cols-12 w-full mt-10 '>
 				<div className='col-span-1 sm:col-span-1 md:col-span-3  flex justify-end pr-10 '></div>
-				<div className='col-span-10 sm:col-span-10 md:col-span-6'>
+				<div className='col-span-10 sm:col-span-10 md:col-span-6 min-h-screen'>
 					<div className='flex flex-col space-y-4'>
-						{allPosts.map((post, i) => {
-							return (
-								<Link href={post.slug} key={i}>
-									<Card>
-										<CardHeader>
-											<CardTitle>{post.title}</CardTitle>
-
-											<CardDescription>
-												<div className='flex py-1 space-x-2 items-center'>
-													{post.tags.split(',').map((tag, j) => (
-														<Badge key={j} variant={'outline'} className='text-muted-foreground'>
-															{tag}
-														</Badge>
-													))}
-													<p className='text-xs flex space-x-2 items-center'>
-														<span> / </span>
-														<span>{format(new Date(post.date), 'PPP')}</span>
-														<span> / </span>
-														<span>{readingTime(post.body.raw).text}</span>
-													</p>
-												</div>
-											</CardDescription>
-										</CardHeader>
-										<CardContent className='-mt-4'>{post.description}</CardContent>
-									</Card>
-								</Link>
-							);
-						})}
+						{allPosts.map((post, i) => (
+							<PostCard post={post} key={i} />
+						))}
 					</div>
 				</div>
 				<div className='col-span-1 sm:col-span-1 md:col-span-3 px-4'></div>

@@ -1,25 +1,14 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { format } from 'date-fns';
-import readingTime from 'reading-time';
-import { LuCalendarDays, LuTimer } from 'react-icons/lu';
-import Link from 'next/link';
-import { Badge } from '~/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '~/components/ui/card';
+import React from 'react';
 import { Separator } from '~/components/ui/separator';
 import { Post } from '~/.contentlayer/generated';
+import PostCard from './PostCard';
 
 interface FeaturedPostsProps {
 	posts: Post[]; // Replace 'any' with the actual type of 'allPosts' if possible
 }
 
 export default function FeaturedPosts({ posts }: FeaturedPostsProps) {
-	const [isClient, setIsClient] = useState(false);
-
-	useEffect(() => {
-		setIsClient(true);
-	}, []);
-
 	return (
 		<>
 			<div className='mt-20 mb-6'>
@@ -33,40 +22,7 @@ export default function FeaturedPosts({ posts }: FeaturedPostsProps) {
 			</div>
 			<div className='flex flex-col space-y-4'>
 				{posts.map((post, i) => {
-					if (post.featured)
-						return (
-							<Link href={post.slug} key={i}>
-								<Card>
-									<CardHeader>
-										<CardTitle>{post.title}</CardTitle>
-										<CardDescription>
-											{isClient && (
-												<div className='w-full flex items-center py-1 flex-wrap gap-2'>
-													{post.tags.split(',').map((tag, j) => (
-														<Badge
-															key={j}
-															variant={'outline'}
-															className='text-muted-foreground max-w-min'>
-															{tag}
-														</Badge>
-													))}
-													<span className='text-xs flex items-center space-x-2'>
-														<LuCalendarDays className='h-4 w-4' />
-														<span>{format(new Date(post.date), 'PPP')}</span>
-													</span>
-													<span> / </span>
-													<span className='text-xs flex items-center space-x-2'>
-														<LuTimer className='h-4 w-4' />
-														<span>{readingTime(post.body.raw).text}</span>
-													</span>
-												</div>
-											)}
-										</CardDescription>
-									</CardHeader>
-									<CardContent className='-mt-4'>{post.description}</CardContent>
-								</Card>
-							</Link>
-						);
+					if (post.featured) return <PostCard post={post} key={i} />;
 				})}
 			</div>
 		</>

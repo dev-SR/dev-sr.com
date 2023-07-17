@@ -85,7 +85,7 @@
 
 	/* Pre/Code Container */
 	div[data-rehype-pretty-code-fragment] {
-		@apply relative bg-card rounded-lg border border-border  border-opacity-20;
+		@apply relative bg-[#171717] rounded-lg border border-border  border-opacity-20;
 	}
 
 	div[data-rehype-pretty-code-fragment] div#copy-button {
@@ -102,7 +102,7 @@
 		@apply pl-2 pr-3 border-l-[3px] border-transparent;
 	}
 	div[data-rehype-pretty-code-fragment] span[data-highlighted-line] {
-		@apply border-l-[3px] border-green-400 bg-border/70 w-full inline-block;
+		@apply border-l-[3px] border-green-400 bg-[#262626]/70 w-full inline-block;
 	}
 	/* Line Highlights END */
 

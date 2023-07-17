@@ -1,26 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { format } from 'date-fns';
-import readingTime from 'reading-time';
-import { LuCalendarDays, LuTimer } from 'react-icons/lu';
-import Link from 'next/link';
-import { Badge } from '~/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '~/components/ui/card';
+import React from 'react';
 import { Separator } from '~/components/ui/separator';
 import { Post } from '~/.contentlayer/generated';
+import PostCard from './PostCard';
 
 interface RecentPostsProps {
 	posts: Post[];
 }
 
 export default function RecentsPosts({ posts }: RecentPostsProps) {
-	const [isClient, setIsClient] = useState(false);
-
-	useEffect(() => {
-		setIsClient(true);
-	}, []);
-
 	const recentPosts = posts
 		// .filter((post) => !post.featured) // Filter out featured posts
 		.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Sort by date in descending order
@@ -38,38 +27,8 @@ export default function RecentsPosts({ posts }: RecentPostsProps) {
 				</div>
 			</div>
 			<div className='flex flex-col space-y-4'>
-				{recentPosts.map((post) => (
-					<Link href={post.slug} key={post.slug}>
-						<Card>
-							<CardHeader>
-								<CardTitle>{post.title}</CardTitle>
-								<CardDescription>
-									{isClient && (
-										<div className='w-full flex items-center py-1 flex-wrap gap-2'>
-											{post.tags.split(',').map((tag, j) => (
-												<Badge
-													key={j}
-													variant={'outline'}
-													className='text-muted-foreground max-w-min'>
-													{tag}
-												</Badge>
-											))}
-											<span className='text-xs flex items-center space-x-2'>
-												<LuCalendarDays className='h-4 w-4' />
-												<span>{format(new Date(post.date), 'PPP')}</span>
-											</span>
-											<span> / </span>
-											<span className='text-xs flex items-center space-x-2'>
-												<LuTimer className='h-4 w-4' />
-												<span>{readingTime(post.body.raw).text}</span>
-											</span>
-										</div>
-									)}
-								</CardDescription>
-							</CardHeader>
-							<CardContent className='-mt-4'>{post.description}</CardContent>
-						</Card>
-					</Link>
+				{recentPosts.map((post, i) => (
+					<PostCard post={post} key={i} />
 				))}
 			</div>
 		</>

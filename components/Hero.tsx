@@ -60,7 +60,7 @@ const Hero = () => {
 				<div className='flex space-x-4 z-10 '>
 					<Button>Contact Me</Button>
 					{/* <Button variant={'outline'}>My Resume</Button> */}
-					<div className='border rounded-md border-border flex items-center space-x-4 px-4'>
+					<div className='border rounded-md border-border flex items-center space-x-4 px-4 bg-card'>
 						<Link href='https://github.com/dev-SR' target='_blank'>
 							<BsGithub className='w-5 h-5 text-foreground/70 hover:text-foreground' />
 						</Link>

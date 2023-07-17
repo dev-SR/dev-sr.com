@@ -3,9 +3,11 @@ import Image from 'next/image';
 import type { MDXComponents } from 'mdx/types';
 import Link from 'next/link';
 import { cn } from '~/lib/utils';
+import { Fira_Code } from 'next/font/google';
 
 import { useMDXComponent } from 'next-contentlayer/hooks';
 import { CopyButton } from './copy-button';
+const fireCode = Fira_Code({ subsets: ['latin'] });
 // Define your custom MDX components.
 const mdxComponents: MDXComponents = {
 	// Override the default <a> element to use the next/link component.
@@ -97,7 +99,7 @@ const mdxComponents: MDXComponents = {
 
 		return (
 			<>
-				<pre className={cn('overflow-x-auto py-2 text-base', className)} {...props} />
+				<pre className={cn('overflow-x-auto py-2', className)} {...props} />
 				{__rawString__ && (
 					<div id='copy-button'>
 						<CopyButton value={__rawString__} />
@@ -106,7 +108,9 @@ const mdxComponents: MDXComponents = {
 			</>
 		);
 	},
-	code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => <code {...props} />,
+	code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
+		<code {...props} className={`${fireCode.className}`} />
+	),
 	// Add a custom component.
 	MyComponent: () => <div>Hello World!</div>,
 	img: ({ alt, ...props }: any) => (
