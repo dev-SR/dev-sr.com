@@ -10,13 +10,20 @@ import { CopyButton } from './copy-button';
 const mdxComponents: MDXComponents = {
 	// Override the default <a> element to use the next/link component.
 	a: ({ href, children }) => (
-		<Link href={href as string} className='text-primary hover:underline'>
+		<Link href={href as string} className='text-primary hover:underline text-lg'>
 			{children}
 		</Link>
 	),
-	p: ({ children }) => <p className='py-1 text-foreground/70'>{children}</p>,
-	strong: ({ children }) => <strong className='font-bold text-foreground/100'>{children}</strong>,
-	em: ({ children }) => <em className='italic text-foreground/90'>{children}</em>,
+	p: ({ children }) => <p className='py-1 text-foreground/70 text-lg'>{children}</p>,
+	strong: ({ children }) => (
+		<strong className='font-bold text-foreground/100 text-lg'>{children}</strong>
+	),
+	em: ({ children }) => <em className='italic text-foreground/90 text-lg'>{children}</em>,
+	span: ({ children, ...props }) => (
+		<span className='text-foreground/90 text-lg' {...props}>
+			{children}
+		</span>
+	),
 	h1: ({ children }) => (
 		<h1
 			className='text-foreground text-4xl font-bold py-1'
@@ -45,11 +52,15 @@ const mdxComponents: MDXComponents = {
 			{children}
 		</h4>
 	),
-	ol: ({ children }) => <ol className='text-foreground/70 list-decimal px-8 py-2'>{children}</ol>,
-	ul: ({ children }) => <ul className='text-foreground/70 list-disc px-8 py-2'>{children}</ul>,
-	li: ({ children }) => <li className='text-foreground/70 pb-2'>{children}</li>,
+	ol: ({ children }) => (
+		<ol className='text-lgtext-foreground/70 list-decimal px-8 py-2'>{children}</ol>
+	),
+	ul: ({ children }) => (
+		<ul className='text-lg text-foreground/70 list-disc px-8 py-2'>{children}</ul>
+	),
+	li: ({ children }) => <li className='text-lg text-foreground/70 pb-2'>{children}</li>,
 	table: ({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
-		<div className='text-foreground/70 my-6 w-full overflow-y-auto'>
+		<div className='text-lg text-foreground/70 my-6 w-full overflow-y-auto'>
 			<table className={cn('w-full', className)} {...props} />
 		</div>
 	),
@@ -86,7 +97,7 @@ const mdxComponents: MDXComponents = {
 
 		return (
 			<>
-				<pre className={cn('overflow-x-auto py-2', className)} {...props} />
+				<pre className={cn('overflow-x-auto py-2 text-base', className)} {...props} />
 				{__rawString__ && (
 					<div id='copy-button'>
 						<CopyButton value={__rawString__} />
