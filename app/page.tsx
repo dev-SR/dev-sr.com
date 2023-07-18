@@ -1,4 +1,3 @@
-import { GetStaticProps } from 'next';
 import { allPosts } from '~/.contentlayer/generated';
 import AlertMessage from '~/components/AlertMessage';
 import FeaturedPosts from '~/components/FeaturedPosts';
