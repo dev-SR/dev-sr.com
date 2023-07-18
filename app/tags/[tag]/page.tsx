@@ -4,6 +4,8 @@ import PageWrapper from '~/components/page-wrapper';
 import Footer from '~/components/Footer';
 import PostCard from '~/components/PostCard';
 import { Separator } from '~/components/ui/separator';
+import { Tags } from '~/app/posts/page';
+import TagCard from '~/components/TagCard';
 
 interface PostProps {
 	params: {
@@ -14,12 +16,18 @@ interface PostProps {
 async function getPostFromParams(params: PostProps['params']) {
 	const tag = params?.tag;
 	const posts = allPosts.filter((post) => post.tags.includes(tag));
-
+	const tags: Tags = {};
+	allPosts.forEach((post) => {
+		post.tags.forEach((tag) => {
+			if (!tags[tag]) tags[tag] = 1;
+			else tags[tag]++;
+		});
+	});
 	if (!posts) {
 		null;
 	}
 
-	return posts;
+	return { posts, tags };
 }
 
 export async function generateStaticParams(): Promise<PostProps['params'][]> {
@@ -29,7 +37,7 @@ export async function generateStaticParams(): Promise<PostProps['params'][]> {
 }
 
 export default async function TagsPage({ params }: PostProps) {
-	const posts = await getPostFromParams(params);
+	const { posts, tags } = await getPostFromParams(params);
 
 	return (
 		<PageWrapper>
@@ -55,7 +63,9 @@ export default async function TagsPage({ params }: PostProps) {
 						))}
 					</div>
 				</div>
-				<div className='col-span-1 sm:col-span-1 md:col-span-3 px-4'></div>
+				<div className='col-span-1 sm:col-span-1 md:col-span-3 px-4'>
+					<TagCard tags={tags} />
+				</div>
 			</article>
 			<Footer />
 		</PageWrapper>

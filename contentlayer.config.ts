@@ -53,8 +53,12 @@ export const Post = defineDocumentType(() => ({
 			required: true
 		},
 		tags: {
-			type: 'string',
-			required: true
+			type: 'list',
+			required: true,
+			description: 'Tags of the post',
+			of: {
+				type: 'string'
+			}
 		},
 		featured: {
 			type: 'boolean'

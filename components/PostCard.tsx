@@ -15,7 +15,6 @@ import {
 	CardContent,
 	CardFooter
 } from '~/components/ui/card';
-import { Separator } from '~/components/ui/separator';
 type PostCardProps = {
 	post: Post;
 };
@@ -52,7 +51,7 @@ const PostCard = ({ post }: PostCardProps) => {
 			</Link>
 			<CardFooter>
 				<div className='w-full flex items-center flex-wrap gap-2 -my-4'>
-					{post.tags.split(',').map((tag, j) => (
+					{post.tags.map((tag, j) => (
 						<Link key={j} href={`/tags/${tag}`}>
 							<Badge
 								variant={'outline'}

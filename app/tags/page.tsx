@@ -1,24 +1,25 @@
-import { allPosts, Post } from 'contentlayer/generated';
-import Link from 'next/link';
+import { allPosts } from 'contentlayer/generated';
 import Footer from '~/components/Footer';
+import TagCard from '~/components/TagCard';
 import PageWrapper from '~/components/page-wrapper';
-import { Badge } from '~/components/ui/badge';
 import { Separator } from '~/components/ui/separator';
+import { Tags } from '../posts/page';
+export const dynamic = 'force-static';
 
-async function getTagFromParams() {
-	const allTags = allPosts.flatMap((post) => post.tags.split(','));
-	const uniqueTags = Array.from(new Set(allTags));
+const getData = async () => {
+	const tags: Tags = {};
+	allPosts.forEach((post) => {
+		post.tags.forEach((tag) => {
+			if (!tags[tag]) tags[tag] = 1;
+			else tags[tag]++;
+		});
+	});
 
-	if (uniqueTags.length === 0) {
-		return null;
-	}
-
-	return uniqueTags;
-}
+	return { tags };
+};
 
 export default async function TagPage() {
-	const tags = await getTagFromParams();
-	console.log(tags);
+	const { tags } = await getData();
 
 	return (
 		<PageWrapper>
@@ -38,17 +39,7 @@ export default async function TagPage() {
 			<article className='grid grid-cols-12 w-full mt-10 '>
 				<div className='col-span-1 sm:col-span-1 md:col-span-3  flex justify-end pr-10 '></div>
 				<div className='col-span-10 sm:col-span-10 md:col-span-6 min-h-screen'>
-					<div className='flex gap-4'>
-						{tags?.map((tag, j) => (
-							<Link key={j} href={`/tags/${tag}`}>
-								<Badge
-									variant={'outline'}
-									className='text-foreground/80 hover:text-foreground max-w-min uppercase'>
-									{tag}
-								</Badge>
-							</Link>
-						))}
-					</div>
+					<TagCard tags={tags} />
 				</div>
 				<div className='col-span-1 sm:col-span-1 md:col-span-3 px-4'></div>
 			</article>
