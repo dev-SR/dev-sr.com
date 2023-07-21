@@ -14,7 +14,7 @@ interface PostProps {
 }
 
 async function getPostFromParams(params: PostProps['params']) {
-	const tag = params?.tag;
+	const tag = params?.tag.replace('%20', ' ');
 	const posts = allPosts.filter((post) => post.tags.includes(tag));
 	const tags: Tags = {};
 	allPosts.forEach((post) => {
@@ -46,7 +46,9 @@ export default async function TagsPage({ params }: PostProps) {
 				<div className='col-span-10 sm:col-span-10 md:col-span-8'>
 					<div className='flex w-full items-end space-x-4'>
 						<div className='flex items-end font-bold flex-shrink-0'>
-							<div className='text-4xl font-black flex-shrink-0'>[{params?.tag}]</div>
+							<div className='text-4xl font-black flex-shrink-0'>
+								[{params?.tag.replace('%20', ' ')}]
+							</div>
 							<div className='text-primary text-6xl flex-grow-0 font-black'>.</div>
 						</div>
 						<Separator className='shrink h-[3px] mb-4' />

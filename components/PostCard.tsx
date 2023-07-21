@@ -50,12 +50,12 @@ const PostCard = ({ post }: PostCardProps) => {
 				</CardContent>
 			</Link>
 			<CardFooter>
-				<div className='w-full flex items-center flex-wrap gap-2 -my-4'>
+				<div className='w-full flex items-center gap-2 -my-4'>
 					{post.tags.map((tag, j) => (
 						<Link key={j} href={`/tags/${tag}`}>
 							<Badge
 								variant={'outline'}
-								className='text-foreground/80 hover:text-foreground max-w-min uppercase text-[10px]'>
+								className='text-foreground/80 hover:text-foreground uppercase text-[10px]'>
 								{tag}
 							</Badge>
 						</Link>
