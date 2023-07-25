@@ -48,8 +48,10 @@ const Hero = () => {
 					<span className='text-foreground/70'>Greetings!</span>
 					<span className='animate-wiggle inline-flex text-foreground mx-[.5px]'>👋🏼</span>
 					<span className='text-foreground/70'>
-						As a Natural Language Processing(NLP) enthusiast with a solid foundation in Computer
-						Science and Engineering, I am interested in making Large Language Models (LLMs) more{' '}
+						As a{' '}
+						<span className='font-bold text-foreground/80'>Natural Language Processing(NLP)</span>{' '}
+						enthusiast with a solid foundation in Computer Science and Engineering, I am interested
+						in making Large Language Models (LLMs) more{' '}
 						<span className='font-bold text-foreground/80'>dynamic</span> through{' '}
 						<span className='font-bold text-foreground/80'>Lifelong Continual Learning</span>. I
 						also want to enable LLMs to be{' '}
