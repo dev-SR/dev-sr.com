@@ -48,13 +48,24 @@ const Hero = () => {
 					<span className='text-foreground/70'>Greetings!</span>
 					<span className='animate-wiggle inline-flex text-foreground mx-[.5px]'>👋🏼</span>
 					<span className='text-foreground/70'>
-						I am a machine learning enthusiast with a solid foundation in Computer Science and
-						Engineering. I actively engage in research within the field, and one of my contributions
-						includes writing a conference paper on strategies for article recommendations that
-						facilitate chronological learning. Currently, I am working on a novel topic modeling
-						strategy that combines graphs and transformers to identify researchers&apos; expertise.
-						Let&apos;s take a thrilling journey together to investigate the interesting fields of
-						Natural Language Processing (NLP), machine learning, and web development.
+						As a Natural Language Processing(NLP) enthusiast with a solid foundation in Computer
+						Science and Engineering, I am interested in making Large Language Models (LLMs) more
+						dynamic through{' '}
+						<span className='font-bold text-foreground/80'>Lifelong Continual Learning</span>. I
+						also want to enable LLMs to be{' '}
+						<span className='font-bold text-foreground/80'>
+							Interpretable, Editable, and Modular Knowledge Learners
+						</span>
+						. My past research involved Text Mining Techniques to develop strategies for research
+						article recommendations that facilitate chronological learning, published in the{' '}
+						<a
+							href='https://doi.org/10.1109/STI56238.2022.10103286'
+							target='_blank'
+							className='underline'>
+							IEEE STI 2022 Conference
+						</a>
+						. Currently, I am working on a novel Topic Modeling strategy that combines Graphs and
+						Transformers to identify researchers&apos; expertise.
 					</span>
 				</div>
 				<div className='flex space-x-4 z-10 '>
