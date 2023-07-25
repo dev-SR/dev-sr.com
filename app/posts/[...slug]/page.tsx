@@ -67,12 +67,12 @@ export default async function PostPage({ params }: PostProps) {
 				<div className='col-span-10 sm:col-span-10 md:col-span-6 flex flex-col space-y-4'>
 					<Link
 						href='/'
-						className='flex space-x-2 items-center hover:text-sky-400 transition ease-in-out hover:translate-x-1 hover:scale-110  duration-300 max-w-min'>
+						className='flex space-x-2 items-center text-sky-500 hover:dark:text-sky-400 transition ease-in-out hover:translate-x-1 hover:scale-110  duration-300 max-w-min'>
 						<IoIosArrowRoundBack className='h-6 w-6' />
 						<div className='text-sm'>Home</div>
 					</Link>
 					<h1 className='text-5xl font-bold '>{post.title}</h1>
-					<p className='text-xs text-sky-400 flex space-x-2 items-center'>
+					<p className='text-xs text-sky-500 dark:text-sky-400 flex space-x-2 items-center'>
 						<span className='flex items-center space-x-2'>
 							<LuCalendarDays className='h-4 w-4' />
 							<span>{format(new Date(post.date), 'PPP')}</span>

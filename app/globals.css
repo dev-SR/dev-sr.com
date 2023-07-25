@@ -19,17 +19,17 @@
 		--border: 214.3 31.8% 91.4%;
 		--input: 214.3 31.8% 91.4%;
 
-		--primary: 198 93% 60%;
+		--primary: 199, 89%, 48%;
 		--primary-foreground: 0 0% 100%;
 
 		--secondary: 210 40% 96.1%;
-		--secondary-foreground: 198 93% 60%;
+		--secondary-foreground: 199, 89%, 48%;
 
 		--accent: 210 40% 96.1%;
-		--accent-foreground: 198 93% 60%;
+		--accent-foreground: 199, 89%, 48%;
 
 		--destructive: 0 84.2% 60.2%;
-		--destructive-foreground: 198 93% 60%;
+		--destructive-foreground: 199, 89%, 48%;
 
 		--ring: 215 20.2% 65.1%;
 		--radius: 0.5rem;

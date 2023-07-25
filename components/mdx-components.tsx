@@ -57,7 +57,7 @@ const mdxComponents: MDXComponents = {
 		</h4>
 	),
 	ol: ({ children }) => (
-		<ol className='text-lgtext-foreground/70 list-decimal px-8 py-2'>{children}</ol>
+		<ol className='text-lg text-foreground/70 list-decimal px-8 py-2'>{children}</ol>
 	),
 	ul: ({ children }) => (
 		<ul className='text-lg text-foreground/70 list-disc px-8 py-2'>{children}</ul>
