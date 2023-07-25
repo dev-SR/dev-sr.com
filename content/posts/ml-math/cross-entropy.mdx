@@ -1,0 +1,80 @@
+---
+title: Cross Entropy in Machine Learning
+description: Understanding and Applying Cross Entropy in Machine Learning
+date: '2023-07-25'
+tags: [Math for Machine Learning, cross-entropy]
+featured: true
+---
+
+Cross entropy is a widely used loss function in machine learning, especially for tasks involving `classification` or `probabilistic modeling`. **It quantifies the dissimilarity between two `probability` distributions and is *minimized* when the model's predicted `probabilities` are the same as the empirical `probabilities`.**.
+
+## Intuition Behind Cross Entropy
+
+Imagine a machine-learning algorithm designed to classify fruits as apples, oranges, or guavas. Given a test input of features representing an orange, the algorithm outputs three probabilities (after applying the softmax function), representing the chances of the fruit being an apple (`A`), an orange (`O`), or a guava (`G`).
+
+For example, the model probabilities are: $P_A^{y'} = 0.13$, $P_O^{y'} = 0.69$, and $P_G^{y'} = 0.18$.
+
+Here, the algorithm performed relatively well, considering the fruit most likely an orange. However, it wasn't 100% certain. Empirically, we know that true possibilities are $P_A^{y} = 0$, $P_O^{y} = 1$, and $P_G^{y} = 0$ because it is indeed an orange.
+
+## Cross Entropy Loss Function
+
+The cross-entropy loss function is defined as:
+
+$$H(y, y') = - \sum_{i} y_i \cdot \log(y_i')$$
+
+Where:
+
+- $y$ is the true probability distribution (ground truth)
+- $y'$ is the predicted probability distribution from the model
+
+For our example:
+
+
+$$H(y, y') = - ((0 \times \log(0.13) + 1 \times \log(0.69) + 0 \times \log(0.18)) = - (\log(0.69)) \approx 0.371$$
+
+## Minimizing Cross Entropy
+
+Now, let's consider a hypothetical scenario where the model's predicted probabilities perfectly match the true probabilities. This would happen if the model was 100% confident that the fruit is an orange, meaning $P_O^{y'} = 1$ and $P_A^{y'} = P_G^{y'} = 0$. In this case, $y' = [0, 1, 0]$.
+
+The cross-entropy loss for this scenario would be:
+
+$$H(y, y') = - ((0 \times \log(0) + 1 \times \log(1) + 0 \times \log(0)) = 0$$
+
+As we can see, the cross-entropy loss is minimized to 0 when the model probabilities ($y'$) are exactly the same as the true probabilities ($y$). So, The cross-entropy loss increases as the model's predicted probabilities deviate from the true probabilities, indicating a higher dissimilarity between the distributions. Minimizing the cross-entropy effectively encourages the model to adjust its parameters to improve its predictions and become more confident in its correct classifications, which is precisely what we aim to achieve in machine learning tasks.
+
+The goal of the machine learning algorithm is thus to minimize the cross entropy loss across all examples in the training set. By doing so, it aims to make the predicted probabilities as close as possible to the true probabilities for each class.
+
+## Intuition Behind Cross-Entropy Components
+
+To understand why the cross-entropy loss works this way, let's focus on two important components:
+
+1. **Surprisals $(-\log(y_i'))$:** The term $-\log(y_i')$ is often referred to as **"Surprisals"**. In information theory, Surprisals represents the amount of surprise or **uncertainty** associated with the occurrence of an event with probability $y_i'$. *The more surprising an event, the higher the Surprisals*. It is the logarithm of the inverse of the predicted probability, meaning that as $y_i'$ approaches 1 (high confidence in prediction), the Surprisals approaches 0, indicating low surprise (`orange==orange` **why surprise?**). Conversely, as $y_i'$ approaches 0 (low confidence in prediction), the Surprisals approaches infinity, indicating high surprise (`apple==orange?` **WTF!**).
+
+    > **Surprisals associated with an event is the negative of the logarithm of the probability of the event : $-\log(p)$.**
+
+    <MdxImage src="/content/cross-entropy/surprisal_plot.png" width={550} height={400} caption="As the predicted probability approaches 1 (an event being certain), the Surprisal approaches 0, indicating low surprise. Conversely, as the predicted probability approaches 0 (an event becoming impossible), the Surprisal increases without bound (towards infinity), indicating high surprise" fig_no={1}/>
+
+    ```python
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    # Define a range of probabilities from 0 to 1
+    probs = np.linspace(0, 1, 100)
+
+    # Calculate the Surprisals using the formula: -log(p)
+    Surprisals = -np.log(probs)
+
+    # Plot the graph
+    plt.plot(probs, Surprisals)
+    plt.xlabel('Predicted Probability (y^)')
+    plt.ylabel('Surprisal (-log(y^))')
+    plt.title('Surprisal vs. Predicted Probability')
+    plt.grid(True)
+    plt.show()
+    ```
+
+2. **Weighted Surprisals $(-y_i \cdot \log(y_i'))$:** This term **emphasizes the importance of the true class prediction**. Multiplying the Surprisals by the corresponding ground truth value ($y_i$) means that the loss term $-y_i \cdot \log(y_i')$ is `nonzero` **only for the `true` class** ($y_i = 1$). For **all other classes**, where $y_i = 0$, the contribution to the overall loss is `zero`.
+
+The idea behind this weighted Surprisals term is to **give importance to the prediction for the true class** while ignoring the predictions for other classes. **When the model is confident about the true class (i.e., $y_i'$ is close to 1), the Surprisals term becomes close to 0, leading to a low contribution to the overall loss**. **Conversely, when the model is uncertain about the true class (i.e., $y_i'$ is close to 0), the Surprisals term becomes very large, leading to a high contribution to the overall loss**. This way, the cross-entropy loss **penalizes** the model more when it is uncertain about the true class and encourages it to become more confident and accurate in its predictions.
+
+In summary, the cross-entropy loss computes the weighted Surprisals for each class, giving higher importance to the true class prediction, and encourages the model to adjust its parameters to reduce the Surprisals and become more certain and accurate in predicting the correct class. It is a common loss function used in classification tasks to train machine learning models effectively.

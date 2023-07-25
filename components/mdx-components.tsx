@@ -7,6 +7,8 @@ import { Fira_Code } from 'next/font/google';
 
 import { useMDXComponent } from 'next-contentlayer/hooks';
 import { CopyButton } from './copy-button';
+import React from 'react';
+import { Card } from './ui/card';
 const fireCode = Fira_Code({ subsets: ['latin'] });
 // Define your custom MDX components.
 const mdxComponents: MDXComponents = {
@@ -18,7 +20,7 @@ const mdxComponents: MDXComponents = {
 	),
 	p: ({ children }) => <p className='py-1 text-foreground/70 text-lg'>{children}</p>,
 	strong: ({ children }) => (
-		<strong className='font-bold text-foreground/100 text-lg'>{children}</strong>
+		<strong className='font-bold text-foreground/90 text-lg'>{children}</strong>
 	),
 	em: ({ children }) => <em className='italic text-foreground/90 text-lg'>{children}</em>,
 	span: ({ children, ...props }) => (
@@ -108,17 +110,58 @@ const mdxComponents: MDXComponents = {
 			</>
 		);
 	},
-	code: ({ className, ...props }: React.HTMLAttributes<HTMLElement>) => (
-		<code {...props} className={`${fireCode.className}`} />
+	code: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => {
+		const hasOnlyTextNode = isOnlyTextNode(children);
+
+		return (
+			<code
+				{...props}
+				className={cn(
+					`${fireCode.className}`,
+					hasOnlyTextNode &&
+						'border-transparent bg-secondary text-secondary-foreground inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold'
+				)}>
+				{children}
+			</code>
+		);
+	},
+	blockquote: ({ children, ...props }) => (
+		<blockquote
+			className='border-l-4 border-primary/50 pl-4 py-2 my-4 text-lg bg-card italic'
+			{...props}>
+			{children}
+		</blockquote>
 	),
 	// Add a custom component.
-	MyComponent: () => <div>Hello World!</div>,
-	img: ({ alt, ...props }: any) => (
-		// height and width are part of the props, so they get automatically passed here with {...props}
-		<Image {...props} loading='lazy' alt={alt} />
-	)
+
+	MdxImage: ({ src, width, height, caption, fig_no }: MdxImageProps) => {
+		return (
+			<div className='flex flex-col w-full items-center justify-center py-8'>
+				<Image src={src} loading='lazy' alt={src.replace('.', '')} width={width} height={height} />
+				{caption && (
+					<Card className='mt-2 text-center my-2 p-2 text-sm italic text-foreground/70 w-full md:w-3/4 bg-transparent'>
+						<span className='font-bold'>Figure {fig_no} : </span>
+						{caption}
+					</Card>
+				)}
+			</div>
+		);
+	}
+};
+type MdxImageProps = {
+	src: string;
+	width: number;
+	height: number;
+	caption?: string; // New prop for caption
+	fig_no?: number;
+};
+const isTextNode = (node: React.ReactNode): boolean => {
+	return typeof node === 'string' || typeof node === 'number';
 };
 
+const isOnlyTextNode = (children: React.ReactNode): boolean => {
+	return React.Children.count(children) === 1 && isTextNode(children);
+};
 export interface MdxProps {
 	code: string;
 }
@@ -128,3 +171,9 @@ export function Mdx({ code }: MdxProps) {
 
 	return <Component re components={mdxComponents} />;
 }
+
+<code>
+	<span>
+		<span>nested code</span>
+	</span>
+</code>;

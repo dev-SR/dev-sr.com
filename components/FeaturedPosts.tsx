@@ -9,6 +9,8 @@ interface FeaturedPostsProps {
 }
 
 export default function FeaturedPosts({ posts }: FeaturedPostsProps) {
+	const recentPosts = posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+	// Sort by date in descending
 	return (
 		<>
 			<div className='mt-20 mb-6'>
@@ -21,7 +23,7 @@ export default function FeaturedPosts({ posts }: FeaturedPostsProps) {
 				</div>
 			</div>
 			<div className='flex flex-col space-y-4'>
-				{posts.map((post, i) => {
+				{recentPosts.map((post, i) => {
 					if (post.featured) return <PostCard post={post} key={i} />;
 				})}
 			</div>
