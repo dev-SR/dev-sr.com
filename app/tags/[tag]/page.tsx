@@ -60,9 +60,11 @@ export default async function TagsPage({ params }: PostProps) {
 				<div className='col-span-1 sm:col-span-1 md:col-span-3  flex justify-end pr-10 '></div>
 				<div className='col-span-10 sm:col-span-10 md:col-span-6 min-h-screen'>
 					<div className='flex flex-col space-y-4'>
-						{posts.map((post, i) => (
-							<PostCard post={post} key={i} />
-						))}
+						{posts
+							.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+							.map((post, i) => (
+								<PostCard post={post} key={i} />
+							))}
 					</div>
 				</div>
 				<div className='col-span-1 sm:col-span-1 md:col-span-3 px-4'>
