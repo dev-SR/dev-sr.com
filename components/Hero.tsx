@@ -50,7 +50,7 @@ const Hero = () => {
 					<span className='text-foreground/70'>
 						As a Natural Language Processing(NLP) enthusiast with a solid foundation in Computer
 						Science and Engineering, I am interested in making Large Language Models (LLMs) more
-						dynamic through{' '}
+						<span className='font-bold text-foreground/80'>dynamic</span> through{' '}
 						<span className='font-bold text-foreground/80'>Lifelong Continual Learning</span>. I
 						also want to enable LLMs to be{' '}
 						<span className='font-bold text-foreground/80'>
