@@ -21,12 +21,12 @@ const TagCard = ({ tags }: TagCardProps) => {
 				<CardTitle className='font-medium text-xl'>All Tags</CardTitle>
 				<CardDescription>
 					{isClient && (
-						<div className='w-full flex items-center py-1 flex-wrap gap-2'>
+						<div className='w-full flex items-center py-1 flex-wrap gap-4'>
 							{Object.keys(tags).map((tag, j) => (
 								<Link key={j} href={`/tags/${tag}`}>
 									<Badge
 										variant={'outline'}
-										className='text-foreground/80 hover:text-foreground uppercase text-sm'>
+										className='text-foreground/80 hover:text-foreground uppercase text-xs'>
 										{tag} ({tags[tag]})
 									</Badge>
 								</Link>

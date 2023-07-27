@@ -30,28 +30,28 @@ const mdxComponents: MDXComponents = {
 	),
 	h1: ({ children }) => (
 		<h1
-			className='text-foreground text-4xl font-bold py-1'
+			className='text-foreground/90 text-4xl  py-1'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h1>
 	),
 	h2: ({ children }) => (
 		<h2
-			className='text-foreground text-3xl font-bold py-1'
+			className='text-foreground/90 text-3xl  py-1'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h2>
 	),
 	h3: ({ children }) => (
 		<h3
-			className='text-foreground text-2xl font-bold py-1'
+			className='text-foreground/90 text-2xl  py-1'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h3>
 	),
 	h4: ({ children }) => (
 		<h4
-			className='text-foreground text-xl font-bold py-1'
+			className='text-foreground/90 text-xl  py-1'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h4>
@@ -74,7 +74,7 @@ const mdxComponents: MDXComponents = {
 	th: ({ className, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
 		<th
 			className={cn(
-				'text-foreground bg-background border border-border border-opacity-20 px-4 py-2 text-left font-bold [&[align=center]]:text-center [&[align=right]]:text-right',
+				'font-bold text-foreground bg-background border border-border border-opacity-20 px-4 py-2 text-left  [&[align=center]]:text-center [&[align=right]]:text-right',
 				className
 			)}
 			{...props}
@@ -101,7 +101,7 @@ const mdxComponents: MDXComponents = {
 
 		return (
 			<>
-				<pre className={cn('overflow-x-auto py-2', className)} {...props} />
+				<pre className={cn('overflow-x-auto py-2 ', className)} {...props} />
 				{__rawString__ && (
 					<div id='copy-button'>
 						<CopyButton value={__rawString__} />
@@ -127,7 +127,7 @@ const mdxComponents: MDXComponents = {
 	},
 	blockquote: ({ children, ...props }) => (
 		<blockquote
-			className='border-l-4 border-primary/50 pl-4 py-2 my-4 text-lg bg-card italic'
+			className='border-l-4 border-primary/50 pl-4 py-2 my-4 text-lg bg-card italic ml-8'
 			{...props}>
 			{children}
 		</blockquote>
@@ -140,7 +140,7 @@ const mdxComponents: MDXComponents = {
 				<Image src={src} loading='lazy' alt={src.replace('.', '')} width={width} height={height} />
 				{caption && (
 					<Card className='mt-2 text-center my-2 p-2 text-sm italic text-foreground/70 w-full md:w-3/4 bg-transparent'>
-						<span className='font-bold'>Figure {fig_no} : </span>
+						<span className=''>Figure {fig_no} : </span>
 						{caption}
 					</Card>
 				)}

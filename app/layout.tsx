@@ -1,10 +1,13 @@
 import './globals.css';
-import { Inter } from 'next/font/google';
+import { Inter, IBM_Plex_Sans } from 'next/font/google';
 import { ThemeProvider } from '~/components/theme-provider';
 import { Analytics } from '~/components/analytics';
 import TopNavBar from '~/components/topnav';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = IBM_Plex_Sans({
+	weight: ['100', '200', '300', '400', '500', '600', '700'],
+	subsets: ['latin']
+});
 
 export const metadata = {
 	title: "Sharukh's Blog",
