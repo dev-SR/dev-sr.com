@@ -1,6 +1,7 @@
 import { allPosts } from 'contentlayer/generated';
 import Footer from '~/components/Footer';
 import PageWrapper from '~/components/page-wrapper';
+import Pagination from '~/components/Pagination';
 import PostCard from '~/components/PostCard';
 import TagCard from '~/components/TagCard';
 import { Separator } from '~/components/ui/separator';
@@ -11,8 +12,19 @@ export type Tags = {
 	[key: string]: number;
 };
 
-const getData = async () => {
-	const posts = allPosts;
+type SearchParam = {
+	page: string;
+};
+
+const getData = async ({ page = '1' }: SearchParam) => {
+	const posts = allPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+	const postsPerPage = 3;
+	const totalPosts = posts.length;
+	const totalPages = Math.ceil(totalPosts / postsPerPage);
+	const indexOfLastPost = Number(page) * postsPerPage;
+	const indexOfFirstPost = indexOfLastPost - postsPerPage;
+	const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
+
 	const tags: Tags = {};
 	allPosts.forEach((post) => {
 		post.tags.forEach((tag) => {
@@ -21,11 +33,14 @@ const getData = async () => {
 		});
 	});
 
-	return { posts, tags };
+	return { currentPosts, totalPages, tags };
 };
 
-export default async function BlogPostPage() {
-	const { posts, tags } = await getData();
+interface BlogPostProps {
+	searchParams: SearchParam;
+}
+export default async function BlogPostPage({ searchParams }: BlogPostProps) {
+	const { currentPosts, totalPages, tags } = await getData(searchParams);
 
 	return (
 		<PageWrapper>
@@ -46,12 +61,11 @@ export default async function BlogPostPage() {
 				<div className='col-span-1 sm:col-span-1 md:col-span-3  flex justify-end pr-10 '></div>
 				<div className='col-span-10 sm:col-span-10 md:col-span-6 min-h-screen'>
 					<div className='flex flex-col space-y-4'>
-						{posts
-							.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-							.map((post, i) => (
-								<PostCard post={post} key={i} />
-							))}
+						{currentPosts.map((post, i) => (
+							<PostCard post={post} key={i} />
+						))}
 					</div>
+					<Pagination totalPages={totalPages} />
 				</div>
 				<div className='col-span-1 sm:col-span-1 md:col-span-3 px-4'>
 					<TagCard tags={tags} />
