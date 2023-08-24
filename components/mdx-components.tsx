@@ -30,28 +30,28 @@ const mdxComponents: MDXComponents = {
 	),
 	h1: ({ children }) => (
 		<h1
-			className='text-foreground/90 text-4xl  py-1'
+			className='text-foreground/90 text-4xl  py-1 font-semibold'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h1>
 	),
 	h2: ({ children }) => (
 		<h2
-			className='text-foreground/90 text-3xl  py-1'
+			className='text-foreground/90 text-3xl  py-1 font-semibold'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h2>
 	),
 	h3: ({ children }) => (
 		<h3
-			className='text-foreground/90 text-2xl  py-1'
+			className='text-foreground/90 text-2xl  py-1 font-semibold'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h3>
 	),
 	h4: ({ children }) => (
 		<h4
-			className='text-foreground/90 text-xl  py-1'
+			className='text-foreground/90 text-xl  py-1 font-semibold'
 			id={children?.toString().toLowerCase().replace(/\s/g, '-')}>
 			{children}
 		</h4>
