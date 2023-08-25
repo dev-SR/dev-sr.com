@@ -11,39 +11,33 @@ typedef struct BinarySearchTree {
     TreeNode *root;
 } BinarySearchTree;
 
-BinarySearchTree *createBST() {
-    BinarySearchTree *bst = (BinarySearchTree *)malloc(sizeof(BinarySearchTree));
-    bst->root = NULL;
-    return bst;
+TreeNode *create_new_node(int value) {
+    TreeNode *newNode = (TreeNode *)malloc(sizeof(TreeNode));
+    newNode->val = value;
+    newNode->left = newNode->right = NULL;
+    return newNode;
 }
-
-int search(TreeNode *root, int target) {
+TreeNode *search_recursive(TreeNode *root, int target) {
     if (!root) {
-        return 0;
+        return NULL;
     }
-
     if (target > root->val) {
-        return search(root->right, target);
+        return search_recursive(root->right, target);
     } else if (target < root->val) {
-        return search(root->left, target);
+        return search_recursive(root->left, target);
     } else {
-        return 1;
+        return root;
     }
 }
 
-TreeNode *insert(TreeNode *root, int val) {
+TreeNode *insert_recursive(TreeNode *root, int val) {
     if (!root) {
-        TreeNode *newNode = (TreeNode *)malloc(sizeof(TreeNode));
-        newNode->val = val;
-        newNode->left = NULL;
-        newNode->right = NULL;
-        return newNode;
+        return create_new_node(val);
     }
-
     if (val > root->val) {
-        root->right = insert(root->right, val);
+        root->right = insert_recursive(root->right, val);
     } else if (val < root->val) {
-        root->left = insert(root->left, val);
+        root->left = insert_recursive(root->left, val);
     }
     return root;
 }
@@ -56,15 +50,15 @@ TreeNode *minValueNode(TreeNode *root) {
     return curr;
 }
 
-TreeNode *removeNode(TreeNode *root, int val) {
+TreeNode *remove_recursive(TreeNode *root, int val) {
     if (!root) {
         return NULL;
     }
 
     if (val > root->val) {
-        root->right = removeNode(root->right, val);
+        root->right = remove_recursive(root->right, val);
     } else if (val < root->val) {
-        root->left = removeNode(root->left, val);
+        root->left = remove_recursive(root->left, val);
     } else {
         if (!root->left) {
             TreeNode *temp = root->right;
@@ -74,67 +68,63 @@ TreeNode *removeNode(TreeNode *root, int val) {
             TreeNode *temp = root->left;
             free(root);
             return temp;
-        } else {
-            TreeNode *minNode = minValueNode(root->right);
-            root->val = minNode->val;
-            root->right = removeNode(root->right, minNode->val);
         }
+
+        TreeNode *minNode = minValueNode(root->right);
+        root->val = minNode->val;
+        root->right = remove_recursive(root->right, minNode->val);
     }
     return root;
 }
 
-void inorder(TreeNode *root) {
+void inorder_traversal_recursive(TreeNode *root) {
     if (!root) {
         return;
     }
-
-    inorder(root->left);
+    inorder_traversal_recursive(root->left);
     printf("%d ", root->val);
-    inorder(root->right);
+    inorder_traversal_recursive(root->right);
 }
 
-void printTree(TreeNode *root, int level) {
+void print_tree_recursive(TreeNode *root, int level) {
     if (root) {
-        printTree(root->right, level + 1);
+        print_tree_recursive(root->right, level + 1);
         for (int i = 0; i < level; i++) {
             printf("    ");
         }
         printf("%d\n", root->val);
-        printTree(root->left, level + 1);
-    }
-}
-void freeTree(TreeNode *root) {
-    if (root) {
-        freeTree(root->left);
-        freeTree(root->right);
-        free(root);
+        print_tree_recursive(root->left, level + 1);
     }
 }
 
 int main() {
-    BinarySearchTree *bst = createBST();
+    BinarySearchTree bst;
+    bst.root = NULL;
 
-    bst->root = insert(bst->root, 50);
-    bst->root = insert(bst->root, 30);
-    bst->root = insert(bst->root, 70);
-    bst->root = insert(bst->root, 20);
-    bst->root = insert(bst->root, 40);
-    bst->root = insert(bst->root, 60);
-    bst->root = insert(bst->root, 80);
+    bst.root = insert_recursive(bst.root, 50);
+    bst.root = insert_recursive(bst.root, 30);
+    bst.root = insert_recursive(bst.root, 70);
+    bst.root = insert_recursive(bst.root, 20);
+    bst.root = insert_recursive(bst.root, 40);
+    bst.root = insert_recursive(bst.root, 60);
+    bst.root = insert_recursive(bst.root, 80);
 
-    inorder(bst->root);
+    inorder_traversal_recursive(bst.root);
     printf("\n");
+    print_tree_recursive(bst.root, 0);
 
-    printTree(bst->root, 0);
-
-    bst->root = removeNode(bst->root, 50);
-    inorder(bst->root);
+    bst.root = remove_recursive(bst.root, 50);
+    inorder_traversal_recursive(bst.root);
     printf("\n");
-    printTree(bst->root, 0);
+    print_tree_recursive(bst.root, 0);
 
-    // Free allocated memory
-    freeTree(bst->root);
-    free(bst);
+    // search for 50
+    TreeNode *result = search_recursive(bst.root, 50);
+    if (result) {
+        printf("Found %d\n", result->val);
+    } else {
+        printf("Not found\n");
+    }
 
     return 0;
 }
