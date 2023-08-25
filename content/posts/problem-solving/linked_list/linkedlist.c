@@ -11,12 +11,17 @@ typedef struct LinkedList {
     ListNode *tail;
 } LinkedList;
 
+ListNode *createNewNode(int val) {
+    ListNode *newNode = (ListNode *)malloc(sizeof(ListNode));
+    newNode->val = val;
+    newNode->next = NULL;
+    return newNode;
+}
+
 // Initialize the linked list with a dummy node.
 void initLinkedList(LinkedList *list) {
     // Create a new node for the dummy head.
-    ListNode *newNode = (ListNode *)malloc(sizeof(ListNode));
-    newNode->val = -1;
-    newNode->next = NULL;
+    ListNode *newNode = createNewNode(-1);
 
     // Set both head and tail pointers to the new dummy node.
     list->head = newNode;
@@ -26,12 +31,9 @@ void initLinkedList(LinkedList *list) {
 // Insert a new node at the end of the linked list.
 void insertEnd(LinkedList *list, int val) {
     // Create a new node with the given value.
-    ListNode *newNode = (ListNode *)malloc(sizeof(ListNode));
-    newNode->val = val;
-    newNode->next = NULL;
-
-    // Link the new node via the current tail
-    list->tail->next = newNode;
+    ListNode *newNode = createNewNode(val);
+    // Connect two node; in this case last node and the newNode via tail pointer
+    list->tail->next = newNode; // list->tail is the last node
     // Move tail to the new last node
     list->tail = newNode;
 }
@@ -48,9 +50,7 @@ ListNode *findPrevious(LinkedList *list, int index) {
 
 // Insert a new node at the specified index.
 void insertAt(LinkedList *list, int index, int val) {
-    ListNode *newNode = (ListNode *)malloc(sizeof(ListNode));
-    newNode->val = val;
-
+    ListNode *newNode = createNewNode(val);
     ListNode *prev = findPrevious(list, index - 1);
     if (prev) {
         newNode->next = prev->next;

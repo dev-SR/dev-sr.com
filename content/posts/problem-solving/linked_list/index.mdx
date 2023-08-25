@@ -23,7 +23,7 @@ featured: true
 
 Implementation Logics for linking two nodes:
 
-```c {1,6,13,18,19}
+```c {1,6,11-16,21,24,25}
 typedef struct ListNode {
     int val;
     struct ListNode *next;
@@ -34,12 +34,18 @@ typedef struct LinkedList {
     ListNode *tail;
 } LinkedList;
 
-void initLinkedList(LinkedList *list) {
-    // Create a new node.
+ListNode *createNewNode(int val) {
     ListNode *newNode = (ListNode *)malloc(sizeof(ListNode));
-    // Initialize the new node.
-    newNode->val = -1;
+    newNode->val = val;
     newNode->next = NULL;
+    return newNode;
+}
+
+// Initialize the linked list with a dummy node.
+void initLinkedList(LinkedList *list) {
+    // Create a new node for the dummy head.
+    ListNode *newNode = createNewNode(-1);
+
     // Set both head and tail pointers to the new dummy node.
     list->head = newNode;
     list->tail = newNode;
@@ -62,16 +68,11 @@ When adding a new node, such as `newNode`, to the end of a linked list, the `tai
 
 Here is the example of **connecting** the `last` node and the `newNode` via `tail` pointer:
 
-```c {3,5,6,9}
-LinkedList list;
-// Create a new node
-ListNode *newNode = (ListNode *)malloc(sizeof(ListNode));
-// Assign values
-newNode->val = val;
-newNode->next = NULL;
-
+```c {2,4}
+// Create a new node with the given value.
+ListNode *newNode = createNewNode(val);
 // Connect two node; in this case last node and the newNode via tail pointer
-list->tail->next = newNode; //list->tail is the last node
+list->tail->next = newNode; // list->tail is the last node
 ```
 
 **Moving Tail Pointer:**
@@ -134,11 +135,9 @@ The `insertAt` operation involves creating a new node and linking it appropriate
 
 <MdxImage src="/content/linked_list/insertAt.png" width={550} height={400}/>
 
-```c {2,5,7,8}
+```c {2,3,5,6}
 void insertAt(LinkedList *list, int index, int val) {
-    ListNode *newNode = (ListNode *)malloc(sizeof(ListNode));
-    newNode->val = val;
-
+    ListNode *newNode = createNewNode(val);
     ListNode *prev = findPrevious(list, index - 1);
     if (prev) {
         newNode->next = prev->next;
@@ -174,6 +173,7 @@ void removeNode(LinkedList *list, int index) {
         }
     }
 }
+
 ```
 
 This function removes the node at the given index, ensuring correct linkage of surrounding nodes.
