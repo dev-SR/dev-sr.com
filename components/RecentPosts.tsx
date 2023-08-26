@@ -4,6 +4,7 @@ import React from 'react';
 import { Separator } from '~/components/ui/separator';
 import { Post } from '~/.contentlayer/generated';
 import PostCard from './PostCard';
+import SectionHeader from './SectionHeader';
 
 interface RecentPostsProps {
 	posts: Post[];
@@ -17,15 +18,8 @@ export default function RecentsPosts({ posts }: RecentPostsProps) {
 
 	return (
 		<>
-			<div className='mt-10 mb-6'>
-				<div className='flex w-full items-end space-x-4'>
-					<div className='flex items-end font-bold'>
-						<div className='text-4xl font-black'>Recent</div>
-						<div className='text-primary text-6xl flex-grow-0 font-black'>.</div>
-					</div>
-					<Separator className='shrink h-[3px] mb-4' />
-				</div>
-			</div>
+			<SectionHeader label='Recent' />
+
 			<div className='flex flex-col space-y-4'>
 				{recentPosts.map((post, i) => (
 					<PostCard post={post} key={i} />
