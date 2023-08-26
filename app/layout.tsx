@@ -1,8 +1,8 @@
 import './globals.css';
 import { Inter, IBM_Plex_Sans } from 'next/font/google';
 import { ThemeProvider } from '~/components/theme-provider';
-import { Analytics } from '~/components/analytics';
 import TopNavBar from '~/components/TopNav';
+import { Analytics } from '~/components/analytics';
 
 const inter = IBM_Plex_Sans({
 	weight: ['100', '200', '300', '400', '500', '600', '700'],
