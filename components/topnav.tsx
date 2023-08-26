@@ -74,28 +74,36 @@ const TopNavBar: React.FC<Props> = () => {
 					</div>
 					<div className='hidden md:flex space-x-4 h-full items-center'>
 						{navigation.main.map((nav, i) => (
-							<Link href={nav.href} key={i} className='relative flex items-center h-full px-3'>
+							<Link
+								href={nav.href}
+								key={i}
+								className='relative flex items-center h-full px-3 group'>
 								<span
-									className={cn('text-foreground/70 ', nav.href === path && 'text-foreground ')}>
+									className={cn(
+										'text-foreground/70 group-hover:text-foreground marker:hover:border',
+										nav.href === path && 'text-foreground '
+									)}>
 									{nav.name}
 								</span>
 								{/* animate tab switch with motion layoutId */}
-								{nav.href === path && (
+								{nav.href === path ? (
 									<motion.span
-										className='bg-secondary rounded-full absolute inset-0 -z-10
-										transform border border-blue-200 dark:border-blue-800 animate-pulse'
+										className='bg-secondary rounded-full absolute inset-0 -z-10'
 										layoutId='underline'
 										transition={{
 											type: 'spring',
 											stiffness: 380,
 											damping: 30
 										}}></motion.span>
+								) : (
+									<span className='border-0 group-hover:border-2 rounded-full absolute inset-0 -z-10 transition-all duration-100'></span>
 								)}
 							</Link>
 						))}
 					</div>
+
 					<div className='flex space-x-2 items-center text-foreground/70'>
-						<div className='hover:border rounded-md h-8 w-8 flex items-center justify-center'>
+						<div className='border-0 hover:border-2 transition-all duration-100 rounded-md h-8 w-8 flex items-center justify-center'>
 							<SearchIcon className='w-5 h-5 ' />
 						</div>
 						<ModeToggle />
