@@ -10,11 +10,11 @@ import { usePathname } from 'next/navigation';
 import { cn } from '~/lib/utils';
 const navigation = {
 	main: [
-		{ name: 'Home', href: '/', active: true },
-		{ name: 'Posts', href: '/posts', active: false },
-		{ name: 'Publications', href: '/publications', active: false },
-		{ name: 'Projects', href: '/projects', active: false },
-		{ name: 'About', href: '/about', active: false }
+		{ name: 'Home', href: '/' },
+		{ name: 'Posts', href: '/posts' },
+		{ name: 'Publications', href: '/publications' },
+		{ name: 'Projects', href: '/projects' },
+		{ name: 'About', href: '/about' }
 	]
 };
 interface Props {}
@@ -40,9 +40,9 @@ const TopNavBar: React.FC<Props> = () => {
 
 	return (
 		<header className='z-50 relative'>
-			<motion.div
-				className={`fixed grid grid-cols-12 w-full shadow-black/[0.03] backdrop-blur-[0.5rem]  ${
-					isScrolled ? 'top-0' : 'top-10'
+			<motion.nav
+				className={`fixed flex justify-center top-0 left-0 w-full ${
+					isScrolled ? 'py-2' : 'py-6'
 				} transition-all duration-300 ease-in-out`}
 				initial={{
 					y: -100,
@@ -58,11 +58,13 @@ const TopNavBar: React.FC<Props> = () => {
 					integrity='sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC'
 					crossOrigin='anonymous'
 				/>
-				<div className='col-span-1 sm:col-span-1 md:col-span-2 bg-transparent'></div>
-				<nav className='col-span-10 sm:col-span-10 md:col-span-8 flex justify-between items-center bg-card border px-4 rounded-md h-16 text-lg'>
+				<ul
+					className={`flex justify-between items-center space-x-8 text-[0.9rem] font-medium rounded-full px-8 shadow-black/[0.03] backdrop-blur-[0.5rem] py-2
+				${!isScrolled ? 'border' : ''}
+				`}>
 					<div className='flex'>
 						<Link href='/'>
-							<span className={`text-xl font-bold`}>
+							<span className={`font-bold`}>
 								<span className={`${fireCode.className}`}>&lt;</span>
 								<span className={`${fireCode.className}`}>dev-sr</span>
 								<span className='text-primary font-sans'>/</span>
@@ -70,18 +72,25 @@ const TopNavBar: React.FC<Props> = () => {
 							</span>
 						</Link>
 					</div>
-					<div className='hidden md:flex space-x-8 h-full items-center'>
+					<div className='hidden md:flex space-x-4 h-full items-center'>
 						{navigation.main.map((nav, i) => (
-							<Link href={nav.href} key={i} className=' relative flex items-center h-full'>
-								{nav.href === path && (
-									<motion.span
-										className='absolute bottom-0 left-0 block h-[2px] w-full bg-primary rounded-full '
-										layoutId='underline'
-									/>
-								)}
-								<span className={cn('text-foreground/70', nav.href === path && ' text-foreground')}>
+							<Link href={nav.href} key={i} className='relative flex items-center h-full px-3'>
+								<span
+									className={cn('text-foreground/70 ', nav.href === path && 'text-foreground ')}>
 									{nav.name}
 								</span>
+								{/* animate tab switch with motion layoutId */}
+								{nav.href === path && (
+									<motion.span
+										className='bg-secondary rounded-full absolute inset-0 -z-10
+										transform border border-blue-200 dark:border-blue-800 animate-pulse'
+										layoutId='underline'
+										transition={{
+											type: 'spring',
+											stiffness: 380,
+											damping: 30
+										}}></motion.span>
+								)}
 							</Link>
 						))}
 					</div>
@@ -91,9 +100,8 @@ const TopNavBar: React.FC<Props> = () => {
 						</div>
 						<ModeToggle />
 					</div>
-				</nav>
-				<div className='col-span-1 sm:col-span-1 md:col-span-2 bg-transparent'></div>
-			</motion.div>
+				</ul>
+			</motion.nav>
 		</header>
 	);
 };
