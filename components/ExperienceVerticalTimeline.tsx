@@ -68,7 +68,7 @@ const experiencesData = [
 	}
 ] as const;
 
-export default function Experience() {
+export default function ExperienceVerticalTimeline() {
 	const { theme } = useTheme();
 
 	return (

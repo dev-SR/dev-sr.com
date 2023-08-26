@@ -1,10 +1,10 @@
 import './globals.css';
-import { Inter, IBM_Plex_Sans } from 'next/font/google';
+import { IBM_Plex_Sans } from 'next/font/google';
 import { ThemeProvider } from '~/components/theme-provider';
-import TopNavBar from '~/components/TopNav';
+import TopNavBar from '~/components/TopNavBar';
 import { Analytics } from '~/components/analytics';
 
-const inter = IBM_Plex_Sans({
+const ibm_plex = IBM_Plex_Sans({
 	weight: ['100', '200', '300', '400', '500', '600', '700'],
 	subsets: ['latin']
 });
@@ -22,7 +22,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
 	return (
 		<html lang='en'>
 			<body
-				className={`${inter.className} antialiased min-h-screen bg-[url('bg-white.svg')] dark:bg-[url('bg-black.svg')] bg-center bg-repeat bg-auto `}>
+				className={`${ibm_plex.className} antialiased min-h-screen bg-[url('bg-white.svg')] dark:bg-[url('bg-black.svg')] bg-center bg-repeat bg-auto `}>
 				<ThemeProvider attribute='class' defaultTheme='dark' enableSystem>
 					<div className='flex flex-col'>
 						<TopNavBar />
@@ -34,8 +34,3 @@ export default function RootLayout({ children }: RootLayoutProps) {
 		</html>
 	);
 }
-// <div className='grid grid-cols-10'>
-// <div className='col-span-2 bg-gray-200'>20% width column</div>
-// <div className='col-span-6 bg-gray-300'>60% width column</div>
-// <div className='col-span-2 bg-gray-400'>20% width column</div>
-// </div>;
