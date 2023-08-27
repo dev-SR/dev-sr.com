@@ -6,9 +6,6 @@ import PostCard from '~/components/PostCard';
 import PageHeader from '~/components/PageHeader';
 import TagCard from '~/components/TagCard';
 import ThreeColumnLayout from '~/components/ThreeColumnLayout';
-import SectionHeader from '~/components/SectionHeader';
-
-export const dynamic = 'force-static';
 
 export type Tags = {
 	[key: string]: number;
@@ -34,6 +31,8 @@ const getData = async ({ page = '1' }: SearchParam) => {
 			else tags[tag]++;
 		});
 	});
+
+	// console.log(page, currentPosts[0].title);
 
 	return { currentPosts, totalPages, tags };
 };
