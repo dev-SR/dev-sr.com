@@ -19,7 +19,7 @@ export const metadata = {
 		'Hi, this is Sharukh Rahman. Join me in exploring the realms of programming and machine learning as I meticulously document my learning journey and insights in this blog.',
 	verification: {
 		google: 'ow_oF7MNe6yvFGciKZqQyl9EIpr-DJ8yxzjhHfY3tIY'
-		/* Verify ownership: `Domain name provider` */
+		/* Verify ownership: `HTML Tag` */
 	},
 	category: 'technology'
 };
