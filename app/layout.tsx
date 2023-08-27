@@ -10,9 +10,18 @@ const ibm_plex = IBM_Plex_Sans({
 });
 
 export const metadata = {
-	title: "Dev-SR' Log",
+	metadataBase: new URL('https://dev-sr.vercel.app/'),
+	title: {
+		default: "Dev-SR' Log",
+		template: "%s | Dev-SR' Log"
+	},
 	description:
-		'Hi, this is Sharukh Rahman. Join me in exploring the realms of programming and machine learning as I meticulously document my learning journey and insights in this blog.'
+		'Hi, this is Sharukh Rahman. Join me in exploring the realms of programming and machine learning as I meticulously document my learning journey and insights in this blog.',
+	verification: {
+		google: 'google-site-verification=gPqA9_R-hnOMumEaccWmIkV-WjGDDJQkuck9GRrLzwo'
+		/* Verify ownership: `Domain name provider` */
+	},
+	category: 'technology'
 };
 
 interface RootLayoutProps {

@@ -36,12 +36,18 @@ export async function generateMetadata({ params }: PostProps): Promise<Metadata>
 	const post = await getPostFromParams(params);
 
 	if (!post) {
-		return {};
+		return {
+			title: 'Not Found',
+			description: "The page you're looking for doesn't exist"
+		};
 	}
 
 	return {
 		title: post.title,
-		description: post.description
+		description: post.description,
+		alternates: {
+			canonical: `/posts/${post.slugAsParams}`
+		}
 	};
 }
 

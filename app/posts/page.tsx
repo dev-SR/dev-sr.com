@@ -14,6 +14,11 @@ export type Tags = {
 type SearchParam = {
 	page: string;
 };
+export const metadata = {
+	title: 'Posts',
+	description:
+		'Hi, this is Sharukh Rahman. Join me in exploring the realms of programming and machine learning as I meticulously document my learning journey and insights in this blog.'
+};
 
 const getData = async ({ page = '1' }: SearchParam) => {
 	const posts = allPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

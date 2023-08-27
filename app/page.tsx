@@ -6,8 +6,6 @@ import Hero from '~/components/Hero';
 import RecentPosts from '~/components/RecentPosts';
 import PageWrapper from '~/components/page-wrapper';
 
-export const dynamic = 'force-static';
-
 const getAllPost = async () => {
 	const posts = allPosts;
 	return posts;
