@@ -11,13 +11,13 @@ import { motion } from 'framer-motion';
 
 const Avatar = () => {
 	return (
-		<div className='w-[110px] h-[110px] md:h-[140px] md:w-[140px] flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500/50'>
-			<div className='w-[100px] h-[100px] md:h-[130px] md:w-[130px] flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-500 '>
-				<div className='h-[90px] w-[90px] md:h-[120px] md:w-[120px] rounded-full  relative'>
-					<Image src='/191902061.jpg' alt='My Image' fill className='rounded-full' />
-				</div>
+		// <div className='w-[110px] h-[110px] md:h-[140px] md:w-[140px] flex items-center justify-center rounded-full bg-gradient-to-r from-sky-500/50'>
+		<div className='w-[100px] h-[100px] md:h-[130px] md:w-[130px] flex items-center justify-center rounded-full bg-foreground'>
+			<div className='h-[90px] w-[90px] md:h-[120px] md:w-[120px] rounded-full  relative'>
+				<Image src='/191902061.jpg' alt='My Image' fill className='rounded-full' />
 			</div>
 		</div>
+		// </div>
 	);
 };
 

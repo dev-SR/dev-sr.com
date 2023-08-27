@@ -40,6 +40,12 @@ const TopNavBar: React.FC<Props> = () => {
 
 	return (
 		<header className='z-50 relative'>
+			<link
+				rel='stylesheet'
+				href='https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css'
+				integrity='sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC'
+				crossOrigin='anonymous'
+			/>
 			<motion.nav
 				className={`fixed flex justify-center top-0 left-0 w-full ${
 					isScrolled ? 'py-2' : 'py-6'
@@ -52,14 +58,8 @@ const TopNavBar: React.FC<Props> = () => {
 					y: 0,
 					opacity: 1
 				}}>
-				<link
-					rel='stylesheet'
-					href='https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css'
-					integrity='sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC'
-					crossOrigin='anonymous'
-				/>
 				<ul
-					className={`flex justify-between items-center space-x-8 text-[0.9rem] font-medium rounded-full px-8 shadow-black/[0.03] backdrop-blur-[0.5rem] py-2
+					className={`flex justify-between items-center w-full md:w-1/2 mx-4 space-x-8 text-[0.9rem] font-medium rounded-full px-8 shadow-black/[0.03] backdrop-blur-[0.5rem] py-2
 				${!isScrolled ? 'border' : ''}
 				`}>
 					<div className='flex'>
@@ -72,7 +72,8 @@ const TopNavBar: React.FC<Props> = () => {
 							</span>
 						</Link>
 					</div>
-					<div className='hidden md:flex space-x-4 h-full items-center'>
+					{/* Desktop */}
+					<div className='hidden md:flex space-x-2 h-full items-center'>
 						{navigation.main.map((nav, i) => (
 							<Link
 								href={nav.href}
@@ -101,6 +102,7 @@ const TopNavBar: React.FC<Props> = () => {
 							</Link>
 						))}
 					</div>
+					{/* Mobile Menu */}
 
 					<div className='flex space-x-2 items-center text-foreground/70'>
 						<div className='border-0 hover:border-2 transition-all duration-100 rounded-md h-8 w-8 flex items-center justify-center'>
