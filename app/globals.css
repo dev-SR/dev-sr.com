@@ -139,3 +139,14 @@ code[data-line-numbers-max-digits='2'] > [data-line]::before {
 code[data-line-numbers-max-digits='3'] > [data-line]::before {
 	width: 3rem;
 }
+
+@media (min-width: 640px) {
+	.push_icon_desktop {
+		margin-left: -20px !important;
+	}
+}
+@media (max-width: 640px) {
+	.push_icon_mobile {
+		margin-left: -3px !important;
+	}
+}

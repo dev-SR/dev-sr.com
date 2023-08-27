@@ -97,7 +97,7 @@ export default function ExperienceVerticalTimeline() {
 								boxShadow: theme === 'light' ? '0 0 0 4px black' : '0 0 0 4px white'
 								// You can add more CSS properties here if needed
 							}}
-							iconClassName='!p-0 !w-[40px] !h-[40px] !-ml-[20px]'
+							iconClassName='!p-0 !w-[40px] !h-[40px] push_icon_desktop push_icon_mobile'
 							dateClassName='!p-0'>
 							<div>
 								<h3 className='font-semibold capitalize'>{item.title}</h3>
