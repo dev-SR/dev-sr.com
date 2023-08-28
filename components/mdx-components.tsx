@@ -14,17 +14,19 @@ const fireCode = Fira_Code({ subsets: ['latin'] });
 const mdxComponents: MDXComponents = {
 	// Override the default <a> element to use the next/link component.
 	a: ({ href, children }) => (
-		<Link href={href as string} className='text-primary hover:underline text-lg'>
+		<Link href={href as string} className='text-primary hover:underline text-base leading-7'>
 			{children}
 		</Link>
 	),
-	p: ({ children }) => <p className='py-1 text-foreground/70 text-lg'>{children}</p>,
+	p: ({ children }) => <p className='py-1 text-foreground/70 text-base leading-7'>{children}</p>,
 	strong: ({ children }) => (
-		<strong className='font-medium text-foreground/90 text-lg'>{children}</strong>
+		<strong className='font-medium text-foreground/90 text-base leading-7'>{children}</strong>
 	),
-	em: ({ children }) => <em className='italic text-foreground/90 text-lg'>{children}</em>,
+	em: ({ children }) => (
+		<em className='italic text-foreground/90 text-base leading-7'>{children}</em>
+	),
 	span: ({ children, ...props }) => (
-		<span className='text-foreground/90 text-lg' {...props}>
+		<span className='text-foreground/90 text-base leading-7' {...props}>
 			{children}
 		</span>
 	),
@@ -57,12 +59,20 @@ const mdxComponents: MDXComponents = {
 		</h4>
 	),
 	ol: ({ children }) => (
-		<ol className='text-lg text-foreground/70 list-decimal px-8 '>{children}</ol>
+		<ol className='text-base leading-7 text-justify hyphens-auto text-foreground/70 list-decimal pl-8 pr-4'>
+			{children}
+		</ol>
 	),
-	ul: ({ children }) => <ul className='text-lg text-foreground/70 list-disc px-8'>{children}</ul>,
-	li: ({ children }) => <li className='text-lg text-foreground/70'>{children}</li>,
+	ul: ({ children }) => (
+		<ul className='text-base leading-7 text-justify hyphens-auto text-foreground/70 list-disc px-4'>
+			{children}
+		</ul>
+	),
+	li: ({ children }) => (
+		<li className='text-base text-justify hyphens-auto leading-7 text-foreground/70'>{children}</li>
+	),
 	table: ({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
-		<div className='text-lg text-foreground/70 my-6 w-full overflow-y-auto'>
+		<div className='text-base text-foreground/70 my-6 w-full overflow-y-auto'>
 			<table className={cn('w-full', className)} {...props} />
 		</div>
 	),
@@ -117,7 +127,7 @@ const mdxComponents: MDXComponents = {
 				className={cn(
 					`${fireCode.className}`,
 					hasOnlyTextNode &&
-						'border bg-card text-secondary-foreground inline-flex items-center text-sm font-semibold px-1 py-0.5 rounded-md'
+						'border bg-card text-secondary-foreground inline-flex items-center text-sm px-1 rounded-md'
 				)}>
 				{children}
 			</code>
@@ -125,7 +135,7 @@ const mdxComponents: MDXComponents = {
 	},
 	blockquote: ({ children, ...props }) => (
 		<blockquote
-			className='border-l-4 border-primary/50 pl-4 py-2 my-4 text-lg bg-card italic ml-8'
+			className='border-l-4 border-primary/50 pl-4 py-2 my-4 text-base bg-card italic ml-8'
 			{...props}>
 			{children}
 		</blockquote>

@@ -59,19 +59,15 @@ const TopNavBar: React.FC<Props> = () => {
 					opacity: 1
 				}}>
 				<ul
-					className={`flex justify-between items-center w-full md:w-1/2 mx-4 space-x-8 text-[0.9rem] font-medium rounded-full px-8 shadow-black/[0.03] backdrop-blur-[0.5rem] py-2
+					className={`flex justify-between items-center w-full sm:w-2/3 lg:w-1/2 mx-4 space-x-8 text-[0.9rem] font-medium rounded-full px-8 shadow-black/[0.03] backdrop-blur-[0.5rem] py-2
 				${!isScrolled ? 'border' : ''}
 				`}>
-					<div className='flex'>
-						<Link href='/'>
-							<span className={`font-bold`}>
-								<span className={`${fireCode.className}`}>&lt;</span>
-								<span className={`${fireCode.className}`}>dev-sr</span>
-								<span className='text-primary font-sans'>/</span>
-								<span className={`${fireCode.className}`}>&gt;</span>
-							</span>
-						</Link>
-					</div>
+					<Link href='/' className='font-bold flex flex-shrink-0'>
+						<span className={`${fireCode.className} flex-shrink-0`}>&lt;</span>
+						<span className={`${fireCode.className} flex-shrink-0`}>dev-sr</span>
+						<span className='text-primary font-sans flex-shrink-0'>/</span>
+						<span className={`${fireCode.className} flex-shrink-0`}>&gt;</span>
+					</Link>
 					{/* Desktop */}
 					<div className='hidden md:flex space-x-2 h-full items-center'>
 						{navigation.main.map((nav, i) => (
