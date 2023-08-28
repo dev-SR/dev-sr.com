@@ -20,7 +20,7 @@ const mdxComponents: MDXComponents = {
 	),
 	p: ({ children }) => <p className='py-1 text-foreground/70 text-lg'>{children}</p>,
 	strong: ({ children }) => (
-		<strong className='font-bold text-foreground/90 text-lg'>{children}</strong>
+		<strong className='font-medium text-foreground/90 text-lg'>{children}</strong>
 	),
 	em: ({ children }) => <em className='italic text-foreground/90 text-lg'>{children}</em>,
 	span: ({ children, ...props }) => (
@@ -57,12 +57,10 @@ const mdxComponents: MDXComponents = {
 		</h4>
 	),
 	ol: ({ children }) => (
-		<ol className='text-lg text-foreground/70 list-decimal px-8 py-2'>{children}</ol>
+		<ol className='text-lg text-foreground/70 list-decimal px-8 '>{children}</ol>
 	),
-	ul: ({ children }) => (
-		<ul className='text-lg text-foreground/70 list-disc px-8 py-2'>{children}</ul>
-	),
-	li: ({ children }) => <li className='text-lg text-foreground/70 pb-2'>{children}</li>,
+	ul: ({ children }) => <ul className='text-lg text-foreground/70 list-disc px-8'>{children}</ul>,
+	li: ({ children }) => <li className='text-lg text-foreground/70'>{children}</li>,
 	table: ({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
 		<div className='text-lg text-foreground/70 my-6 w-full overflow-y-auto'>
 			<table className={cn('w-full', className)} {...props} />
@@ -119,7 +117,7 @@ const mdxComponents: MDXComponents = {
 				className={cn(
 					`${fireCode.className}`,
 					hasOnlyTextNode &&
-						'border-transparent bg-secondary text-secondary-foreground inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold'
+						'border bg-card text-secondary-foreground inline-flex items-center text-sm font-semibold px-1 py-0.5 rounded-md'
 				)}>
 				{children}
 			</code>
