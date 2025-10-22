@@ -1,0 +1,215 @@
+---
+title: "Advanced Code Block Examples"
+date: "2024-02-15"
+excerpt: "Demonstrating advanced code block features including multi-file tabs, diff highlighting, and syntax features."
+tags: ["examples", "code", "features"]
+---
+
+# Advanced Code Block Examples
+
+This post demonstrates the advanced code block features available in our MDX setup.
+
+## Basic Code Block with Language Detection
+
+Here's a simple TypeScript example:
+
+```typescript
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: Date;
+}
+
+function createUser(userData: Omit<User, 'id' | 'createdAt'>): User {
+  return {
+    id: Math.random(),
+    createdAt: new Date(),
+    ...userData,
+  };
+}
+
+const newUser = createUser({
+  name: "John Doe",
+  email: "john@example.com"
+});
+```
+
+## Multi-File Code Block Example
+
+<MultiFileCodeBlock
+  title="React Component with Styles"
+  files={[
+    {
+      filename: "Button.tsx",
+      language: "tsx",
+      content: `import React from 'react';
+import './Button.css';
+
+interface ButtonProps {
+  variant?: 'primary' | 'secondary';
+  size?: 'sm' | 'md' | 'lg';
+  children: React.ReactNode;
+  onClick?: () => void;
+}
+
+export function Button({ 
+  variant = 'primary', 
+  size = 'md', 
+  children, 
+  onClick 
+}: ButtonProps) {
+  return (
+    <button 
+      className={\`btn btn-\${variant} btn-\${size}\`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}`
+    },
+    {
+      filename: "Button.css",
+      language: "css",
+      content: `.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+}
+
+.btn-sm {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.btn-lg {
+  padding: 0.75rem 1.5rem;
+  font-size: 1.125rem;
+}`
+    },
+    {
+      filename: "Button.test.tsx",
+      language: "tsx",
+      content: `import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from './Button';
+
+describe('Button', () => {
+  it('renders with correct text', () => {
+    render(<Button>Click me</Button>);
+    expect(screen.getByText('Click me')).toBeInTheDocument();
+  });
+
+  it('calls onClick when clicked', () => {
+    const handleClick = jest.fn();
+    render(<Button onClick={handleClick}>Click me</Button>);
+    
+    fireEvent.click(screen.getByText('Click me'));
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies correct CSS classes', () => {
+    render(<Button variant="secondary" size="lg">Test</Button>);
+    const button = screen.getByText('Test');
+    
+    expect(button).toHaveClass('btn', 'btn-secondary', 'btn-lg');
+  });
+});`
+    }
+  ]}
+/>
+
+## Python Algorithm Example
+
+Here's a more complex example with Python:
+
+```python
+def quicksort(arr, low=0, high=None):
+    """
+    Sorts an array using the quicksort algorithm.
+    
+    Args:
+        arr: List to be sorted
+        low: Starting index
+        high: Ending index
+    
+    Returns:
+        None (sorts in-place)
+    """
+    if high is None:
+        high = len(arr) - 1
+    
+    if low < high:
+        # Partition the array and get pivot index
+        pivot_index = partition(arr, low, high)
+        
+        # Recursively sort elements before and after partition
+        quicksort(arr, low, pivot_index - 1)
+        quicksort(arr, pivot_index + 1, high)
+
+def partition(arr, low, high):
+    """Partition function for quicksort."""
+    pivot = arr[high]  # Choose rightmost element as pivot
+    i = low - 1        # Index of smaller element
+    
+    for j in range(low, high):
+        if arr[j] <= pivot:
+            i += 1
+            arr[i], arr[j] = arr[j], arr[i]
+    
+    arr[i + 1], arr[high] = arr[high], arr[i + 1]
+    return i + 1
+
+# Example usage
+if __name__ == "__main__":
+    numbers = [64, 34, 25, 12, 22, 11, 90]
+    print(f"Original array: {numbers}")
+    
+    quicksort(numbers)
+    print(f"Sorted array: {numbers}")
+```
+
+## SQL Query Example
+
+```sql
+-- Complex query with joins and aggregations
+SELECT 
+    u.id,
+    u.name,
+    u.email,
+    COUNT(p.id) as post_count,
+    AVG(p.views) as avg_views,
+    MAX(p.created_at) as last_post_date
+FROM users u
+LEFT JOIN posts p ON u.id = p.author_id
+WHERE u.active = true
+    AND u.created_at >= '2024-01-01'
+GROUP BY u.id, u.name, u.email
+HAVING COUNT(p.id) > 0
+ORDER BY post_count DESC, avg_views DESC
+LIMIT 10;
+```
+
+## Inline Code Examples
+
+You can also use inline code like `const greeting = "Hello World"` or `npm install react` within paragraphs. The styling automatically adapts to provide proper contrast and readability.
+
+These advanced code block features make technical documentation much more engaging and easier to follow!
+```

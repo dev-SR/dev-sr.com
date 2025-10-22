@@ -1,0 +1,79 @@
+---
+title: "Sorting Algorithms Comparison"
+date: "2024-02-10"
+excerpt: "A detailed comparison of popular sorting algorithms with time complexity analysis."
+tags: ["algorithms", "computer-science", "sorting"]
+---
+
+# Sorting Algorithms Comparison
+
+Sorting is one of the most fundamental operations in computer science. Let's compare different sorting algorithms and their characteristics.
+
+## Quick Sort
+
+Quick sort uses a divide-and-conquer approach:
+
+```python showLineNumbers {1}#errorLine {3-4}
+def quicksort(arr, low, high):
+    if low < high:
+        pi = partition(arr, low, high)
+        quicksort(arr, low, pi - 1)
+        quicksort(arr, pi + 1, high)
+
+def partition(arr, low, high):
+    pivot = arr[high]
+    i = low - 1
+    
+    for j in range(low, high):
+        if arr[j] <= pivot:
+            i += 1
+            arr[i], arr[j] = arr[j], arr[i]
+    
+    arr[i + 1], arr[high] = arr[high], arr[i + 1]
+    return i + 1
+```
+
+**Time Complexity:**
+- Best/Average: `O(n log n)`
+- Worst: `O(n^2)`
+
+## Merge Sort
+
+Merge sort guarantees `O(n log n)` performance:
+
+```javascript
+function mergeSort(arr) {
+    if (arr.length <= 1) return arr;
+    
+    const mid = Math.floor(arr.length / 2);
+    const left = mergeSort(arr.slice(0, mid));
+    const right = mergeSort(arr.slice(mid));
+    
+    return merge(left, right);
+}
+
+function merge(left, right) {
+    const result = [];
+    let i = 0, j = 0;
+    
+    while (i < left.length && j < right.length) {
+        if (left[i] <= right[j]) {
+            result.push(left[i++]);
+        } else {
+            result.push(right[j++]);
+        }
+    }
+    
+    return result.concat(left.slice(i)).concat(right.slice(j));
+}
+```
+
+## Performance Comparison
+
+| Algorithm | Best Case | Average Case | Worst Case | Space |
+|-----------|-----------|--------------|------------|-------|
+| Quick Sort | `O(n log n)` | `O(n log n)` | `O(n^2)` | `O(log n)` |
+| Merge Sort | `O(n log n)` | `O(n log n)` | `O(n log n)` | `O(n)` |
+| Heap Sort | $O(n \log n)$ | $O(n \log n)$ | $O(n \log n)$ | $O(1)$ |
+
+Each algorithm has its strengths and is suitable for different scenarios.
