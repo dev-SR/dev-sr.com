@@ -6,20 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Eye, Share2, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { MDXRemote } from 'next-mdx-remote';
-import { mdxComponents } from '@/components/mdx-components';
+import dynamic from 'next/dynamic';
 import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
 
+const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
+  ssr: false,
+});
+
 interface BlogPostPageProps {
-  params: {
-    slug: string[];
-  };
   post?: BlogPost;
   allPosts: BlogPost[];
 }
 
-export default function BlogPostClientPage({ params, post, allPosts }: BlogPostPageProps) {
+export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProps) {
   // params may be undefined in some edge navigations; avoid using it directly. Use post.slug instead where needed.
   if (!post) {
     // Server page will handle notFound(); on client, render nothing to avoid runtime errors.
@@ -103,10 +103,8 @@ export default function BlogPostClientPage({ params, post, allPosts }: BlogPostP
           <div className="lg:col-span-6">
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
-              {/* Using client variant of MDXRemote with pre-serialized source */}
-              {post.mdxSource ? (
-                <MDXRemote {...post.mdxSource} components={mdxComponents as any} />
-              ) : null}
+              {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}
+              {post.mdxSource ? <ClientMDXRenderer mdxSource={post.mdxSource} /> : null}
             </article>
 
             <div className="mt-12 pt-8 border-t border-border">

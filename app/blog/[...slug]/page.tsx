@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 
 interface BlogPostPageProps {
   params: {
-    slug: string[];
+    slug?: string[];
   };
 }
 
@@ -19,8 +19,11 @@ export async function generateStaticParams() {
 
 // Generate metadata for SEO
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const s = await params;
-  const slug = s.slug.join('/');
+  const slugArray = params.slug ?? [];
+  if (slugArray.length === 0) {
+    return { title: 'Post Not Found' };
+  }
+  const slug = slugArray.join('/');
   const post = await getPostBySlug(slug);
 
   if (!post) {
@@ -50,12 +53,15 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
-  const s = await params;
-  const slug = s.slug.join('/');
+  const slugArray = params.slug ?? [];
+  if (slugArray.length === 0) {
+    notFound();
+  }
+  const slug = slugArray.join('/');
   const post = await getPostBySlug(slug);
   if (!post) {
     notFound();
   }
   const allPosts = await getAllPosts();
-  return <BlogPostClientPage params={params} post={post} allPosts={allPosts} />;
+  return <BlogPostClientPage post={post} allPosts={allPosts} />;
 }

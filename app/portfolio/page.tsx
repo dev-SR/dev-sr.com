@@ -112,7 +112,6 @@ export default async function PortfolioPage() {
   const featuredProjects = projects.filter((project) => project.featured);
   const otherProjects = projects.filter((project) => !project.featured);
 
-  const posts = await getAllPosts();
   return (
     <div className="bg-background">
       <Header />
@@ -129,7 +128,7 @@ export default async function PortfolioPage() {
               className="rounded-full mx-auto mb-6 border-4 border-accent/20"
             />
             <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">
-              Hi, I'm <span className="text-accent">Alex Johnson</span>
+              Hi, I&apos;m <span className="text-accent">Alex Johnson</span>
             </h1>
             <p className="text-xl text-muted-foreground mb-6 max-w-2xl mx-auto leading-relaxed">
               Full-stack developer passionate about creating exceptional digital experiences through
@@ -326,9 +325,9 @@ export default async function PortfolioPage() {
       <section id="contact" className="py-16 px-4 sm:px-6 lg:px-8 bg-card/30">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">Let's Work Together</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">Let&apos;s Work Together</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Have a project in mind or want to discuss opportunities? I'd love to hear from you.
+              Have a project in mind or want to discuss opportunities? I&apos;d love to hear from you.
             </p>
           </div>
 
@@ -338,7 +337,7 @@ export default async function PortfolioPage() {
               <div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Get in touch</h3>
                 <p className="text-muted-foreground mb-6">
-                  I'm always interested in new opportunities and exciting projects. Whether you have
+                  I&apos;m always interested in new opportunities and exciting projects. Whether you have
                   a question or just want to say hi, feel free to reach out!
                 </p>
               </div>
@@ -368,7 +367,7 @@ export default async function PortfolioPage() {
               <CardHeader>
                 <CardTitle>Send a Message</CardTitle>
                 <CardDescription>
-                  Fill out the form below and I'll get back to you soon.
+                  Fill out the form below and I&apos;ll get back to you soon.
                 </CardDescription>
               </CardHeader>
               <CardContent>

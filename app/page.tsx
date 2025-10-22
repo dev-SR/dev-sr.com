@@ -46,7 +46,7 @@ export default function App() {
           <section className="py-8 px-4 sm:px-6 lg:px-8 bg-card/50">
             <div className="max-w-6xl mx-auto">
               <h2 className="text-3xl font-bold text-center text-foreground mb-12">
-                What You'll Find Here
+                What You&apos;ll Find Here
               </h2>
               <div className="grid md:grid-cols-3 gap-8">
                 <Card className="group hover:shadow-lg transition-shadow">

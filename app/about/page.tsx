@@ -69,7 +69,6 @@ const interests = [
 ];
 
 export default async function AboutPage() {
-  const posts = await getAllPosts();
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -91,7 +90,7 @@ export default async function AboutPage() {
               <h1 className="text-4xl font-bold text-foreground mb-6">About Me</h1>
               <div className="prose prose-lg max-w-none text-muted-foreground space-y-4">
                 <p>
-                  I'm a passionate full-stack developer with over 5 years of experience creating
+                  I&apos;m a passionate full-stack developer with over 5 years of experience creating
                   digital solutions that make a difference. My journey in tech started with a
                   curiosity about how things work and evolved into a career dedicated to building
                   exceptional user experiences.
@@ -102,9 +101,9 @@ export default async function AboutPage() {
                   practices to deliver robust applications that scale.
                 </p>
                 <p>
-                  When I'm not coding, you'll find me contributing to open source projects,
-                  exploring new technologies, or enjoying the great outdoors. I'm always eager to
-                  learn and take on new challenges that push the boundaries of what's possible.
+                  When I&apos;m not coding, you&apos;ll find me contributing to open source projects,
+                  exploring new technologies, or enjoying the great outdoors. I&apos;m always eager to
+                  learn and take on new challenges that push the boundaries of what&apos;s possible.
                 </p>
               </div>
               <div className="mt-8">
@@ -205,7 +204,7 @@ export default async function AboutPage() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-foreground mb-4">Beyond Code</h2>
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            When I'm not building applications, I enjoy exploring various interests that keep me
+            When I&apos;m not building applications, I enjoy exploring various interests that keep me
             inspired and balanced.
           </p>
 

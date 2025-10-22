@@ -2,62 +2,62 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { HTMLAttributes, useState } from 'react';
+import type React from 'react';
+import { HTMLAttributes, useState } from 'react';
 import { MultiFileCodeBlock } from './code-block';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Check, Copy } from 'lucide-react';
-
-export const mdxComponents: any = {
+export const mdxComponents = {
   // Override default elements
-  h1: ({ children, ...props }: any) => (
+  h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
     <h1 className="text-4xl font-bold mb-6 text-foreground scroll-mt-20" {...props}>
       {children}
     </h1>
   ),
-  h2: ({ children, ...props }: any) => (
+  h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
     <h2 className="text-3xl font-semibold mb-4 text-foreground scroll-mt-20" {...props}>
       {children}
     </h2>
   ),
-  h3: ({ children, ...props }: any) => (
+  h3: ({ children, ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
     <h3 className="text-2xl font-medium mb-3 text-foreground scroll-mt-20" {...props}>
       {children}
     </h3>
   ),
-  h4: ({ children, ...props }: any) => (
+  h4: ({ children, ...props }: React.ComponentPropsWithoutRef<'h4'>) => (
     <h4 className="text-xl font-medium mb-2 text-foreground scroll-mt-20" {...props}>
       {children}
     </h4>
   ),
-  p: ({ children, ...props }: any) => (
+  p: ({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) => (
     <p className="text-base leading-relaxed mb-4 text-muted-foreground" {...props}>
       {children}
     </p>
   ),
-  ul: ({ children, ...props }: any) => (
+  ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
     <ul className="mb-4 pl-6 text-muted-foreground list-disc" {...props}>
       {children}
     </ul>
   ),
-  ol: ({ children, ...props }: any) => (
+  ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
     <ol className="mb-4 pl-6 text-muted-foreground list-decimal" {...props}>
       {children}
     </ol>
   ),
-  li: ({ children, ...props }: any) => (
+  li: ({ children, ...props }: React.ComponentPropsWithoutRef<'li'>) => (
     <li className="mb-2" {...props}>
       {children}
     </li>
   ),
-  blockquote: ({ children, ...props }: any) => (
+  blockquote: ({ children, ...props }: React.ComponentPropsWithoutRef<'blockquote'>) => (
     <blockquote
       className="border-l-4 border-accent pl-4 italic text-muted-foreground mb-4 bg-muted/30 py-2 rounded-r-md"
       {...props}>
       {children}
     </blockquote>
   ),
-  table: ({ children, ...props }: any) => (
+  table: ({ children, ...props }: React.ComponentPropsWithoutRef<'table'>) => (
     <div className="overflow-x-auto mb-4">
       <table
         className="w-full border-collapse border border-border rounded-lg overflow-hidden"
@@ -66,38 +66,44 @@ export const mdxComponents: any = {
       </table>
     </div>
   ),
-  th: ({ children, ...props }: any) => (
+  th: ({ children, ...props }: React.ComponentPropsWithoutRef<'th'>) => (
     <th
       className="border border-border px-4 py-2 text-left bg-muted font-semibold text-foreground"
       {...props}>
       {children}
     </th>
   ),
-  td: ({ children, ...props }: any) => (
+  td: ({ children, ...props }: React.ComponentPropsWithoutRef<'td'>) => (
     <td className="border border-border px-4 py-2 text-muted-foreground" {...props}>
       {children}
     </td>
   ),
-  a: ({ children, href, ...props }: any) => (
+  a: ({ children, href, ...props }: React.ComponentPropsWithoutRef<'a'>) => (
     <Link
-      href={href}
+      href={href ?? '#'}
       className="text-accent hover:text-accent/80 underline underline-offset-2 transition-colors"
-      {...props}>
+      {...(props as Omit<React.ComponentProps<typeof Link>, 'href'>)}>
       {children}
     </Link>
   ),
-  img: ({ src, alt, ...props }: any) => (
-    <div className="my-6">
-      <Image
-        src={src || '/placeholder.svg'}
-        alt={alt}
-        width={800}
-        height={400}
-        className="rounded-lg cursor-pointer transition-transform hover:scale-105 w-full h-auto"
-        {...props}
-      />
-    </div>
-  ),
+  img: ({ src, alt, ...props }: React.ComponentPropsWithoutRef<'img'>) => {
+    const safeSrc = typeof src === 'string' ? src : '/placeholder.svg';
+    return (
+      <div className="my-6">
+        <Image
+          src={safeSrc}
+          alt={alt ?? ''}
+          width={800}
+          height={400}
+          className="rounded-lg cursor-pointer transition-transform hover:scale-105 w-full h-auto"
+          {...(props as Omit<
+            React.ComponentProps<typeof Image>,
+            'src' | 'alt' | 'width' | 'height'
+          >)}
+        />
+      </div>
+    );
+  },
   // Custom components
   MultiFileCodeBlock,
   code: CodeCustom,

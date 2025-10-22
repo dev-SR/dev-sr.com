@@ -99,7 +99,7 @@ export function SearchModal({ isOpen, onClose, posts }: SearchModalProps) {
               </div>
             ) : results.length === 0 ? (
               <div className="p-6 text-center animate-in fade-in-50 duration-300">
-                <p className="text-muted-foreground">No results found for "{query}"</p>
+                <p className="text-muted-foreground">No results found for &quot;{query}&quot;</p>
               </div>
             ) : (
               <div className="p-2">
