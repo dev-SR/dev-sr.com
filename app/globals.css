@@ -1,467 +1,358 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-/* Import Fira Code from Google Fonts */
-/* @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap'); */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.646 0.222 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.439 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.322 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.646 0.222 264.376);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.322 0 0);
-  --input: oklch(0.205 0 0);
-  --ring: oklch(0.646 0.222 264.376 / 0.5);
-  --chart-1: oklch(0.646 0.222 264.376);
-  --chart-2: oklch(0.646 0.222 264.376);
-  --chart-3: oklch(0.696 0.17 162.48);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.488 0.243 264.376);
-  --radius: 0.5rem;
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.145 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.646 0.222 264.376);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.322 0 0);
-  --sidebar-ring: oklch(0.646 0.222 264.376 / 0.5);
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.646 0.222 264.376);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.439 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.322 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.646 0.222 264.376);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.322 0 0);
+    --input: oklch(0.205 0 0);
+    --ring: oklch(0.646 0.222 264.376 / 0.5);
+    --chart-1: oklch(0.646 0.222 264.376);
+    --chart-2: oklch(0.646 0.222 264.376);
+    --chart-3: oklch(0.696 0.17 162.48);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.488 0.243 264.376);
+    --radius: 0.5rem;
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.145 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.646 0.222 264.376);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.322 0 0);
+    --sidebar-ring: oklch(0.646 0.222 264.376 / 0.5);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.646 0.222 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.439 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.322 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.646 0.222 264.376);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.322 0 0);
-  --input: oklch(0.205 0 0);
-  --ring: oklch(0.646 0.222 264.376 / 0.5);
-  --chart-1: oklch(0.646 0.222 264.376);
-  --chart-2: oklch(0.646 0.222 264.376);
-  --chart-3: oklch(0.696 0.17 162.48);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.488 0.243 264.376);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.145 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.646 0.222 264.376);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.322 0 0);
-  --sidebar-ring: oklch(0.646 0.222 264.376 / 0.5);
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.646 0.222 264.376);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.439 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.322 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.646 0.222 264.376);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.322 0 0);
+    --input: oklch(0.205 0 0);
+    --ring: oklch(0.646 0.222 264.376 / 0.5);
+    --chart-1: oklch(0.646 0.222 264.376);
+    --chart-2: oklch(0.646 0.222 264.376);
+    --chart-3: oklch(0.696 0.17 162.48);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.488 0.243 264.376);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.145 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.646 0.222 264.376);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.322 0 0);
+    --sidebar-ring: oklch(0.646 0.222 264.376 / 0.5);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+    * {
+        @apply border-border outline-ring/50;
+    }
 
-  body {
-    @apply bg-background text-foreground;
-  }
+    /* Use next/font variables (added to <html> class in layout.tsx) */
+    html {
+        /* font variables injected via next/font on the html element */
+    }
 
-  /* Adding comprehensive prose styles for MDX content rendering */
-  .prose {
-    @apply text-foreground max-w-none;
-    line-height: 1.75;
-  }
+    body {
+        /* use Roboto as the default sans font via the CSS variable */
+        font-family: var(--font-roboto), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial;
+        @apply bg-background text-foreground;
+    }
 
-  .prose h1 {
-    @apply text-4xl font-bold text-foreground mt-8 mb-4 scroll-mt-20;
-  }
+    /* Headings should use the heading/display font (Nunito) */
+    h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-nunito), ui-sans-serif, system-ui, -apple-system, "Segoe UI";
+    }
 
-  .prose h2 {
-    @apply text-3xl font-bold text-foreground mt-8 mb-4 scroll-mt-20;
-  }
 
-  .prose h3 {
-    @apply text-2xl font-semibold text-foreground mt-6 mb-3 scroll-mt-20;
-  }
+    /* Default font for code blocks: use the Fira Code variable for mono */
+    pre code {
+        @apply font-mono text-sm leading-6 antialiased;
+        font-family: var(--font-fira-code), ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+        monospace;
+        font-feature-settings: 'calt' 1,
+        'liga' 1; /* enable ligatures */
+    }
 
-  .prose h4 {
-    @apply text-xl font-semibold text-foreground mt-6 mb-3 scroll-mt-20;
-  }
+    /* Inline code in paragraphs/lists/spans */
+    p code,
+    li code,
+    span code {
+        @apply inline-flex items-center px-1 text-sm rounded-md border;
+        @apply bg-card text-secondary-foreground;
+        font-family: var(--font-fira-code), ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+        monospace;
+        font-feature-settings: 'calt' 1,
+        'liga' 1;
+    }
 
-  .prose h5 {
-    @apply text-lg font-semibold text-foreground mt-4 mb-2 scroll-mt-20;
-  }
+    /*rehype-pretty-code*/
+    [data-rehype-pretty-code-figure],
+    [data-rehype-pretty-code-figure] > pre {
+        margin: 0;
+        padding: 0;
+    }
 
-  .prose h6 {
-    @apply text-base font-semibold text-foreground mt-4 mb-2 scroll-mt-20;
-  }
+    [data-rehype-pretty-code-figure] > pre {
+        width: 100%;
+        overflow: auto;
+        padding: 1rem;
+        background-color: #262424;
+        border-radius: 0.5rem;
+        border: 1px solid #44403c;
+        margin-bottom: 1.5rem;
+    }
 
-  .prose p {
-    @apply text-foreground mb-4 leading-relaxed;
-  }
+    /*Line numbers*/
+    /* recommended by https://rehype-pretty-code.netlify.app/ */
+    code[data-line-numbers] {
+        counter-reset: line;
+    }
 
-  .prose a {
-    @apply text-accent hover:text-accent/80 underline underline-offset-2 transition-colors;
-  }
+    code[data-line-numbers] > [data-line]::before {
+        counter-increment: line;
+        content: counter(line);
 
-  .prose strong {
-    @apply font-semibold text-foreground;
-  }
+        /* Other styling */
+        display: inline-block;
+        width: 1rem;
+        margin-right: 2rem;
+        text-align: right;
+        color: gray;
+    }
 
-  .prose em {
-    @apply italic text-foreground;
-  }
+    code[data-line-numbers-max-digits='2'] > [data-line]::before {
+        width: 2rem;
+    }
 
-  /*.prose code {*/
-  /*    @apply bg-muted text-accent px-1.5 py-0.5 rounded text-sm font-mono;*/
-  /*}*/
+    code[data-line-numbers-max-digits='3'] > [data-line]::before {
+        width: 3rem;
+    }
 
-  /*.prose pre {*/
-  /*    @apply bg-card border border-border rounded-lg p-4 overflow-x-auto my-6;*/
-  /*}*/
+    /*Line highlighting*/
+    /* code blocks custom styling */
+    [data-line] {
+        border-left-width: 2px;
+        border-left-style: solid;
+        border-left-color: transparent;
+    }
 
-  /*.prose pre code {*/
-  /*    @apply bg-transparent text-foreground p-0 text-sm;*/
-  /*}*/
+    [data-highlighted-line] {
+        background-color: #58404c;
+        border-left-color: #d6277f;
+    }
 
-  .prose blockquote {
-    @apply border-l-4 border-accent bg-muted/50 pl-4 py-2 my-6 italic text-muted-foreground;
-  }
+    [data-highlighted-chars] {
+        background-color: #71485d;
+        border-radius: 0.25rem;
+        padding: 0 0.25rem;
+        border-left-color: #d6277f;
+    }
 
-  .prose ul {
-    @apply list-disc list-inside mb-4 space-y-2;
-  }
+    [data-highlighted-chars][data-chars-id='mySpecialHighlight'] {
+        background-color: #874691;
+    }
 
-  .prose ol {
-    @apply list-decimal list-inside mb-4 space-y-2;
-  }
+    /* Transformer-specific styles */
+    /* Container for diff-highlighted lines */
+    .has-diff {
+        position: relative;
+    }
 
-  .prose li {
-    @apply text-foreground leading-relaxed;
-  }
+    /* Base diff line styling */
+    .has-diff code > span[data-line].diff {
+        display: flex; /* align icon + text inline */
+        align-items: center;
+        padding-left: 0.5rem; /* space for left border */
+        border-left-width: 3px;
+        border-left-style: solid;
+        gap: 0.5rem; /* space between icon and text */
+        transition: background-color 0.2s ease,
+        border-color 0.2s ease;
+    }
 
-  .prose table {
-    @apply w-full border-collapse border border-border my-6;
-  }
+    /* Added lines */
+    .has-diff code > span[data-line].diff.add {
+        background-color: rgba(80, 250, 123, 0.15); /* greenish bg */
+        border-left-color: #50fc7b; /* matching border */
+        color: inherit;
+    }
 
-  .prose th {
-    @apply bg-muted border border-border px-4 py-2 text-left font-semibold text-foreground;
-  }
+    .has-diff code > span[data-line].diff.add::before {
+        content: '➕'; /* plus icon */
+        display: inline-block;
+        color: #50fc7b; /* matches border */
+    }
 
-  .prose td {
-    @apply border border-border px-4 py-2 text-foreground;
-  }
+    /* Removed lines */
+    .has-diff code > span[data-line].diff.remove {
+        background-color: rgba(255, 85, 85, 0.15); /* reddish bg */
+        border-left-color: #ff5555; /* matching border */
+        color: inherit;
+    }
 
-  .prose hr {
-    @apply border-border my-8;
-  }
+    .has-diff code > span[data-line].diff.remove::before {
+        content: '➖'; /* minus icon */
+        display: inline-block;
+        color: #ff5555; /* matches border */
+    }
 
-  .prose img {
-    @apply rounded-lg my-6 max-w-full h-auto;
-  }
+    /*    transform focus*/
+    /* TransformerNotationFocus — blur non-focused lines, highlight focused ones */
+    /* tweakable variables */
+    :root {
+        --tnf-blur: 2px;
+        --tnf-nonfocus-opacity: 0.45;
+        --tnf-transition: 200ms;
+    }
 
-  .prose-lg {
-    @apply text-lg;
-  }
+    /* container that signals focus annotations exist */
+    .has-focused {
+        position: relative;
+    }
 
-  .prose-lg h1 {
-    @apply text-5xl;
-  }
+    /* make each line a block and enable smooth transitions */
+    .has-focused code > span[data-line] {
+        display: block;
+        transition: filter var(--tnf-transition) ease,
+        opacity var(--tnf-transition) ease,
+        transform var(--tnf-transition) ease;
+        will-change: filter, opacity;
+    }
 
-  .prose-lg h2 {
-    @apply text-4xl;
-  }
+    /* BLUR + DIM everything that is NOT focused */
+    .has-focused code > span[data-line]:not(.focused) {
+        filter: blur(var(--tnf-blur)) grayscale(0.2);
+        opacity: var(--tnf-nonfocus-opacity);
+        pointer-events: none; /* prevents interaction with blurred lines */
+        user-select: none; /* optional: prevents selecting blurred text */
+    }
 
-  .prose-lg h3 {
-    @apply text-3xl;
-  }
+    /* KEEP focused lines crisp and visually prominent */
+    .has-focused code > span[data-line].focused {
+        filter: none;
+        opacity: 1;
+    }
 
-  .prose-lg h4 {
-    @apply text-2xl;
-  }
+    /* Accessibility: slightly reduce blur when pre has keyboard focus */
+    .has-focused:focus-within code > span[data-line]:not(.focused) {
+        filter: blur(calc(var(--tnf-blur) * 0.6));
+        opacity: 0.3;
+    }
 
-  .prose-lg p {
-    @apply text-lg leading-relaxed;
-  }
-  /* Default font for code blocks */
-  pre code {
-    @apply font-mono text-sm leading-6 antialiased;
-    font-family: 'Fira Code', monospace;
-    font-feature-settings:
-      'calt' 1,
-      'liga' 1; /* enable ligatures */
-  }
+    /*    error and warning*/
+    /* Container signals lines have error/warning highlights */
+    .has-highlighted {
+        position: relative;
+    }
 
-  /* Inline code in paragraphs/lists/spans */
-  p code,
-  li code,
-  span code {
-    @apply inline-flex items-center px-1 text-sm rounded-md border;
-    @apply bg-card text-secondary-foreground;
-    font-family: 'Fira Code', monospace;
-    font-feature-settings:
-      'calt' 1,
-      'liga' 1;
-  }
+    /* Base highlighted line styling */
+    .has-highlighted code > span[data-line].highlighted {
+        display: flex; /* allow icon + text inline */
+        align-items: center;
+        padding-left: 0.5rem; /* space for border */
+        border-left-width: 3px;
+        border-left-style: solid;
+        gap: 0.5rem; /* space between icon and text */
+        transition: background-color 0.2s ease,
+        border-color 0.2s ease;
+    }
 
-  /*rehype-pretty-code*/
-  [data-rehype-pretty-code-figure],
-  [data-rehype-pretty-code-figure] > pre {
-    margin: 0;
-    padding: 0;
-  }
+    /* Error line with icon */
+    .has-highlighted code > span[data-line].highlighted.error::before {
+        content: '🚫'; /* error icon */
+        display: inline-block;
+        color: #ff003d; /* matches border */
+    }
 
-  [data-rehype-pretty-code-figure] > pre {
-    width: 100%;
-    overflow: auto;
-    padding: 1rem;
-    background-color: #262424;
-    border-radius: 0.5rem;
-    border: 1px solid #44403c;
-    margin-bottom: 1.5rem;
-  }
+    /* Warning line with icon */
+    .has-highlighted code > span[data-line].highlighted.warning::before {
+        content: '⚠️'; /* warning icon */
+        display: inline-block;
+        color: #ffbf00; /* matches border */
+    }
 
-  /*Line numbers*/
-  /* recommended by https://rehype-pretty-code.netlify.app/ */
-  code[data-line-numbers] {
-    counter-reset: line;
-  }
+    /* Colors for line background and border */
+    .has-highlighted code > span[data-line].highlighted.error {
+        background-color: #6b2424;
+        border-left-color: #ff003d;
+        color: #fff;
+    }
 
-  code[data-line-numbers] > [data-line]::before {
-    counter-increment: line;
-    content: counter(line);
-
-    /* Other styling */
-    display: inline-block;
-    width: 1rem;
-    margin-right: 2rem;
-    text-align: right;
-    color: gray;
-  }
-
-  code[data-line-numbers-max-digits='2'] > [data-line]::before {
-    width: 2rem;
-  }
-
-  code[data-line-numbers-max-digits='3'] > [data-line]::before {
-    width: 3rem;
-  }
-
-  /*Line highlighting*/
-  /* code blocks custom styling */
-  [data-line] {
-    border-left-width: 2px;
-    border-left-style: solid;
-    border-left-color: transparent;
-  }
-
-  [data-highlighted-line] {
-    background-color: #58404c;
-    border-left-color: #d6277f;
-  }
-
-  [data-highlighted-chars] {
-    background-color: #71485d;
-    border-radius: 0.25rem;
-    padding: 0 0.25rem;
-    border-left-color: #d6277f;
-  }
-
-  [data-highlighted-chars][data-chars-id='mySpecialHighlight'] {
-    background-color: #874691;
-  }
-
-  /* Transformer-specific styles */
-  /* Container for diff-highlighted lines */
-  .has-diff {
-    position: relative;
-  }
-
-  /* Base diff line styling */
-  .has-diff code > span[data-line].diff {
-    display: flex; /* align icon + text inline */
-    align-items: center;
-    padding-left: 0.5rem; /* space for left border */
-    border-left-width: 3px;
-    border-left-style: solid;
-    gap: 0.5rem; /* space between icon and text */
-    transition:
-      background-color 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  /* Added lines */
-  .has-diff code > span[data-line].diff.add {
-    background-color: rgba(80, 250, 123, 0.15); /* greenish bg */
-    border-left-color: #50fc7b; /* matching border */
-    color: inherit;
-  }
-
-  .has-diff code > span[data-line].diff.add::before {
-    content: '➕'; /* plus icon */
-    display: inline-block;
-    color: #50fc7b; /* matches border */
-  }
-
-  /* Removed lines */
-  .has-diff code > span[data-line].diff.remove {
-    background-color: rgba(255, 85, 85, 0.15); /* reddish bg */
-    border-left-color: #ff5555; /* matching border */
-    color: inherit;
-  }
-
-  .has-diff code > span[data-line].diff.remove::before {
-    content: '➖'; /* minus icon */
-    display: inline-block;
-    color: #ff5555; /* matches border */
-  }
-
-  /*    transform focus*/
-  /* TransformerNotationFocus — blur non-focused lines, highlight focused ones */
-
-  /* tweakable variables */
-  :root {
-    --tnf-blur: 2px;
-    --tnf-nonfocus-opacity: 0.45;
-    --tnf-transition: 200ms;
-  }
-
-  /* container that signals focus annotations exist */
-  .has-focused {
-    position: relative;
-  }
-
-  /* make each line a block and enable smooth transitions */
-  .has-focused code > span[data-line] {
-    display: block;
-    transition:
-      filter var(--tnf-transition) ease,
-      opacity var(--tnf-transition) ease,
-      transform var(--tnf-transition) ease;
-    will-change: filter, opacity;
-  }
-
-  /* BLUR + DIM everything that is NOT focused */
-  .has-focused code > span[data-line]:not(.focused) {
-    filter: blur(var(--tnf-blur)) grayscale(0.2);
-    opacity: var(--tnf-nonfocus-opacity);
-    pointer-events: none; /* prevents interaction with blurred lines */
-    user-select: none; /* optional: prevents selecting blurred text */
-  }
-
-  /* KEEP focused lines crisp and visually prominent */
-  .has-focused code > span[data-line].focused {
-    filter: none;
-    opacity: 1;
-  }
-
-  /* Accessibility: slightly reduce blur when pre has keyboard focus */
-  .has-focused:focus-within code > span[data-line]:not(.focused) {
-    filter: blur(calc(var(--tnf-blur) * 0.6));
-    opacity: 0.3;
-  }
-
-  /*    error and warning*/
-  /* Container signals lines have error/warning highlights */
-  .has-highlighted {
-    position: relative;
-  }
-
-  /* Base highlighted line styling */
-  .has-highlighted code > span[data-line].highlighted {
-    display: flex; /* allow icon + text inline */
-    align-items: center;
-    padding-left: 0.5rem; /* space for border */
-    border-left-width: 3px;
-    border-left-style: solid;
-    gap: 0.5rem; /* space between icon and text */
-    transition:
-      background-color 0.2s ease,
-      border-color 0.2s ease;
-  }
-
-  /* Error line with icon */
-  .has-highlighted code > span[data-line].highlighted.error::before {
-    content: '🚫'; /* error icon */
-    display: inline-block;
-    color: #ff003d; /* matches border */
-  }
-
-  /* Warning line with icon */
-  .has-highlighted code > span[data-line].highlighted.warning::before {
-    content: '⚠️'; /* warning icon */
-    display: inline-block;
-    color: #ffbf00; /* matches border */
-  }
-
-  /* Colors for line background and border */
-  .has-highlighted code > span[data-line].highlighted.error {
-    background-color: #6b2424;
-    border-left-color: #ff003d;
-    color: #fff;
-  }
-
-  .has-highlighted code > span[data-line].highlighted.warning {
-    background-color: #543c1f;
-    border-left-color: #ffbf00;
-    color: #fff;
-  }
+    .has-highlighted code > span[data-line].highlighted.warning {
+        background-color: #543c1f;
+        border-left-color: #ffbf00;
+        color: #fff;
+    }
 }

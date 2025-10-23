@@ -1,0 +1,113 @@
+---
+title: "MDX Rendering Test"
+excerpt: "A complete test of Markdown and MDX features for Next.js MDX Remote"
+tags: [ "mdx", "next-mdx"]
+---
+
+# 🧪 MDX Rendering Test
+
+This document tests **all common Markdown and MDX features** to ensure your Next.js + MDX Remote setup is rendering correctly.
+
+---
+
+## 1. Headings
+
+# H1 Heading
+## H2 Heading
+### H3 Heading
+#### H4 Heading
+##### H5 Heading
+###### H6 Heading
+
+---
+
+## 2. Paragraphs and Line Breaks
+
+This is a paragraph with **bold**, *italic*, ***bold italic***, and `inline code`.
+
+Here’s another line with
+a manual line break (two spaces at the end of the line).
+✅ Works?
+
+---
+
+## 3. Blockquote
+
+> This is a blockquote.
+> It supports **bold** text and even *nested* inline styles.
+>
+> > Nested blockquote example.
+
+---
+
+## 4. Lists
+
+### Unordered list
+- Item one
+- Item two
+- Sub-item 2.1
+- Sub-item 2.2
+- Item three
+
+### Ordered list
+1. Step one
+2. Step two
+    1. Sub-step 2.1
+    2. Sub-step 2.2
+    3. Step three
+
+---
+
+## 5. Links and Images
+
+A [regular link](https://example.com)
+An image with alt text:
+
+### Image Test
+
+Local public image:
+![A cat](/v1/demo.png)
+
+Custom component with caption:
+<Figure
+  src="/v1/demo.png"
+  alt="BFS vs DFS travarsing"
+  caption="A visual comparison of BFS and DFS traversal"
+/>
+
+Remote image:
+![Remote Example](https://images.unsplash.com/photo-1518791841217-8f162f1e1131)
+
+For remote images, you can also use the `remotePatterns` option in `next.config.js` to allow remote images to be loaded.
+
+Example:
+
+```js
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com"
+      }]
+  }
+};
+export default nextConfig;
+```
+
+
+
+---
+
+## 6. Code Blocks
+
+### Inline code
+Here’s some inline code: `console.log('Hello, world!')`.
+
+### JavaScript code block
+
+```js
+function greet(name) {
+  console.log(`Hello, ${name}!`);
+}
+greet("MDX");

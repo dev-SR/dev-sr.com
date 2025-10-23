@@ -88,24 +88,21 @@ export const mdxComponents = {
   ),
   img: ({ src, alt, ...props }: React.ComponentPropsWithoutRef<'img'>) => {
     const safeSrc = typeof src === 'string' ? src : '/placeholder.svg';
+    const altText = alt ?? 'Image';
     return (
-      <div className="my-6">
-        <Image
-          src={safeSrc}
-          alt={alt ?? ''}
-          width={800}
-          height={400}
-          className="rounded-lg cursor-pointer transition-transform hover:scale-105 w-full h-auto"
-          {...(props as Omit<
-            React.ComponentProps<typeof Image>,
-            'src' | 'alt' | 'width' | 'height'
-          >)}
-        />
-      </div>
+      <Image
+        alt={altText}
+        src={safeSrc}
+        {...props}
+        width={800}
+        height={500}
+        style={{ height: 'auto' }}
+      />
     );
   },
   // Custom components
   MultiFileCodeBlock,
+  Figure,
   code: CodeCustom,
   pre: PreCustom,
 };
@@ -164,5 +161,24 @@ export function PreCustom(props: PreProps) {
       <CopyButton text={__rawstring__} />
       {children}
     </pre>
+  );
+}
+
+type FigureProps = {
+  src: string;
+  alt: string;
+  caption: string;
+  width?: number;
+  height?: number;
+};
+
+export function Figure({ src, alt, caption, width = 800, height = 500 }: FigureProps) {
+  return (
+    <figure style={{ textAlign: "center", margin: "2em 0" }}>
+      <Image src={src} alt={alt} width={width} height={height} style={{ height: "auto" }} />
+      <figcaption style={{ fontSize: "0.9em", color: "#555", marginTop: "0.5em" }}>
+        <strong>Figure:</strong> {caption}
+      </figcaption>
+    </figure>
   );
 }

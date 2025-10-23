@@ -77,30 +77,32 @@ export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProp
 
             {/* Tags */}
             {post.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {post.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
+              <>
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {post.tags.map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Blog Content with 30-60-30 Layout */}
+      <>{/* Blog Content */}</>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-12 gap-8">
-          {/* Left sidebar - 30% width - TOC */}
+          {/* Left sidebar - 25% width - TOC */}
           <div className="lg:col-span-3">
             <div className="sticky top-24">
               <TableOfContents />
             </div>
           </div>
 
-          {/* Main Content - 60% width */}
-          <div className="lg:col-span-6">
+          {/* Main Content - increased width (was col-span-6 -> now 9) */}
+          <div className="lg:col-span-9">
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
               {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}
@@ -141,11 +143,9 @@ export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProp
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Right sidebar - 30% width - Related/Share/Topics */}
-          <div className="lg:col-span-3">
-            <div className="sticky top-24 space-y-6">
+            {/* Share + Related moved to bottom (full-width within main column) */}
+            <div className="mt-12 pt-8 border-t border-border space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -189,7 +189,6 @@ export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProp
                 </CardContent>
               </Card>
 
-              {/* Related Posts */}
               {relatedPosts.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -209,27 +208,6 @@ export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProp
                         </div>
                       </div>
                     ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Topics */}
-              {post.tags && post.tags.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Topics</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {post.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs cursor-pointer hover:bg-accent/10">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
                   </CardContent>
                 </Card>
               )}

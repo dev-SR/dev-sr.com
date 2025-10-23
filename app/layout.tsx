@@ -29,13 +29,20 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // @ts-ignore
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${roboto.variable} 
-      ${firaCode.variable}
-      ${nunito.variable}
-      antialiased`}>
+    // moved font var classes to html so CSS can consume them immediately
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${roboto.variable} ${firaCode.variable} ${nunito.variable}`}>
+      <head>
+        <link
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="antialiased">
         <SmoothScrollProvider>
           <ThemeProvider
             attribute="class"
