@@ -8,6 +8,7 @@ import { MultiFileCodeBlock } from './code-block';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Check, Copy } from 'lucide-react';
+import PathVisualizer from '@/components/PathVisualizer';
 export const mdxComponents = {
   // Override default elements
   h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
@@ -102,6 +103,7 @@ export const mdxComponents = {
   },
   // Custom components
   MultiFileCodeBlock,
+  PathVisualizer,
   Figure,
   code: CodeCustom,
   pre: PreCustom,

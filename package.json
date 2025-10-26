@@ -20,8 +20,10 @@
     "@rehype-pretty/transformers": "^0.13.2",
     "@shikijs/transformers": "^3.12.0",
     "@uidotdev/usehooks": "^2.4.1",
+    "@xyflow/react": "^12.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "elkjs": "^0.11.0",
     "gray-matter": "latest",
     "gsap": "^3.13.0",
     "katex": "latest",
@@ -44,7 +46,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0"
+    "yaml": "^2.6.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
