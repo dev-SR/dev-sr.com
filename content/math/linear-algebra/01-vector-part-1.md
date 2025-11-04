@@ -372,7 +372,8 @@ $$
 
 ---
 
-#### Example: Linear Combination in $\mathbb{R}^2$
+### Linear Independence and Dependence
+
 
 Let’s take three vectors:
 
@@ -397,10 +398,6 @@ $$
 $$
 
 Such a set is **linearly dependent**.
-
----
-
-### Linear Independence and Dependence
 
 Let $S = {\mathbf{v}_1, \mathbf{v}_2, \dots, \mathbf{v}_n} \subseteq V$.
 
