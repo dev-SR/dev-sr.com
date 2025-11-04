@@ -12,48 +12,62 @@ import PathVisualizer from '@/components/PathVisualizer';
 export const mdxComponents = {
   // Override default elements
   h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
-    <h1 className="text-4xl font-bold mb-6 text-foreground scroll-mt-20" {...props}>
+    <h1
+      className="text-4xl lg:text-5xl font-bold mt-16 mb-8 text-foreground scroll-mt-20 leading-tight tracking-tight"
+      {...props}>
       {children}
     </h1>
   ),
   h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
-    <h2 className="text-3xl font-semibold mb-4 text-foreground scroll-mt-20" {...props}>
+    <h2
+      className="text-3xl lg:text-4xl font-semibold mt-12 mb-6 text-foreground scroll-mt-20 leading-tight tracking-tight"
+      {...props}>
       {children}
     </h2>
   ),
   h3: ({ children, ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
-    <h3 className="text-2xl font-medium mb-3 text-foreground scroll-mt-20" {...props}>
+    <h3
+      className="text-2xl lg:text-3xl font-medium mt-8 mb-4 text-foreground scroll-mt-20 leading-snug"
+      {...props}>
       {children}
     </h3>
   ),
   h4: ({ children, ...props }: React.ComponentPropsWithoutRef<'h4'>) => (
-    <h4 className="text-xl font-medium mb-2 text-foreground scroll-mt-20" {...props}>
+    <h4
+      className="text-xl lg:text-2xl font-medium mt-6 mb-3 text-foreground scroll-mt-20 leading-snug"
+      {...props}>
       {children}
     </h4>
   ),
   p: ({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) => (
-    <p className="text-base leading-relaxed mb-4 text-muted-foreground" {...props}>
+    <p
+      className="text-base leading-relaxed mb-6 text-muted-foreground [&:not(:first-child)]:mt-6"
+      {...props}>
       {children}
     </p>
   ),
   ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
-    <ul className="mb-4 pl-6 text-muted-foreground list-disc" {...props}>
+    <ul
+      className="mb-6 mt-4 pl-8 text-muted-foreground list-disc space-y-2 [&>li]:leading-relaxed"
+      {...props}>
       {children}
     </ul>
   ),
   ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
-    <ol className="mb-4 pl-6 text-muted-foreground list-decimal" {...props}>
+    <ol
+      className="mb-6 mt-4 pl-8 text-muted-foreground list-decimal space-y-2 [&>li]:leading-relaxed"
+      {...props}>
       {children}
     </ol>
   ),
   li: ({ children, ...props }: React.ComponentPropsWithoutRef<'li'>) => (
-    <li className="mb-2" {...props}>
+    <li className="mb-1 marker:text-muted-foreground/70" {...props}>
       {children}
     </li>
   ),
   blockquote: ({ children, ...props }: React.ComponentPropsWithoutRef<'blockquote'>) => (
     <blockquote
-      className="border-l-4 border-accent pl-4 italic text-muted-foreground mb-4 bg-muted/30 py-2 rounded-r-md"
+      className="border-l-4 border-accent pl-6 italic text-muted-foreground my-8 py-4 rounded-r-md bg-muted/30"
       {...props}>
       {children}
     </blockquote>

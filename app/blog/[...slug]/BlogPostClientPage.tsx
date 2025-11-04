@@ -9,17 +9,19 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
+import { mdxComponents } from '@/components/mdx-components';
+import { MDXRemote } from 'next-mdx-remote';
 
-const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
-  ssr: false,
-});
-
+// const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
+//   ssr: false,
+// });
+//
 interface BlogPostPageProps {
   post?: BlogPost;
   allPosts: BlogPost[];
 }
 
-export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProps) {
+export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps) {
   // params may be undefined in some edge navigations; avoid using it directly. Use post.slug instead where needed.
   if (!post) {
     // Server page will handle notFound(); on client, render nothing to avoid runtime errors.
@@ -96,8 +98,11 @@ export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProp
         <div className="grid lg:grid-cols-12 gap-8">
           {/* Left sidebar - 25% width - TOC */}
           <div className="lg:col-span-3">
-            <div className="sticky top-24">
-              <TableOfContents />
+            {/* Pull TOC further left but reduce right padding to avoid overlap */}
+            <div className="sticky top-24 -ml-8 sm:-ml-12 lg:-ml-20">
+              <div className="w-full pr-4">
+                <TableOfContents className="mb-0" />
+              </div>
             </div>
           </div>
 
@@ -106,7 +111,10 @@ export default function BlogPostClientPage({  post, allPosts }: BlogPostPageProp
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
               {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}
-              {post.mdxSource ? <ClientMDXRenderer mdxSource={post.mdxSource} /> : null}
+              {post.mdxSource ?
+                // <ClientMDXRenderer mdxSource={post.mdxSource} />
+                <MDXRemote {...post.mdxSource} components={mdxComponents} />
+                : null}
             </article>
 
             <div className="mt-12 pt-8 border-t border-border">

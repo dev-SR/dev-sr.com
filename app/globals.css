@@ -157,6 +157,21 @@
         'liga' 1;
     }
 
+    /* Ensure inline code in headings receives the same styles */
+    h1 code,
+    h2 code,
+    h3 code,
+    h4 code,
+    h5 code,
+    h6 code {
+        @apply inline-flex items-center px-1 text-sm rounded-md border;
+        @apply bg-card text-secondary-foreground;
+        font-family: var(--font-fira-code), ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+        monospace;
+        font-feature-settings: 'calt' 1,
+        'liga' 1;
+    }
+
     /*rehype-pretty-code*/
     [data-rehype-pretty-code-figure],
     [data-rehype-pretty-code-figure] > pre {

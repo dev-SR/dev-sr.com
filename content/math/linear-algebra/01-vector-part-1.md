@@ -1,19 +1,19 @@
 ---
-title: "Understanding Vectors Spaces and Basis in Linear Algebra"
+title: "Understanding Vectorsin Linear Algebra"
 date: "2024-01-15"
-excerpt: "A comprehensive introduction to vectors space and basis, their properties, and applications in linear algebra."
-tags: ["math", "linear-algebra", "vectors-space","vector-basis"]
+excerpt: "A comprehensive introduction to vectors, their properties, and applications in linear algebra."
+tags: ["math", "linear-algebra", "vectors","vector"]
 ---
 
-# Vectors Spaces and Basis 
+# Vectors Introduction
 
-## **Section 1.2 — Vector Space**
+## **Vector Space**
 
-A **vector space** is a mathematical structure that allows us to work with objects called **vectors**, similar to how we work with numbers. Vectors can represent multiple measurements, arranged as tuples:
+A **vector space** is a mathematical structure that allows us to work with objects called `vectors`, similar to how we work with numbers. Vectors can represent multiple measurements, arranged as tuples:
 
 $\mathbf{x} = (x_1, x_2, \dots, x_n)$
 
-### Operations on Vectors
+### Operations on `Vectors`
 
 Vectors support two key operations:
 
@@ -103,9 +103,9 @@ A **vector space** is a tuple $(V, F, +, \cdot)$ where:
 
 ---
 
-## Examples of Vector Spaces
+### Examples of Vector Spaces
 
-### 1. Euclidean space $\mathbb{R}^n$
+#### 1. Euclidean space $\mathbb{R}^n$
 
 $\mathbb{R}^n = {(x_1, \dots, x_n) \mid x_i \in \mathbb{R}}$
 
@@ -126,7 +126,7 @@ c * x        # array([2, 4])
 
 ---
 
-### 2. Space of polynomials $\mathbb{R}[x]$
+#### 2. Space of polynomials $\mathbb{R}[x]$
 
 $$
 \mathbb{R}[x] = \left\{ p(x) = \sum_{i=0}^n p_i x^i \;\middle|\; p_i \in \mathbb{R},\ n \ge 0 \right\}
@@ -140,7 +140,7 @@ $$
 
 ---
 
-### 3. Space of continuous functions $C([0,1])$
+#### 3. Space of continuous functions $C([0,1])$
 
 $C([0,1]) = {f : [0,1] \to \mathbb{R} \mid f \text{ is continuous}}$
 
@@ -227,7 +227,7 @@ plt.show()
 
 ---
 
-## **Section 1.3 — The Basis**
+## **The Basis**
 
 Although a vector space may contain infinitely many vectors, we can describe **all of them** using only a few **fundamental vectors** — called a **basis**.
 
@@ -289,7 +289,7 @@ If $V = \mathbb{R}^n$, then the standard basis has $n$ vectors and $\dim(V) = n$
 
 ---
 
-### 📊 Python Visualization — Standard Basis in $\mathbb{R}^2$
+### 📊 Python Visualization — Standard Basis
 
 <Figure
   src="/v1/content/math/linear-algebra/math.linear-algebra.basis-01.png"
@@ -341,3 +341,149 @@ Here’s a **structured, cohesive note** (with math, explanations, and Python vi
 
 ---
 
+
+Perfect — let’s make this section **fully cohesive**, precise, and conceptually connected — both mathematically and visually.
+We’ll integrate your code and notation style consistently with proper KaTeX math, smooth explanations, and logical flow.
+
+---
+
+## Linear Combinations and Independence
+
+In the previous section, we introduced the concept of a **basis** — a minimal set of vectors that can represent any vector in a space.
+Now, we will explore how such representations are formed through **linear combinations**, and how to distinguish between **linearly independent** and **dependent** sets of vectors.
+
+---
+
+### Linear Combinations
+
+Given vectors $\mathbf{v}_1, \mathbf{v}_2, \dots, \mathbf{v}_n$ in a vector space $V$ and scalars $x_1, x_2, \dots, x_n \in \mathbb{R}$,
+a **linear combination** is any vector of the form:
+
+$$
+\mathbf{v} = \sum_{i=1}^{n} x_i \mathbf{v}_i
+$$
+
+This simply means we can construct new vectors by **scaling and adding** existing ones.
+
+A **trivial linear combination** is when all coefficients are zero:
+$$
+x_1 = x_2 = \dots = x_n = 0 \quad \Rightarrow \quad \mathbf{v} = \mathbf{0}
+$$
+
+---
+
+#### Example: Linear Combination in $\mathbb{R}^2$
+
+Let’s take three vectors:
+
+$$
+\mathbf{v}_1 = (1, 0), \quad \mathbf{v}_2 = (0, 1), \quad \mathbf{v}_3 = (1, 1)
+$$
+
+Then the vector $(2, 1)$ can be expressed as:
+
+$$
+(2, 1) = 2\mathbf{v}_1 + \mathbf{v}_2 = \mathbf{v}_1 + \mathbf{v}_3
+$$
+
+This means $(2,1)$ can be formed in **two different ways** using $\mathbf{v}_1, \mathbf{v}_2, \mathbf{v}_3$.
+
+Therefore, the set
+$S = {\mathbf{v}_1, \mathbf{v}_2, \mathbf{v}_3}$
+contains **redundant information** — one of the vectors ($\mathbf{v}_3$) can be written as a combination of the others:
+
+$$
+\mathbf{v}_3 = \mathbf{v}_1 + \mathbf{v}_2
+$$
+
+Such a set is **linearly dependent**.
+
+---
+
+### Linear Independence and Dependence
+
+Let $S = {\mathbf{v}_1, \mathbf{v}_2, \dots, \mathbf{v}_n} \subseteq V$.
+
+* $S$ is **linearly independent** if the only way to express the zero vector is by the trivial combination:
+  $$
+  \mathbf{0} = \sum_{i=1}^{n} x_i \mathbf{v}_i \implies x_1 = x_2 = \dots = x_n = 0
+  $$
+
+* $S$ is **linearly dependent** if there exist scalars (not all zero) such that:
+  $$
+  \mathbf{0} = \sum_{i=1}^{n} x_i \mathbf{v}_i
+  $$
+
+In simple terms:
+
+* **Independent vectors** add new directions (they expand the space).
+* **Dependent vectors** lie in the same direction or plane already formed by others.
+
+---
+
+**🧩 Theorem 1.3.1 — Dependence and Independence:**
+
+Let $V$ be a vector space and $S = {\mathbf{v}_1, \dots, \mathbf{v}_n}$ a subset of its vectors.
+
+1. $S$ is **linearly dependent**
+   $\iff$ the zero vector $\mathbf{0}$ can be written as a **nontrivial linear combination** of vectors in $S$.
+
+2. $S$ is **linearly independent**
+   $\iff$ the only solution to $\mathbf{0} = \sum_{i=1}^{n} x_i \mathbf{v}_i$ is $x_1 = x_2 = \dots = x_n = 0$.
+
+---
+
+#### 🎨 Python Visualization — Independence vs Dependence
+
+
+<Figure
+  src="/v1/content/math/linear-algebra/linear-dep-indep.png"
+  alt="Vector Independence vs Dependence"
+  caption="Fig1: Visualizing Vector Independence vs Dependence"
+  width="500"
+/>
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(8, 4))
+
+# --- Left: Independent vectors ---
+plt.subplot(1, 2, 1)
+v1 = np.array([1, 0])
+v2 = np.array([0.5, 1])
+
+plt.quiver(0, 0, *v1, angles='xy', scale_units='xy', scale=1, color='r', label=r'$\mathbf{v}_1$')
+plt.quiver(0, 0, *v2, angles='xy', scale_units='xy', scale=1, color='b', label=r'$\mathbf{v}_2$')
+
+plt.title("Linearly Independent")
+plt.xlim(-0.5, 2)
+plt.ylim(-0.5, 2)
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.axis('equal')
+plt.legend()
+
+# --- Right: Dependent vectors ---
+plt.subplot(1, 2, 2)
+v1 = np.array([1, 0])
+v2 = np.array([2, 0])  # multiple of v1
+
+# Slight offset for visibility
+offset = np.array([0, 0.005])
+
+plt.quiver(0, 0, *v1, angles='xy', scale_units='xy', scale=1, color='r', label=r'$\mathbf{v}_1$')
+plt.quiver(*offset, *v2, angles='xy', scale_units='xy', scale=1, color='b', alpha=0.7, label=r'$\mathbf{v}_2 = 2\mathbf{v}_1$')
+
+plt.plot([0, 2], [0.05, 0.05], 'k--', alpha=0.3)
+
+plt.title("Linearly Dependent")
+plt.xlim(-0.5, 2.5)
+plt.ylim(-0.2, 0.6)
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.axis('equal')
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+```

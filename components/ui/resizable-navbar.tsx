@@ -124,8 +124,8 @@ export const NavbarLogo = () => {
   });
 
   return (
-    <a
-      href="#"
+    <Link
+      href="/"
       className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal text-black">
       <span className="flex gap-1">
         <span className="text-[#F08F87] text-2xl font-medium" id="sharukh">
@@ -136,7 +136,7 @@ export const NavbarLogo = () => {
           Rahman
         </span>
       </span>
-    </a>
+    </Link>
   );
 };
 
