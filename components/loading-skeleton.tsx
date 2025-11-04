@@ -47,3 +47,39 @@ export function ProjectCardSkeleton() {
     </div>
   )
 }
+
+export function MdxContentSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      {/* Heading */}
+      <div className="h-7 bg-muted rounded w-2/3" />
+      {/* Paragraph 1 */}
+      <div className="space-y-3">
+        <div className="h-4 bg-muted rounded w-full" />
+        <div className="h-4 bg-muted rounded w-5/6" />
+        <div className="h-4 bg-muted rounded w-4/5" />
+      </div>
+      {/* Subheading */}
+      <div className="h-6 bg-muted rounded w-1/2" />
+      {/* Paragraph 2 */}
+      <div className="space-y-3">
+        <div className="h-4 bg-muted rounded w-full" />
+        <div className="h-4 bg-muted rounded w-4/5" />
+        <div className="h-4 bg-muted rounded w-3/4" />
+      </div>
+      {/* Code block mimic */}
+      <div className="space-y-2 p-4 bg-muted/30 rounded-md">
+        <div className="h-3 bg-muted rounded w-11/12" />
+        <div className="h-3 bg-muted rounded w-4/5" />
+        <div className="h-3 bg-muted rounded w-10/12" />
+        <div className="h-3 bg-muted rounded w-2/3" />
+      </div>
+      {/* List mimic */}
+      <div className="space-y-2">
+        <div className="h-4 bg-muted rounded w-2/3" />
+        <div className="h-4 bg-muted rounded w-3/4" />
+        <div className="h-4 bg-muted rounded w-1/2" />
+      </div>
+    </div>
+  )
+}

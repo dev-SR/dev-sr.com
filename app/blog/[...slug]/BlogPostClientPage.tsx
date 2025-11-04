@@ -9,13 +9,12 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
-import { mdxComponents } from '@/components/mdx-components';
-import { MDXRemote } from 'next-mdx-remote';
+import { MdxContentSkeleton } from '@/components/loading-skeleton';
 
-// const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
-//   ssr: false,
-// });
-//
+const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
+  ssr: false,
+  loading: () => <MdxContentSkeleton />,
+});
 interface BlogPostPageProps {
   post?: BlogPost;
   allPosts: BlogPost[];
@@ -111,10 +110,9 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
               {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}
-              {post.mdxSource ?
-                // <ClientMDXRenderer mdxSource={post.mdxSource} />
-                <MDXRemote {...post.mdxSource} components={mdxComponents} />
-                : null}
+              {post.mdxSource ? (
+                <ClientMDXRenderer mdxSource={post.mdxSource} />
+              ) : null}
             </article>
 
             <div className="mt-12 pt-8 border-t border-border">
