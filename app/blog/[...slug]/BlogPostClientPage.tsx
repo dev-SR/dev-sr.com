@@ -94,11 +94,11 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
 
       <>{/* Blog Content */}</>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-12 gap-8">
+        <div className="grid md:grid-cols-12 gap-8">
           {/* Left sidebar - 25% width - TOC */}
-          <div className="lg:col-span-3">
+          <div className="md:col-span-2">
             {/* Pull TOC further left but reduce right padding to avoid overlap */}
-            <div className="sticky top-24 -ml-12 sm:-ml-16 lg:-ml-28">
+            <div className="sticky top-24 -ml-28 sm:-ml-36 lg:-ml-44">
               <div className="w-full pr-4">
                 <TableOfContents className="mb-0" />
               </div>
@@ -106,7 +106,7 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
           </div>
 
           {/* Main Content - increased width (was col-span-6 -> now 9) */}
-          <div className="lg:col-span-9">
+          <div className="md:col-span-10">
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
               {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}
