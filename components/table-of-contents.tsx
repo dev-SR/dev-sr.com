@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils';
 
 interface TocItem {
   id: string;
@@ -139,33 +140,53 @@ export function TableOfContents({
     items: TocItem[],
     minLevel: number = Math.min(...items.map((item) => item.level))
   ) => {
-    const groupedItems: { [key: number]: TocItem[] } = {};
-
-    items.forEach((item) => {
-      const level = item.level;
-      if (!groupedItems[level]) {
-        groupedItems[level] = [];
-      }
-      groupedItems[level].push(item);
-    });
-
-    return items.map((item, index) => {
+    return items.map((item) => {
       const isActive = activeId === item.id;
-      const indentLevel = item.level - minLevel;
+      const depth = item.level - minLevel;
 
       return (
         <button
           key={item.id}
           onClick={() => scrollToHeading(item.id)}
-          className={`
-            block w-full text-left py-2 px-3 rounded-md text-sm transition-all duration-200 hover:bg-muted/50
-            ${isActive ? 'bg-accent/10 text-accent border-l-2 border-accent font-medium' : 'text-muted-foreground hover:text-foreground'}
-          `}
-          style={{
-            paddingLeft: `${0.75 + indentLevel * 1}rem`,
-          }}>
+          className={cn(
+            'cursor-pointer relative w-full text-left py-1.5 px-2 text-sm rounded-md transition-all duration-200 group',
+            'hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+            isActive
+              ? 'bg-accent/10 text-accent font-medium'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+          style={{ paddingLeft: `${depth * 1.25 + 1}rem` }}
+        >
+          {/* Vertical line (left border tree connector) */}
           <span
-            className="line-clamp-2"
+            className={cn(
+              'absolute left-0 top-0 bottom-0 w-[2px] rounded-full transition-colors duration-300',
+              depth === 0
+                ? 'bg-border/70'
+                : depth === 1
+                  ? 'bg-border/60'
+                  : depth === 2
+                    ? 'bg-border/50'
+                    : 'bg-border/30',
+              isActive && 'bg-accent'
+            )}
+            style={{ marginLeft: `${depth * 1.25}rem` }}
+          />
+
+          {/* Horizontal connector */}
+          {depth > 0 && (
+            <span
+              className={cn(
+                'absolute top-1/2 left-0 w-3 h-[1px] bg-border/60 transition-colors duration-300',
+                isActive && 'bg-accent'
+              )}
+              style={{ marginLeft: `${(depth - 1) * 1.25 + 0.25}rem` }}
+            />
+          )}
+
+          {/* Heading text */}
+          <span
+            className="block pl-2 line-clamp-2 relative z-10"
             dangerouslySetInnerHTML={{ __html: item.textHtml ?? item.text }}
           />
         </button>
@@ -180,7 +201,7 @@ export function TableOfContents({
   return (
     <>
       {/* Accordion TOC - shown at page load */}
-      <div className={`mb-8 ${className}`}>
+      <div className={cn('mb-8', className)}>
         <Card>
           <Collapsible open={isAccordionOpen} onOpenChange={setIsAccordionOpen}>
             <CardHeader className="pb-3">
@@ -205,10 +226,12 @@ export function TableOfContents({
               <CardContent className="pt-0">
                 <div
                   ref={collapsibleContentRef}
-                  className="max-h-[60vh] overflow-auto pr-2"
+                  className="max-h-[60vh] overflow-auto pr-2 overscroll-contain"
                   role="navigation"
                   aria-label="Table of contents"
-                  tabIndex={0}>
+                  tabIndex={0}
+                  data-lenis-prevent
+                >
                   <nav className="space-y-1">{renderTocItems(tocItems)}</nav>
                 </div>
               </CardContent>
@@ -219,6 +242,7 @@ export function TableOfContents({
     </>
   );
 }
+
 
 // Compact version for sidebar use
 export function CompactTableOfContents({
@@ -304,15 +328,19 @@ export function CompactTableOfContents({
   if (tocItems.length === 0) return null;
 
   return (
-    <div className={className}>
+    <div className={cn(className)}>
       <h3 className="text-sm font-semibold text-foreground mb-3">On This Page</h3>
 
       {/* Compact TOC scrollable wrapper for long lists */}
       <div
-        className="max-h-[50vh] overflow-auto pr-2"
+        className="max-h-[50vh] overflow-auto pr-2 overscroll-contain"
         role="navigation"
         aria-label="On this page"
-        tabIndex={0}>
+        tabIndex={0}
+        data-lenis-prevent
+        data-lenis-prevent-wheel
+        data-lenis-prevent-touch
+      >
         <nav className="space-y-1">
           {tocItems.map((item) => {
             const isActive = activeId === item.id;
@@ -322,15 +350,26 @@ export function CompactTableOfContents({
               <button
                 key={item.id}
                 onClick={() => scrollToHeading(item.id)}
-                className={`
-                  block w-full text-left py-1.5 px-2 rounded text-xs transition-all duration-200
-                  ${isActive ? 'bg-accent/10 text-accent font-medium border-l-2 border-accent' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'}
-                `}
-                style={{ paddingLeft: `${0.5 + indentLevel * 0.75}rem` }}>
+                className={cn(
+                  'group block w-full text-left py-1.5 px-2 rounded text-xs transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+                  isActive
+                    ? 'bg-accent/10 text-accent font-medium'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                )}
+              >
                 <span
-                  className="line-clamp-2"
-                  dangerouslySetInnerHTML={{ __html: item.textHtml ?? item.text }}
-                />
+                  className={cn(
+                    'block border-l pl-3',
+                    isActive ? 'border-accent' : 'border-border/60',
+                    'group-hover:border-border'
+                  )}
+                  style={{ marginLeft: `${indentLevel * 0.75}rem` }}
+                >
+                  <span
+                    className="line-clamp-2"
+                    dangerouslySetInnerHTML={{ __html: item.textHtml ?? item.text }}
+                  />
+                </span>
               </button>
             );
           })}

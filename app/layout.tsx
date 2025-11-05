@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Roboto, Fira_Code, Nunito } from 'next/font/google';
 import './globals.css';
+import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import SmoothScrollProvider from '@/components/smooth-scroll-provider';
 
@@ -35,7 +36,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${roboto.variable} ${firaCode.variable} ${nunito.variable}`}>
+      className={cn(roboto.variable, firaCode.variable, nunito.variable)}>
       <head>
         <link
           href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"

@@ -98,7 +98,7 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
           {/* Left sidebar - 25% width - TOC */}
           <div className="lg:col-span-3">
             {/* Pull TOC further left but reduce right padding to avoid overlap */}
-            <div className="sticky top-24 -ml-8 sm:-ml-12 lg:-ml-20">
+            <div className="sticky top-24 -ml-12 sm:-ml-16 lg:-ml-28">
               <div className="w-full pr-4">
                 <TableOfContents className="mb-0" />
               </div>
