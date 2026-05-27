@@ -12,15 +12,13 @@ import { useState, useEffect } from 'react';
 
 const navItems = [
   { name: 'Home', link: '/' },
-  { name: 'Features', link: '#features' },
-  { name: 'Pricing', link: '#pricing' },
-  { name: 'About', link: '#about' },
+  { name: 'Portfolio', link: '/portfolio' },
+  { name: 'Blog', link: '/blog' },
+  { name: 'About', link: '/about' },
 ];
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Close mobile menu on window resize
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -35,13 +33,9 @@ export default function Header() {
   return (
     <Navbar>
       <NavbarLogo />
-      <NavItems items={navItems} setIsSearchOpen={setIsSearchOpen} />
+      <NavItems items={navItems} />
       <MobileMenuButton isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
-      <MobileNav
-        isMenuOpen={isMenuOpen}
-        setIsMenuOpen={setIsMenuOpen}
-        setIsSearchOpen={setIsSearchOpen}
-      />
+      <MobileNav isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} items={navItems} />
     </Navbar>
   );
 }

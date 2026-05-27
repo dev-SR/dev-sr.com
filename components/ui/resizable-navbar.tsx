@@ -1,11 +1,10 @@
 'use client';
 import { cn } from '@/lib/utils';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import { useWindowScroll, useWindowSize } from '@uidotdev/usehooks';
+import { useWindowScroll } from '@uidotdev/usehooks';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Search, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 import React, { useEffect, useRef, useState } from 'react';
 /* -------------------------------------------------- */
@@ -16,67 +15,38 @@ interface NavbarProps {
   className?: string;
 }
 
+interface NavItem {
+  name: string;
+  link: string;
+}
+
+function transitionFor(link: string) {
+  return [link === '/' ? 'nav-back' : 'nav-forward'];
+}
+
 export const Navbar = ({ children, className }: NavbarProps) => {
   const [visible, setVisible] = useState(false);
-  const [{ x, y }, scrollTo] = useWindowScroll();
-  const isSmallDevice = Number(useWindowSize().width) < 768;
-  const container = useRef<HTMLDivElement>(null);
+  const [{ y }] = useWindowScroll();
 
   useEffect(() => {
-    if (Number(y) > 10) {
-      setVisible(true);
-    } else {
-      setVisible(false);
-    }
+    setVisible(Number(y) > 18);
   }, [y]);
-
-  useGSAP(
-    () => {
-      // Set initial state
-      gsap.set(container.current, {
-        width: '100%',
-        y: 0,
-      });
-
-      gsap.to(container.current, {
-        width: isSmallDevice ? '100%' : '40%',
-        y: -45,
-        backdropFilter: 'blur(10px)',
-        // boxShadow:
-        //   '0 0 24px rgba(34,42,53,0.06), 0 1px 1px rgba(0,0,0,0.05), 0 0 0 1px rgba(34,42,53,0.04), 0 0 4px rgba(34,42,53,0.08), 0 16px 68px rgba(47,48,55,0.05), 0 1px 0 rgba(255,255,255,0.1) inset',
-        ease: 'power2.inOut',
-        duration: 0.4,
-        scrollTrigger: {
-          trigger: document.body,
-          start: 'top top',
-          end: '+=100',
-          scrub: 1,
-        },
-      });
-    },
-    { dependencies: [isSmallDevice] }
-  );
 
   return (
     <div
-      className={cn(
-        'sticky inset-x-0 top-12 z-40 w-full bg-transparent grid grid-cols-12',
-        className
-      )}>
-      <div className={'col-span-1 md:col-span-2'}></div>
-      <div className={'col-span-10 md:col-span-8'}>
+      className={cn('sticky inset-x-0 top-4 z-40 w-full bg-transparent px-3 sm:px-5', className)}
+      data-scrolled={visible}>
+      <div className="mx-auto max-w-6xl">
         <div
-          ref={container}
           className={cn(
-            'relative z-[60] mx-auto flex flex-row items-center justify-between self-start rounded-full px-3 py-2 sm:px-4',
-            visible && 'bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md',
-            'w-full lg:min-w-[800px] max-w-7xl',
-            className
+            'relative z-[60] mx-auto flex h-14 w-full items-center justify-between rounded-full border px-3 transition-all duration-500 ease-out sm:px-4',
+            visible
+              ? 'border-white/15 bg-background/72 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl md:max-w-3xl'
+              : 'border-transparent bg-transparent md:max-w-5xl'
           )}>
           {children}
         </div>
       </div>
-      <div className={'col-span-1 md:col-span-2'}></div>
     </div>
   );
 };
@@ -84,55 +54,34 @@ export const Navbar = ({ children, className }: NavbarProps) => {
 /* NavbarLogo                                         */
 /* -------------------------------------------------- */
 export const NavbarLogo = () => {
-  useGSAP(() => {
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: document.body,
-        start: 'top top',
-        end: '20% top',
-        scrub: 1,
-      },
-    });
-
-    // Step 1: fade out names
-    tl.to('#sharukh', {
-      opacity: 0,
-      x: -50,
-      ease: 'power3.out',
-      duration: 0.1,
-    })
-      .to(
-        '#rahman',
-        {
-          opacity: 0,
-          x: -100,
-          ease: 'power3.out',
-          duration: 0.1,
-        },
-        '<' // run at the same time as Sharukh
-      )
-      // Step 2: move logo AFTER names are gone
-      .to(
-        '#logo',
-        {
-          x: -100,
-          ease: 'power3.out',
-          duration: 0.1,
-        },
-        '<' // run at the same time as Sharukh
-      );
-  });
+  const [{ y }] = useWindowScroll();
+  const compact = Number(y) > 18;
 
   return (
     <Link
       href="/"
-      className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-sm font-normal text-black">
-      <span className="flex gap-1">
-        <span className="text-[#F08F87] text-2xl font-medium" id="sharukh">
+      transitionTypes={['nav-back']}
+      className="relative z-20 mr-3 flex items-center px-2 py-1 text-sm font-normal text-foreground">
+      <span className="flex items-center gap-1.5">
+        <span
+          className={cn(
+            'text-xl font-semibold text-[#F08F87] transition-all duration-500 sm:text-2xl',
+            compact && '-translate-x-2 opacity-0 md:opacity-100'
+          )}>
           Sharukh
         </span>
-        <img src="/logo.svg" alt="logo" width={40} height={40} id="logo" />
-        <span className="text-[#ACC5D3] text-2xl font-medium" id="rahman">
+        <img
+          src="/logo.svg"
+          alt="Sharukh Rahman logo"
+          width={40}
+          height={40}
+          className={cn('transition-transform duration-500', compact && 'md:scale-90')}
+        />
+        <span
+          className={cn(
+            'text-xl font-semibold text-[#ACC5D3] transition-all duration-500 sm:text-2xl',
+            compact && 'translate-x-2 opacity-0 md:opacity-100'
+          )}>
           Rahman
         </span>
       </span>
@@ -144,42 +93,36 @@ export const NavbarLogo = () => {
 /* NavItems                                            */
 /* -------------------------------------------------- */
 interface NavItemsProps {
-  items: { name: string; link: string }[];
+  items: NavItem[];
   className?: string;
   onItemClick?: () => void;
-  setIsSearchOpen: (open: boolean) => void;
 }
 
-export const NavItems = ({ items, className, onItemClick, setIsSearchOpen }: NavItemsProps) => {
+export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
+  const pathname = usePathname();
+
   return (
     <div className={cn('hidden md:flex', className)}>
-      {/* Desktop Navigation */}
-      <div className="flex items-center space-x-8">
-        <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-          Home
-        </Link>
-        <Link
-          href="/portfolio"
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          Portfolio
-        </Link>
-        <Link
-          href="/blog"
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          Blog
-        </Link>
-        <Link
-          href="/about"
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          About
-        </Link>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsSearchOpen(true)}
-          className="text-muted-foreground hover:text-foreground">
-          <Search className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center gap-1 rounded-full bg-white/[0.04] p-1">
+        {items.map((item) => {
+          const isActive =
+            item.link === '/' ? pathname === item.link : pathname.startsWith(item.link);
+
+          return (
+            <Link
+              key={item.link}
+              href={item.link}
+              transitionTypes={transitionFor(item.link)}
+              onClick={onItemClick}
+              className={cn(
+                'relative rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground',
+                isActive && 'text-foreground'
+              )}>
+              {isActive && <span className="absolute inset-0 rounded-full bg-white/10" />}
+              <span className="relative">{item.name}</span>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
@@ -197,7 +140,11 @@ export const MobileMenuButton = ({
 }) => {
   return (
     <div className="md:hidden">
-      <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        onClick={() => setIsMenuOpen(!isMenuOpen)}>
         {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </Button>
     </div>
@@ -207,54 +154,37 @@ export const MobileMenuButton = ({
 interface MobileNavProps {
   isMenuOpen: boolean;
   setIsMenuOpen: (open: boolean) => void;
-  setIsSearchOpen: (open: boolean) => void;
+  items: NavItem[];
 }
-export const MobileNav = ({ isMenuOpen, setIsMenuOpen, setIsSearchOpen }: MobileNavProps) => {
+export const MobileNav = ({ isMenuOpen, setIsMenuOpen, items }: MobileNavProps) => {
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    if (isMenuOpen) {
-      gsap.fromTo(
-        menuRef.current,
-        { opacity: 0, y: -20 },
-        { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
-      );
-    }
-  }, [isMenuOpen]);
+  const pathname = usePathname();
 
   if (!isMenuOpen) return null;
 
   return (
     <div
       ref={menuRef}
-      className="absolute left-0 right-0 top-full mt-2 md:hidden bg-white/90 dark:bg-neutral-950/90 backdrop-blur-md rounded-lg shadow-lg p-4 border border-border">
-      <div className="flex flex-col space-y-4">
-        <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
-          Home
-        </Link>
-        <Link
-          href="/portfolio"
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          Portfolio
-        </Link>
-        <Link
-          href="/blog"
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          Blog
-        </Link>
-        <Link
-          href="/about"
-          className="text-muted-foreground hover:text-foreground transition-colors">
-          About
-        </Link>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsSearchOpen(true)}
-          className="justify-start text-muted-foreground hover:text-foreground">
-          <Search className="h-4 w-4 mr-2" />
-          Search
-        </Button>
+      className="absolute left-3 right-3 top-full mt-3 rounded-2xl border border-white/10 bg-background/92 p-3 shadow-2xl backdrop-blur-xl animate-in fade-in-0 slide-in-from-top-2 duration-200 md:hidden">
+      <div className="flex flex-col gap-1">
+        {items.map((item) => {
+          const isActive =
+            item.link === '/' ? pathname === item.link : pathname.startsWith(item.link);
+
+          return (
+            <Link
+              key={item.link}
+              href={item.link}
+              transitionTypes={transitionFor(item.link)}
+              onClick={() => setIsMenuOpen(false)}
+              className={cn(
+                'rounded-xl px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground',
+                isActive && 'bg-white/10 text-foreground'
+              )}>
+              {item.name}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
