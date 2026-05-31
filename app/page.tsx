@@ -150,14 +150,13 @@ export default async function App() {
           </section>
 
           <section className="px-4 py-12 sm:px-6 lg:px-8">
-            <div className="mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {strengths.map((item, index) => {
+            <div className="reveal-stagger mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {strengths.map((item) => {
                 const Icon = item.icon;
                 return (
                   <div
                     key={item.label}
-                    className="reveal-on-scroll rounded-lg border border-white/10 bg-card/45 p-5 backdrop-blur"
-                    style={{ animationDelay: `${index * 80}ms` }}>
+                    className="reveal-on-scroll rounded-lg border border-white/10 bg-card/45 p-5 backdrop-blur">
                     <Icon className="mb-4 h-5 w-5 text-[#ACC5D3]" />
                     <p className="text-sm font-medium text-foreground">{item.label}</p>
                   </div>
@@ -185,14 +184,12 @@ export default async function App() {
                 </Button>
               </div>
 
-              <div className="grid gap-5 lg:grid-cols-3">
+              <div className="reveal-stagger grid gap-5 lg:grid-cols-3">
                 {projectHighlights.map((project, index) => {
                   const Icon = project.icon;
                   return (
                     <ViewTransition key={project.title} name={`project-${index}`} share="morph">
-                      <Card
-                        className="reveal-on-scroll group h-full overflow-hidden border-white/10 bg-card/55 transition-all duration-300 hover:-translate-y-1 hover:border-[#ACC5D3]/35 hover:shadow-2xl"
-                        style={{ animationDelay: `${index * 90}ms` }}>
+                      <Card className="reveal-on-scroll group h-full overflow-hidden border-white/10 bg-card/55 transition-all duration-300 hover:-translate-y-1 hover:border-[#ACC5D3]/35 hover:shadow-2xl">
                         <CardHeader>
                           <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-[#ACC5D3]/10 text-[#ACC5D3]">
                             <Icon className="h-5 w-5" />
@@ -242,13 +239,11 @@ export default async function App() {
                 </Button>
               </div>
 
-              <div className="grid gap-5">
-                {recentPosts.map((post, index) => (
+              <div className="reveal-stagger grid gap-5">
+                {recentPosts.map((post) => (
                   <ViewTransition key={post.slug} name={`post-${post.slug}`} share="morph">
                     <Link href={`/blog/${post.slug}`} transitionTypes={['nav-forward']}>
-                      <article
-                        className="reveal-on-scroll group grid gap-5 rounded-lg border border-white/10 bg-card/45 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#F08F87]/35 hover:bg-card/70 md:grid-cols-[1fr_auto]"
-                        style={{ animationDelay: `${index * 90}ms` }}>
+                      <article className="reveal-on-scroll group grid gap-5 rounded-lg border border-white/10 bg-card/45 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#F08F87]/35 hover:bg-card/70 md:grid-cols-[1fr_auto]">
                         <div>
                           <div className="mb-3 flex flex-wrap gap-2">
                             {post.tags?.slice(0, 3).map((tag) => (

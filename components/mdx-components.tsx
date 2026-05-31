@@ -111,7 +111,7 @@ export const mdxComponents = {
         {...props}
         width={800}
         height={500}
-        style={{ height: 'auto' }}
+        style={{ width: '100%', height: 'auto' }}
       />
     );
   },
@@ -191,7 +191,13 @@ type FigureProps = {
 export function Figure({ src, alt, caption, width = 800, height = 500 }: FigureProps) {
   return (
     <figure className="flex flex-col items-center justify-center mx-auto">
-      <Image src={src} alt={alt} width={width} height={height} style={{ height: 'auto' }} />
+      <Image
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        style={{ width: '100%', height: 'auto' }}
+      />
       <figcaption style={{ fontSize: '0.9em', color: '#555', marginTop: '0.5em' }}>
         <strong>Figure:</strong> {caption}
       </figcaption>

@@ -17,6 +17,7 @@ const LetterGlitch = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
+  const isMounted = useRef(false);
   const letters = useRef<
     {
       char: string;
@@ -173,9 +174,10 @@ const LetterGlitch = ({
   };
 
   const drawLetters = () => {
-    if (!context.current || letters.current.length === 0) return;
+    const canvas = canvasRef.current;
+    if (!isMounted.current || !canvas || !context.current || letters.current.length === 0) return;
     const ctx = context.current;
-    const { width, height } = canvasRef.current!.getBoundingClientRect();
+    const { width, height } = canvas.getBoundingClientRect();
     ctx.clearRect(0, 0, width, height);
     ctx.font = `${fontSize}px monospace`;
     ctx.textBaseline = 'top';
@@ -231,6 +233,8 @@ const LetterGlitch = ({
   };
 
   const animate = () => {
+    if (!isMounted.current || !canvasRef.current) return;
+
     const now = Date.now();
     if (now - lastGlitchTime.current >= glitchSpeed) {
       updateLetters();
@@ -249,6 +253,7 @@ const LetterGlitch = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    isMounted.current = true;
     context.current = canvas.getContext('2d');
     resizeCanvas();
     animate();
@@ -267,7 +272,12 @@ const LetterGlitch = ({
     window.addEventListener('resize', handleResize);
 
     return () => {
-      cancelAnimationFrame(animationRef.current!);
+      isMounted.current = false;
+      if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+      context.current = null;
+      letters.current = [];
+      clearTimeout(resizeTimeout);
       window.removeEventListener('resize', handleResize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

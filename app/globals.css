@@ -397,7 +397,7 @@
 :root {
   --duration-exit: 150ms;
   --duration-enter: 240ms;
-  --duration-route: 420ms;
+  --duration-route: 520ms;
 }
 
 ::view-transition-group(.morph) {
@@ -410,31 +410,33 @@
 }
 
 ::view-transition-old(.page-forward) {
-  --slide-offset: -54px;
+  --slide-offset: -32px;
   animation:
-    var(--duration-exit) ease-in both vt-fade reverse,
-    var(--duration-route) cubic-bezier(0.22, 1, 0.36, 1) both vt-slide reverse;
+    170ms ease-in both vt-fade reverse,
+    360ms cubic-bezier(0.4, 0, 1, 1) both vt-slide reverse;
 }
 
 ::view-transition-new(.page-forward) {
-  --slide-offset: 54px;
+  --slide-offset: 38px;
   animation:
-    var(--duration-enter) ease-out var(--duration-exit) both vt-fade,
-    var(--duration-route) cubic-bezier(0.22, 1, 0.36, 1) both vt-slide;
+    330ms ease-out 110ms both vt-fade,
+    var(--duration-route) cubic-bezier(0.16, 1, 0.3, 1) 70ms both vt-slide,
+    600ms cubic-bezier(0.16, 1, 0.3, 1) 70ms both vt-settle;
 }
 
 ::view-transition-old(.page-back) {
-  --slide-offset: 42px;
+  --slide-offset: 28px;
   animation:
-    var(--duration-exit) ease-in both vt-fade reverse,
-    360ms cubic-bezier(0.22, 1, 0.36, 1) both vt-slide reverse;
+    160ms ease-in both vt-fade reverse,
+    330ms cubic-bezier(0.4, 0, 1, 1) both vt-slide reverse;
 }
 
 ::view-transition-new(.page-back) {
-  --slide-offset: -42px;
+  --slide-offset: -34px;
   animation:
-    var(--duration-enter) ease-out var(--duration-exit) both vt-fade,
-    360ms cubic-bezier(0.22, 1, 0.36, 1) both vt-slide;
+    310ms ease-out 100ms both vt-fade,
+    480ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both vt-slide,
+    560ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both vt-settle;
 }
 
 ::view-transition-old(.page-soft) {
@@ -450,24 +452,45 @@
 }
 
 .reveal-on-scroll {
-  animation: reveal-up 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --reveal-delay: 0ms;
+  --reveal-start: 6%;
+  --reveal-end: 24%;
+  animation: reveal-up 920ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay) both;
 }
 
 .reveal-delay-2 {
-  animation-delay: 140ms;
+  --reveal-delay: 120ms;
+}
+
+.reveal-stagger > :nth-child(2) .reveal-on-scroll,
+.reveal-stagger > .reveal-on-scroll:nth-child(2) {
+  --reveal-delay: 90ms;
+  --reveal-start: 10%;
+  --reveal-end: 28%;
+}
+
+.reveal-stagger > :nth-child(3) .reveal-on-scroll,
+.reveal-stagger > .reveal-on-scroll:nth-child(3) {
+  --reveal-delay: 180ms;
+  --reveal-start: 14%;
+  --reveal-end: 32%;
+}
+
+.reveal-stagger > :nth-child(4) .reveal-on-scroll,
+.reveal-stagger > .reveal-on-scroll:nth-child(4) {
+  --reveal-delay: 270ms;
+  --reveal-start: 18%;
+  --reveal-end: 36%;
 }
 
 @supports (animation-timeline: view()) {
   .reveal-on-scroll {
     animation-name: reveal-up;
     animation-duration: 1ms;
+    animation-delay: 0ms;
     animation-fill-mode: both;
     animation-timeline: view();
-    animation-range: entry 8% cover 28%;
-  }
-
-  .reveal-delay-2 {
-    animation-delay: 0ms;
+    animation-range: entry var(--reveal-start) cover var(--reveal-end);
   }
 }
 
@@ -610,12 +633,12 @@
 @keyframes reveal-up {
   from {
     opacity: 0;
-    transform: translateY(28px);
-    filter: blur(8px);
+    transform: translateY(14px) scale(0.992);
+    filter: blur(2px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     filter: blur(0);
   }
 }
@@ -637,6 +660,15 @@
   }
   to {
     transform: translateX(0);
+  }
+}
+
+@keyframes vt-settle {
+  from {
+    scale: 0.992;
+  }
+  to {
+    scale: 1;
   }
 }
 

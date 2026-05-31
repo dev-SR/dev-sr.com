@@ -23,3 +23,8 @@
 - App Router project using Next.js `16.2.6`, React `19.2.6`, Tailwind CSS v4, GSAP, Lenis, and MDX content.
 - `pnpm lint` currently fails because of an existing ESLint 9 circular configuration issue.
 - Turbopack build emits an existing NFT tracing warning related to filesystem-based MDX discovery.
+
+## Additional Motion Rules
+
+- Keep landing card reveals subtle: low travel distance, light blur, smooth easing, and staggered view-range timing.
+- Canvas animation components must stop requestAnimationFrame loops and guard DOM refs during unmount because native route transitions can overlap teardown frames.
