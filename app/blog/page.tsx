@@ -1,10 +1,9 @@
 import { getAllPosts, discoverMDXFiles } from '@/lib/mdx';
 import { BlogTreeNavigation } from '@/components/blog-tree';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, Calendar, TrendingUp, Star } from 'lucide-react';
-import Link from 'next/link';
+import { BlogTopicCard, PopularPostCard } from '@/components/ui/blog-index-cards';
+import { Calendar, TrendingUp, Star } from 'lucide-react';
 import Header from '@/components/Header';
+import { BlogPostPreviewCard } from '@/components/blog-post-preview-card';
 
 export default async function BlogPage() {
   const posts = await getAllPosts();
@@ -64,38 +63,9 @@ export default async function BlogPage() {
                 <Calendar className="h-5 w-5 text-accent" />
                 <h2 className="text-2xl font-bold text-foreground">Recent Posts</h2>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                {recentPosts.map((post) => (
-                  <Card key={post.slug} className="group hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="group-hover:text-accent transition-colors">
-                            <Link href={`/blog/${post.slug}`}>{post.title}</Link>
-                          </CardTitle>
-                          <CardDescription className="mt-2">{post.excerpt}</CardDescription>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {post.readingTime} min
-                          </div>
-                          <time>{new Date(post.date).toLocaleDateString()}</time>
-                        </div>
-                        <div className="flex gap-1">
-                          {post.tags?.slice(0, 2).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+              <div className="reveal-stagger grid gap-6 md:grid-cols-2">
+                {recentPosts.map((post, index) => (
+                  <BlogPostPreviewCard key={post.slug} post={post} priority={index === 0} />
                 ))}
               </div>
             </section>
@@ -106,26 +76,9 @@ export default async function BlogPage() {
                 <TrendingUp className="h-5 w-5 text-accent" />
                 <h2 className="text-2xl font-bold text-foreground">Popular Posts</h2>
               </div>
-              <div className="space-y-4">
+              <div className="reveal-stagger space-y-4">
                 {popularPosts.map((post, index) => (
-                  <Card key={post.slug} className="group hover:shadow-md transition-shadow">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex-shrink-0 w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-bold text-accent">#{index + 1}</span>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-foreground group-hover:text-accent transition-colors">
-                            <Link href={`/blog/${post.slug}`}>{post.title}</Link>
-                          </h3>
-                          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                            <span>{post.views} views</span>
-                            <span>{post.readingTime} min read</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <PopularPostCard key={post.slug} post={post} rank={index + 1} />
                 ))}
               </div>
             </section>
@@ -136,22 +89,9 @@ export default async function BlogPage() {
                 <Star className="h-5 w-5 text-accent" />
                 <h2 className="text-2xl font-bold text-foreground">Best Topics</h2>
               </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="reveal-stagger grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {bestTopics.map(([topic, count]) => (
-                  <Card
-                    key={topic}
-                    className="group hover:shadow-md transition-shadow cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium text-foreground group-hover:text-accent transition-colors capitalize">
-                          {topic.replace(/-/g, ' ')}
-                        </h3>
-                        <Badge variant="outline" className="text-xs">
-                          {count} post{count !== 1 ? 's' : ''}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <BlogTopicCard key={topic} topic={topic} count={count} />
                 ))}
               </div>
             </section>

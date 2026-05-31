@@ -409,6 +409,89 @@
   animation-name: vt-via-soft-blur;
 }
 
+::view-transition-group(.post-cover) {
+  z-index: 2;
+  animation-duration: 680ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-image-pair(.post-cover) {
+  animation-name: vt-via-soft-blur;
+}
+
+::view-transition-group(.post-title) {
+  z-index: 4;
+  animation-duration: 560ms;
+  animation-delay: 60ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(.post-title) {
+  animation: 130ms ease-in both vt-fade reverse;
+}
+
+::view-transition-new(.post-title) {
+  animation: 300ms cubic-bezier(0.16, 1, 0.3, 1) 90ms both vt-fade-slide-up;
+}
+
+::view-transition-group(.post-excerpt) {
+  z-index: 4;
+  animation-duration: 620ms;
+  animation-delay: 110ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-image-pair(.post-excerpt) {
+  isolation: isolate;
+}
+
+::view-transition-old(.post-excerpt),
+::view-transition-new(.post-excerpt) {
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(.post-excerpt) {
+  animation: 180ms cubic-bezier(0.4, 0, 1, 1) both vt-excerpt-out;
+}
+
+::view-transition-new(.post-excerpt) {
+  animation: 420ms cubic-bezier(0.16, 1, 0.3, 1) 190ms both vt-excerpt-in;
+}
+
+::view-transition-group(.post-meta) {
+  z-index: 4;
+  animation-duration: 440ms;
+  animation-delay: 210ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+::view-transition-old(.post-meta) {
+  animation: 110ms ease-in both vt-fade reverse;
+}
+
+::view-transition-new(.post-meta) {
+  animation: 260ms cubic-bezier(0.16, 1, 0.3, 1) 240ms both vt-fade-slide-up;
+}
+
+::view-transition-old(.post-loader-out) {
+  animation: 130ms ease-in both vt-fade reverse;
+}
+
+::view-transition-new(.post-loader-in) {
+  animation: 180ms ease-out both vt-fade;
+}
+
+::view-transition-old(.page-post-open) {
+  animation: 130ms ease-in both vt-fade reverse;
+}
+
+::view-transition-new(.page-post-open) {
+  animation: 300ms ease-out 70ms both vt-fade;
+}
+
 ::view-transition-old(.page-forward) {
   --slide-offset: -32px;
   animation:
@@ -669,6 +752,45 @@
   }
   to {
     scale: 1;
+  }
+}
+
+@keyframes vt-fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes vt-excerpt-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+    filter: blur(4px);
+  }
+}
+
+@keyframes vt-excerpt-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
   }
 }
 

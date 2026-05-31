@@ -33,3 +33,10 @@
 
 - The shared header should rest lower on the page at top=0 and rise into its compact position while scrolling down.
 - Blog cover heroes should start behind the header and use light top-edge fades plus a stronger bottom blend into the article background.
+
+## Blog Card Transitions
+
+- Blog preview cards should show a cover image only when frontmatter provides `coverImage`.
+- Keep shared native view-transition identities explicit and CSS-safe: sanitize nested slugs before naming the matching cover, title, and metadata transitions.
+- The article loading state should preserve the cover-hero footprint without claiming a slug-specific shared identity because `loading.tsx` does not know the destination post.
+- For article opens, transition the same visual object at both endpoints: cover image to cover image. Use a calm `post-open` route fade while cover, title, excerpt, and metadata run as the staged shared sequence.

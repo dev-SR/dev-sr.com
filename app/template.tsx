@@ -5,11 +5,13 @@ export default function Template({ children }: { children: React.ReactNode }) {
     <ViewTransition
       default="none"
       enter={{
+        'post-open': 'page-post-open',
         'nav-forward': 'page-forward',
         'nav-back': 'page-back',
         default: 'page-soft',
       }}
       exit={{
+        'post-open': 'page-post-open',
         'nav-forward': 'page-forward',
         'nav-back': 'page-back',
         default: 'page-soft',

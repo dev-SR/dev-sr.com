@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
 import { MdxContentSkeleton } from '@/components/loading-skeleton';
+import { ViewTransition } from 'react';
 
 const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
   ssr: false,
@@ -27,6 +28,8 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
     // Server page will handle notFound(); on client, render nothing to avoid runtime errors.
     return null;
   }
+
+  const transitionSlug = post.slug.replace(/[^a-zA-Z0-9_-]/g, '-');
 
   // Get related posts (same tags)
   const relatedPosts = allPosts
@@ -47,14 +50,16 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
         }`}>
         {post.coverImage && (
           <>
-            <Image
-              src={post.coverImage}
-              alt={post.coverImageAlt ?? post.title}
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover object-center"
-            />
+            <ViewTransition name={`post-cover-${transitionSlug}`} share="post-cover">
+              <Image
+                src={post.coverImage}
+                alt={post.coverImageAlt ?? post.title}
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover object-center"
+              />
+            </ViewTransition>
             <div className="absolute inset-0 bg-black/10" />
             <div className="absolute inset-0 bg-linear-to-b from-background/25 via-transparent to-background" />
             <div className="absolute inset-x-0 top-0 h-44 bg-linear-to-b from-background/35 to-transparent" />
@@ -83,28 +88,34 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
             </nav>
 
             {/* Title */}
-            <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">{post.title}</h1>
+            <ViewTransition name={`post-title-${transitionSlug}`} share="post-title">
+              <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4">{post.title}</h1>
+            </ViewTransition>
 
             {/* Excerpt */}
             {post.excerpt && (
-              <p className="text-xl text-muted-foreground mb-6 leading-relaxed">{post.excerpt}</p>
+              <ViewTransition name={`post-excerpt-${transitionSlug}`} share="post-excerpt">
+                <p className="mb-6 text-xl leading-relaxed text-muted-foreground">{post.excerpt}</p>
+              </ViewTransition>
             )}
 
             {/* Meta Information */}
-            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                <time dateTime={post.date}>{new Date(post.date).toLocaleDateString()}</time>
+            <ViewTransition name={`post-meta-${transitionSlug}`} share="post-meta">
+              <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <time dateTime={post.date}>{new Date(post.date).toLocaleDateString()}</time>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>{post.readingTime} min read</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  <span>{post.viewCount || 0} views</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>{post.readingTime} min read</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                <span>{post.viewCount || 0} views</span>
-              </div>
-            </div>
+            </ViewTransition>
 
             {/* Tags */}
             {post.tags && post.tags.length > 0 && (

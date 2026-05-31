@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { BlogPostPreviewCard } from '@/components/blog-post-preview-card';
 import LetterGlitchLeftSide from '@/components/showcase/LetterGlitchLeftSide';
 import LetterGlitchRightSide from '@/components/showcase/LetterGlitchRightSide';
 import ParallaxWaves from '@/components/showcase/ParallaxWaveBackground';
@@ -10,7 +11,6 @@ import {
   ArrowRight,
   BookOpen,
   Braces,
-  CalendarDays,
   Code2,
   Layers3,
   MousePointer2,
@@ -241,36 +241,7 @@ export default async function App() {
 
               <div className="reveal-stagger grid gap-5">
                 {recentPosts.map((post) => (
-                  <ViewTransition key={post.slug} name={`post-${post.slug}`} share="morph">
-                    <Link href={`/blog/${post.slug}`} transitionTypes={['nav-forward']}>
-                      <article className="reveal-on-scroll group grid gap-5 rounded-lg border border-white/10 bg-card/45 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-[#F08F87]/35 hover:bg-card/70 md:grid-cols-[1fr_auto]">
-                        <div>
-                          <div className="mb-3 flex flex-wrap gap-2">
-                            {post.tags?.slice(0, 3).map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                          <h3 className="text-2xl font-semibold text-foreground transition-colors group-hover:text-[#F08F87]">
-                            {post.title}
-                          </h3>
-                          {post.excerpt && (
-                            <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-                              {post.excerpt}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground md:flex-col md:items-end md:justify-center">
-                          <span className="flex items-center gap-2">
-                            <CalendarDays className="h-4 w-4" />
-                            {new Date(post.date).toLocaleDateString()}
-                          </span>
-                          <span>{post.readingTime} min read</span>
-                        </div>
-                      </article>
-                    </Link>
-                  </ViewTransition>
+                  <BlogPostPreviewCard key={post.slug} post={post} variant="landing" />
                 ))}
               </div>
             </div>
