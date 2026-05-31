@@ -24,6 +24,8 @@ export interface BlogPost {
   date: string;
   excerpt?: string;
   tags?: string[];
+  coverImage?: string;
+  coverImageAlt?: string;
   readingTime?: number;
   viewCount?: number;
   content: string;
@@ -180,6 +182,8 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | undefined>
       date: data.date || new Date().toISOString(),
       excerpt: data.excerpt,
       tags: data.tags || [],
+      coverImage: data.coverImage,
+      coverImageAlt: data.coverImageAlt,
       readingTime: calculateReadingTime(content),
       viewCount: 0,
       content,

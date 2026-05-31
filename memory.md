@@ -28,3 +28,8 @@
 
 - Keep landing card reveals subtle: low travel distance, light blur, smooth easing, and staggered view-range timing.
 - Canvas animation components must stop requestAnimationFrame loops and guard DOM refs during unmount because native route transitions can overlap teardown frames.
+
+## Header Resting Position
+
+- The shared header should rest lower on the page at top=0 and rise into its compact position while scrolling down.
+- Blog cover heroes should start behind the header and use light top-edge fades plus a stronger bottom blend into the article background.

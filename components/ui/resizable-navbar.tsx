@@ -35,14 +35,14 @@ export const Navbar = ({ children, className }: NavbarProps) => {
         container.current,
         {
           maxWidth: '64rem',
-          y: 0,
+          y: 28,
           backgroundColor: 'rgba(10, 10, 10, 0)',
           borderColor: 'rgba(255, 255, 255, 0)',
           boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
         },
         {
           maxWidth: '48rem',
-          y: -8,
+          y: 0,
           backgroundColor: 'rgba(10, 10, 10, 0.76)',
           borderColor: 'rgba(255, 255, 255, 0.15)',
           boxShadow: '0 18px 60px rgba(0, 0, 0, 0.28)',

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Eye, Share2, ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
 import { MdxContentSkeleton } from '@/components/loading-skeleton';
@@ -38,14 +39,43 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
   const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
 
   return (
-    <div className="bg-background">
+    <>
       <Header />
-      <div className="bg-card/50 border-b border-border mt-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <section
+        className={`relative isolate overflow-hidden border-b border-border ${
+          post.coverImage ? '-mt-14 min-h-[38rem] sm:min-h-[42rem]' : 'mt-28 bg-card/50'
+        }`}>
+        {post.coverImage && (
+          <>
+            <Image
+              src={post.coverImage}
+              alt={post.coverImageAlt ?? post.title}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-black/10" />
+            <div className="absolute inset-0 bg-linear-to-b from-background/25 via-transparent to-background" />
+            <div className="absolute inset-x-0 top-0 h-44 bg-linear-to-b from-background/35 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-72 bg-linear-to-t from-background via-background/90 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-32 shadow-[inset_0_-48px_50px_-20px_rgba(0,0,0,0.75)]" />
+          </>
+        )}
+
+        <div
+          className={`relative z-10 mx-auto flex max-w-7xl px-4 sm:px-6 lg:px-8 ${
+            post.coverImage
+              ? 'min-h-[38rem] items-end pb-12 pt-40 sm:min-h-[42rem] sm:pb-16'
+              : 'py-8'
+          }`}>
           <div className="max-w-4xl">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <Link href="/blog" className="hover:text-foreground transition-colors">
+              <Link
+                href="/blog"
+                transitionTypes={['nav-back']}
+                className="hover:text-foreground transition-colors">
                 Blog
               </Link>
               <span>/</span>
@@ -90,7 +120,7 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
             )}
           </div>
         </div>
-      </div>
+      </section>
 
       <>{/* Blog Content */}</>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -110,9 +140,7 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
               {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}
-              {post.mdxSource ? (
-                <ClientMDXRenderer mdxSource={post.mdxSource} />
-              ) : null}
+              {post.mdxSource ? <ClientMDXRenderer mdxSource={post.mdxSource} /> : null}
             </article>
 
             <div className="mt-12 pt-8 border-t border-border">
@@ -221,6 +249,6 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
