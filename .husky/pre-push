@@ -1,4 +1,4 @@
-echo 'PNPM WORKSPACE DISABLED'
-exit 0
+# echo 'PNPM WORKSPACE DISABLED'
+# exit 0
 
-# pnpm build
+pnpm build

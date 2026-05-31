@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Github,
   ExternalLink,
   Mail,
   MapPin,
@@ -18,6 +17,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
+import { FaGithub } from "react-icons/fa";
 
 // Mock data - in a real app this would come from a CMS or database
 const projects = [
@@ -243,7 +243,7 @@ export default async function PortfolioPage() {
                   <div className="flex gap-3">
                     <Button asChild variant="outline" size="sm" className="bg-transparent">
                       <Link href={project.githubUrl} target="_blank" rel="noopener noreferrer">
-                        <Github className="h-4 w-4 mr-2" />
+                        <FaGithub className="h-4 w-4 mr-2" />
                         Code
                       </Link>
                     </Button>
@@ -300,7 +300,7 @@ export default async function PortfolioPage() {
                     <div className="flex gap-2">
                       <Button asChild variant="outline" size="sm" className="flex-1 bg-transparent">
                         <Link href={project.githubUrl} target="_blank" rel="noopener noreferrer">
-                          <Github className="h-3 w-3 mr-1" />
+                          <FaGithub className="h-3 w-3 mr-1" />
                           Code
                         </Link>
                       </Button>
@@ -352,7 +352,7 @@ export default async function PortfolioPage() {
                   <span className="text-foreground">San Francisco, CA</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Github className="h-5 w-5 text-accent" />
+                  <FaGithub className="h-5 w-5 text-accent" />
                   <Link
                     href="https://github.com/alexjohnson"
                     className="text-foreground hover:text-accent transition-colors">
