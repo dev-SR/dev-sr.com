@@ -552,7 +552,6 @@
   place-items: center;
   overflow: hidden;
   background: rgba(8, 10, 14, 0.96);
-  animation: splash-out 520ms ease 1.62s both;
 }
 
 .site-splash__grid {
@@ -562,7 +561,6 @@
     linear-gradient(rgba(172, 197, 211, 0.08) 1px, transparent 1px),
     linear-gradient(90deg, rgba(240, 143, 135, 0.08) 1px, transparent 1px);
   background-size: 44px 44px;
-  animation: splash-grid 1.8s ease both;
   mask-image: radial-gradient(circle at center, black 0 42%, transparent 72%);
 }
 
@@ -578,10 +576,6 @@
   font-weight: 800;
 }
 
-.site-splash__name {
-  animation: splash-name 780ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 .site-splash__name--left {
   color: #f08f87;
   transform-origin: right center;
@@ -590,13 +584,11 @@
 .site-splash__name--right {
   color: #acc5d3;
   transform-origin: left center;
-  animation-delay: 100ms;
 }
 
 .site-splash__mark {
   display: grid;
   place-items: center;
-  animation: splash-mark 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .site-splash__line {
@@ -608,13 +600,11 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-.site-splash__line::after {
-  content: '';
+.site-splash__line--inner {
   display: block;
   width: 42%;
   height: 100%;
   background: linear-gradient(90deg, transparent, #acc5d3, #f08f87, transparent);
-  animation: splash-line 1.2s ease both;
 }
 
 @keyframes reveal-up {

@@ -65,12 +65,12 @@ export default async function App() {
       <Header />
       <ParallaxWaves />
 
-      <main className="relative -mt-[60vh] z-30 grid w-full grid-cols-1 lg:grid-cols-12">
+      <main className="grid min-h-screen w-full grid-cols-1 lg:grid-cols-12">
         <div className="hidden lg:contents">
           <LetterGlitchLeftSide />
         </div>
 
-        <div className="w-full lg:col-span-8">
+        <div className="relative z-30 w-full -mt-[60vh] lg:col-span-8">
           <section className="relative min-h-[92svh] px-4 pb-16 pt-28 sm:px-6 lg:px-8">
             <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1.08fr_0.92fr]">
               <div className="reveal-on-scroll">
