@@ -1,7 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Github, ExternalLink } from "lucide-react"
+import { ExternalLink } from "lucide-react"
+import { FaGithub } from "react-icons/fa";
+
 import Link from "next/link"
 import Image from "next/image"
 
@@ -11,7 +13,7 @@ interface Project {
   description: string
   image: string
   technologies: string[]
-  githubUrl: string
+  FaGithubUrl: string
   liveUrl?: string
   featured?: boolean
 }
@@ -49,8 +51,8 @@ export function ProjectCard({ project, variant = "compact" }: ProjectCardProps) 
           </div>
           <div className="flex gap-3">
             <Button asChild variant="outline" size="sm" className="bg-transparent">
-              <Link href={project.githubUrl} target="_blank" rel="noopener noreferrer">
-                <Github className="h-4 w-4 mr-2" />
+              <Link href={project.FaGithubUrl} target="_blank" rel="noopener noreferrer">
+                <FaGithub className="h-4 w-4 mr-2" />
                 Code
               </Link>
             </Button>
@@ -98,8 +100,8 @@ export function ProjectCard({ project, variant = "compact" }: ProjectCardProps) 
         </div>
         <div className="flex gap-2">
           <Button asChild variant="outline" size="sm" className="flex-1 bg-transparent">
-            <Link href={project.githubUrl} target="_blank" rel="noopener noreferrer">
-              <Github className="h-3 w-3 mr-1" />
+            <Link href={project.FaGithubUrl} target="_blank" rel="noopener noreferrer">
+              <FaGithub className="h-3 w-3 mr-1" />
               Code
             </Link>
           </Button>
