@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { ChevronDown, ChevronRight, List } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { ChevronDown, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
@@ -18,35 +17,41 @@ interface TocItem {
 interface TableOfContentsProps {
   contentSelector?: string;
   className?: string;
+  visibleRange?: number;
 }
 
 export function TableOfContents({
   contentSelector = '.mdx-content',
   className,
+  visibleRange = 3,
 }: TableOfContentsProps) {
   const [tocItems, setTocItems] = useState<TocItem[]>([]);
   const [activeId, setActiveId] = useState<string>('');
-  const [isSticky, setIsSticky] = useState(false);
   const [isAccordionOpen, setIsAccordionOpen] = useState(true);
-  const [showSticky, setShowSticky] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const tocRef = useRef<HTMLDivElement>(null);
-  const collapsibleContentRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
-  // Extract headings from content
+  const minLevel = useMemo(
+    () => (tocItems.length > 0 ? Math.min(...tocItems.map((item) => item.level)) : 1),
+    [tocItems]
+  );
+  const activeIndex = Math.max(
+    0,
+    tocItems.findIndex((item) => item.id === activeId)
+  );
+
   useEffect(() => {
     const extractHeadings = () => {
       const contentElement = document.querySelector(contentSelector);
       if (!contentElement) return;
 
-      const headings = contentElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      const headings = contentElement.querySelectorAll('h1, h2, h3, h4');
       const items: TocItem[] = [];
 
       headings.forEach((heading, index) => {
         const element = heading as HTMLElement;
         let id = element.id;
 
-        // Generate ID if not present
         if (!id) {
           id =
             element.textContent
@@ -65,13 +70,17 @@ export function TableOfContents({
         });
       });
 
-      setTocItems(items);
+      setTocItems((currentItems) => {
+        const currentSignature = currentItems
+          .map((item) => `${item.id}:${item.level}:${item.text}`)
+          .join('|');
+        const nextSignature = items.map((item) => `${item.id}:${item.level}:${item.text}`).join('|');
+        return currentSignature === nextSignature ? currentItems : items;
+      });
     };
 
-    // Initial extraction
     extractHeadings();
 
-    // Re-extract if content changes (for dynamic content)
     const observer = new MutationObserver(extractHeadings);
     const contentElement = document.querySelector(contentSelector);
     if (contentElement) {
@@ -85,108 +94,97 @@ export function TableOfContents({
     return () => observer.disconnect();
   }, [contentSelector]);
 
-  // Intersection Observer for active section tracking
+  useEffect(() => {
+    if (tocItems.length === 0) return;
+
+    if (!activeId || !tocItems.some((item) => item.id === activeId)) {
+      setActiveId(tocItems[0].id);
+    }
+  }, [activeId, tocItems]);
+
   useEffect(() => {
     if (tocItems.length === 0) return;
 
     const observerOptions = {
-      rootMargin: '-20% 0% -35% 0%',
+      rootMargin: '-18% 0% -55% 0%',
       threshold: 0,
     };
 
     observerRef.current = new IntersectionObserver((entries) => {
-      const visibleEntries = entries.filter((entry) => entry.isIntersecting);
+      const visibleEntries = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
 
       if (visibleEntries.length > 0) {
-        // Get the first visible heading
-        const firstVisible = visibleEntries[0];
-        setActiveId(firstVisible.target.id);
+        setActiveId(visibleEntries[0].target.id);
       }
     }, observerOptions);
 
-    // Observe all heading elements
-    tocItems.forEach((item) => {
-      if (observerRef.current) {
-        observerRef.current.observe(item.element);
-      }
-    });
+    tocItems.forEach((item) => observerRef.current?.observe(item.element));
 
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
+    return () => observerRef.current?.disconnect();
   }, [tocItems]);
 
-  // Smooth scroll to heading
+  useEffect(() => {
+    const viewport = scrollViewportRef.current;
+    if (!viewport || !activeId) return;
+
+    const activeButton = Array.from(
+      viewport.querySelectorAll<HTMLElement>('[data-toc-id]')
+    ).find((element) => element.dataset.tocId === activeId);
+
+    if (!activeButton) return;
+
+    const nextTop = activeButton.offsetTop - viewport.clientHeight / 2 + activeButton.clientHeight / 2;
+    viewport.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
+  }, [activeId, tocItems.length]);
+
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -80; // Account for sticky header
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    if (!element) return;
 
-      window.scrollTo({
-        top: y,
-        behavior: 'smooth',
-      });
+    const yOffset = -92;
+    const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
 
-      // Update active state immediately for better UX
-      setActiveId(id);
-    }
+    window.scrollTo({
+      top: y,
+      behavior: 'smooth',
+    });
+    setActiveId(id);
   };
 
-  // Render TOC items recursively for nested structure
-  const renderTocItems = (
-    items: TocItem[],
-    minLevel: number = Math.min(...items.map((item) => item.level))
-  ) => {
-    return items.map((item) => {
+  const renderTocItems = () => {
+    return tocItems.map((item, index) => {
       const isActive = activeId === item.id;
       const depth = item.level - minLevel;
+      const distanceFromActive = Math.abs(index - activeIndex);
+      const isNearActive = distanceFromActive <= visibleRange;
 
       return (
         <button
           key={item.id}
+          data-toc-id={item.id}
           onClick={() => scrollToHeading(item.id)}
           className={cn(
-            'cursor-pointer relative w-full text-left py-1.5 px-2 text-sm rounded-md transition-all duration-200 group',
-            'hover:bg-muted/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+            'group relative flex min-h-10 w-full cursor-pointer items-center rounded-md py-2 pr-2 text-left text-sm transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35',
             isActive
-              ? 'bg-accent/10 text-accent font-medium'
-              : 'text-muted-foreground hover:text-foreground'
+              ? 'bg-white/[0.045] text-foreground shadow-[inset_2px_0_0_rgba(240,143,135,0.9)]'
+              : 'text-muted-foreground/55 hover:bg-white/[0.025] hover:text-muted-foreground',
+            !isNearActive && 'opacity-55'
           )}
-          style={{ paddingLeft: `${depth * 1.25 + 1}rem` }}
+          style={{ paddingLeft: `${depth * 0.9 + 0.65}rem` }}
         >
-          {/* Vertical line (left border tree connector) */}
           <span
             className={cn(
-              'absolute left-0 top-0 bottom-0 w-[2px] rounded-full transition-colors duration-300',
-              depth === 0
-                ? 'bg-border/70'
-                : depth === 1
-                  ? 'bg-border/60'
-                  : depth === 2
-                    ? 'bg-border/50'
-                    : 'bg-border/30',
-              isActive && 'bg-accent'
+              'mr-2 h-1.5 w-1.5 shrink-0 rounded-full transition-all duration-300',
+              isActive ? 'scale-125 bg-[#F08F87]' : 'bg-white/20 group-hover:bg-white/35'
             )}
-            style={{ marginLeft: `${depth * 1.25}rem` }}
           />
-
-          {/* Horizontal connector */}
-          {depth > 0 && (
-            <span
-              className={cn(
-                'absolute top-1/2 left-0 w-3 h-[1px] bg-border/60 transition-colors duration-300',
-                isActive && 'bg-accent'
-              )}
-              style={{ marginLeft: `${(depth - 1) * 1.25 + 0.25}rem` }}
-            />
-          )}
-
-          {/* Heading text */}
           <span
-            className="block pl-2 line-clamp-2 relative z-10"
+            className={cn(
+              'relative z-10 block line-clamp-2 leading-5 transition-transform duration-300',
+              isActive && 'translate-x-0.5 font-medium'
+            )}
             dangerouslySetInnerHTML={{ __html: item.textHtml ?? item.text }}
           />
         </button>
@@ -199,50 +197,53 @@ export function TableOfContents({
   }
 
   return (
-    <>
-      {/* Accordion TOC - shown at page load */}
-      <div className={cn('mb-8', className)}>
-        <Card>
-          <Collapsible open={isAccordionOpen} onOpenChange={setIsAccordionOpen}>
-            <CardHeader className="pb-3">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <List className="h-5 w-5" />
-                    Table of Contents
-                  </CardTitle>
-                  {isAccordionOpen ? (
-                    <ChevronDown className="h-4 w-4 transition-transform" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 transition-transform" />
+    <div className={cn('relative mb-8', className)}>
+      <Collapsible open={isAccordionOpen} onOpenChange={setIsAccordionOpen}>
+        <div className="relative overflow-hidden rounded-lg bg-background/20 py-3 backdrop-blur-sm">
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="ghost"
+              className="mb-1 h-auto w-full justify-between rounded-md px-2 py-1.5 text-left hover:bg-white/[0.025]"
+            >
+              <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground/85">
+                <List className="size-4 text-muted-foreground" />
+                <span className="truncate">On this page</span>
+              </span>
+              <span className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/70">
+                {activeIndex + 1}/{tocItems.length}
+                <ChevronDown
+                  className={cn(
+                    'size-3.5 transition-transform duration-300',
+                    !isAccordionOpen && '-rotate-90'
                   )}
-                </Button>
-              </CollapsibleTrigger>
-            </CardHeader>
-            <CollapsibleContent>
-              {/* Make the TOC itself scrollable with a sensible max height.
-                  Keep the CardContent styling but wrap the nav in a scrollable div.
-                  tabIndex and role improve keyboard/accessibility for the scroll region. */}
-              <CardContent className="pt-0">
-                <div
-                  ref={collapsibleContentRef}
-                  className="max-h-[60vh] overflow-auto pr-2 overscroll-contain"
-                  role="navigation"
-                  aria-label="Table of contents"
-                  tabIndex={0}
-                  data-lenis-prevent
-                >
-                  <nav className="space-y-1">{renderTocItems(tocItems)}</nav>
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
-      </div>
-    </>
+                />
+              </span>
+            </Button>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-linear-to-b from-background via-background/80 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-linear-to-t from-background via-background/80 to-transparent" />
+              <div
+                ref={scrollViewportRef}
+                className="max-h-[17rem] overflow-y-auto overscroll-contain pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="navigation"
+                aria-label="Table of contents"
+                tabIndex={0}
+                data-lenis-prevent
+                data-lenis-prevent-wheel
+                data-lenis-prevent-touch
+              >
+                <nav className="space-y-0.5 py-8">{renderTocItems()}</nav>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
+    </div>
   );
 }
-
 
 // Compact version for sidebar use
 export function CompactTableOfContents({

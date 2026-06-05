@@ -51,20 +51,22 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
         {post.coverImage && (
           <>
             <ViewTransition name={`post-cover-${transitionSlug}`} share="post-cover">
-              <Image
-                src={post.coverImage}
-                alt={post.coverImageAlt ?? post.title}
-                fill
-                priority
-                sizes="100vw"
-                className="object-cover object-center"
-              />
+              <div className="absolute inset-0 bg-card">
+                <Image
+                  src={post.coverImage}
+                  alt={post.coverImageAlt ?? post.title}
+                  fill
+                  priority
+                  sizes="100vw"
+                  className="object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-black/10" />
+                <div className="absolute inset-0 bg-linear-to-b from-background/25 via-transparent to-background" />
+                <div className="absolute inset-x-0 top-0 h-44 bg-linear-to-b from-background/35 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-72 bg-linear-to-t from-background via-background/90 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-32 shadow-[inset_0_-48px_50px_-20px_rgba(0,0,0,0.75)]" />
+              </div>
             </ViewTransition>
-            <div className="absolute inset-0 bg-black/10" />
-            <div className="absolute inset-0 bg-linear-to-b from-background/25 via-transparent to-background" />
-            <div className="absolute inset-x-0 top-0 h-44 bg-linear-to-b from-background/35 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-72 bg-linear-to-t from-background via-background/90 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-32 shadow-[inset_0_-48px_50px_-20px_rgba(0,0,0,0.75)]" />
           </>
         )}
 
@@ -134,20 +136,13 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
       </section>
 
       <>{/* Blog Content */}</>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid md:grid-cols-12 gap-8">
-          {/* Left sidebar - 25% width - TOC */}
-          <div className="md:col-span-2">
-            {/* Pull TOC further left but reduce right padding to avoid overlap */}
-            <div className="sticky top-24 -ml-28 sm:-ml-36 lg:-ml-44">
-              <div className="w-full pr-4">
-                <TableOfContents className="mb-0" />
-              </div>
-            </div>
-          </div>
+      <div className="mx-auto max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <TableOfContents className="mb-0 lg:-ml-3" />
+          </aside>
 
-          {/* Main Content - increased width (was col-span-6 -> now 9) */}
-          <div className="md:col-span-10">
+          <div className="min-w-0">
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
               {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}

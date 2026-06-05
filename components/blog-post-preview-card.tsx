@@ -20,6 +20,7 @@ export function BlogPostPreviewCard({
   const isLanding = variant === 'landing';
   const postHref = `/blog/${post.slug}`;
   const transitionSlug = post.slug.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const transitionPrefix = isLanding ? 'landing-post' : 'post';
 
   return (
     <Card
@@ -33,7 +34,7 @@ export function BlogPostPreviewCard({
           className={`relative block w-full overflow-hidden ${
             isLanding ? 'min-h-44 md:h-full md:min-h-full' : 'h-44 shrink-0'
           }`}>
-          <ViewTransition name={`post-cover-${transitionSlug}`} share="post-cover">
+          <ViewTransition name={`${transitionPrefix}-cover-${transitionSlug}`} share="post-cover">
             <Image
               src={post.coverImage}
               alt={post.coverImageAlt ?? post.title}
@@ -67,7 +68,7 @@ export function BlogPostPreviewCard({
 
       <div className="flex min-w-0 flex-1 flex-col py-6">
         <CardHeader className={isLanding ? 'pb-3' : undefined}>
-          <ViewTransition name={`post-title-${transitionSlug}`} share="post-title">
+          <ViewTransition name={`${transitionPrefix}-title-${transitionSlug}`} share="post-title">
             <CardTitle
               className={`${isLanding ? 'text-2xl' : 'text-xl'} leading-tight transition-colors group-hover:text-[#F08F87]`}>
               <Link href={postHref} transitionTypes={['post-open']}>
@@ -76,13 +77,15 @@ export function BlogPostPreviewCard({
             </CardTitle>
           </ViewTransition>
           {post.excerpt && (
-            <ViewTransition name={`post-excerpt-${transitionSlug}`} share="post-excerpt">
+            <ViewTransition
+              name={`${transitionPrefix}-excerpt-${transitionSlug}`}
+              share="post-excerpt">
               <CardDescription className="mt-2 line-clamp-3 leading-6">
                 {post.excerpt}
               </CardDescription>
             </ViewTransition>
           )}
-          <ViewTransition name={`post-meta-${transitionSlug}`} share="post-meta">
+          <ViewTransition name={`${transitionPrefix}-meta-${transitionSlug}`} share="post-meta">
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <CalendarDays className="h-4 w-4" />

@@ -7,115 +7,119 @@ import { HTMLAttributes, useState } from 'react';
 import { MultiFileCodeBlock } from './code-block';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, ExternalLink } from 'lucide-react';
 import PathVisualizer from '@/components/PathVisualizer';
+
 export const mdxComponents = {
-  // Override default elements
   h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
     <h1
-      className="text-4xl lg:text-5xl font-bold mt-16 mb-8 text-foreground scroll-mt-20 leading-tight tracking-tight"
+      className="mb-7 mt-16 scroll-mt-24 text-4xl font-bold leading-tight text-foreground sm:text-5xl"
       {...props}>
       {children}
     </h1>
   ),
   h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
     <h2
-      className="text-3xl lg:text-4xl font-semibold mt-12 mb-6 text-foreground scroll-mt-20 leading-tight tracking-tight"
+      className="mb-5 mt-14 scroll-mt-24 border-b border-white/10 pb-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl"
       {...props}>
       {children}
     </h2>
   ),
   h3: ({ children, ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
     <h3
-      className="text-2xl lg:text-3xl font-medium mt-8 mb-4 text-foreground scroll-mt-20 leading-snug"
+      className="mb-4 mt-10 scroll-mt-24 text-2xl font-semibold leading-snug text-foreground sm:text-3xl"
       {...props}>
       {children}
     </h3>
   ),
   h4: ({ children, ...props }: React.ComponentPropsWithoutRef<'h4'>) => (
     <h4
-      className="text-xl lg:text-2xl font-medium mt-6 mb-3 text-foreground scroll-mt-20 leading-snug"
+      className="mb-3 mt-8 scroll-mt-24 text-xl font-semibold leading-snug text-foreground"
       {...props}>
       {children}
     </h4>
   ),
   p: ({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) => (
-    <p
-      className="text-base leading-relaxed mb-6 text-muted-foreground [&:not(:first-child)]:mt-6"
-      {...props}>
+    <p className="mb-6 text-[1.03rem] leading-8 text-muted-foreground" {...props}>
       {children}
     </p>
   ),
   ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
     <ul
-      className="mb-6 mt-4 pl-8 text-muted-foreground list-disc space-y-2 [&>li]:leading-relaxed"
+      className="mb-7 mt-4 list-disc space-y-2.5 pl-7 text-muted-foreground marker:text-[#ACC5D3]/70 [&>li]:leading-8"
       {...props}>
       {children}
     </ul>
   ),
   ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
     <ol
-      className="mb-6 mt-4 pl-8 text-muted-foreground list-decimal space-y-2 [&>li]:leading-relaxed"
+      className="mb-7 mt-4 list-decimal space-y-2.5 pl-7 text-muted-foreground marker:font-mono marker:text-[#F08F87]/80 [&>li]:leading-8"
       {...props}>
       {children}
     </ol>
   ),
   li: ({ children, ...props }: React.ComponentPropsWithoutRef<'li'>) => (
-    <li className="mb-1 marker:text-muted-foreground/70" {...props}>
+    <li className="pl-1" {...props}>
       {children}
     </li>
   ),
   blockquote: ({ children, ...props }: React.ComponentPropsWithoutRef<'blockquote'>) => (
     <blockquote
-      className="border-l-4 border-accent pl-6 italic text-muted-foreground my-8 py-4 rounded-r-md bg-muted/30"
+      className="my-8 rounded-r-lg border-l-4 border-[#F08F87] bg-card/45 px-6 py-5 text-muted-foreground shadow-sm [&_p:last-child]:mb-0"
       {...props}>
       {children}
     </blockquote>
   ),
+  hr: (props: React.ComponentPropsWithoutRef<'hr'>) => (
+    <hr className="my-12 border-0 border-t border-white/10" {...props} />
+  ),
   table: ({ children, ...props }: React.ComponentPropsWithoutRef<'table'>) => (
-    <div className="overflow-x-auto mb-4">
-      <table
-        className="w-full border-collapse border border-border rounded-lg overflow-hidden"
-        {...props}>
+    <div className="my-8 overflow-x-auto rounded-lg border border-white/10 bg-card/35">
+      <table className="w-full border-collapse text-sm" {...props}>
         {children}
       </table>
     </div>
   ),
   th: ({ children, ...props }: React.ComponentPropsWithoutRef<'th'>) => (
     <th
-      className="border border-border px-4 py-2 text-left bg-muted font-semibold text-foreground"
+      className="border-b border-r border-white/10 bg-muted/40 px-4 py-3 text-left font-semibold text-foreground last:border-r-0"
       {...props}>
       {children}
     </th>
   ),
   td: ({ children, ...props }: React.ComponentPropsWithoutRef<'td'>) => (
-    <td className="border border-border px-4 py-2 text-muted-foreground" {...props}>
+    <td
+      className="border-b border-r border-white/10 px-4 py-3 text-muted-foreground last:border-r-0"
+      {...props}>
       {children}
     </td>
   ),
-  a: ({ children, href, ...props }: React.ComponentPropsWithoutRef<'a'>) => (
-    <Link
-      href={href ?? '#'}
-      className="text-accent hover:text-accent/80 underline underline-offset-2 transition-colors"
-      {...(props as Omit<React.ComponentProps<typeof Link>, 'href'>)}>
-      {children}
-    </Link>
-  ),
+  a: ({ children, href, ...props }: React.ComponentPropsWithoutRef<'a'>) => {
+    const isExternal = typeof href === 'string' && /^https?:\/\//.test(href);
+    return (
+      <Link
+        href={href ?? '#'}
+        className="inline-flex items-center gap-1 text-[#ACC5D3] underline decoration-[#ACC5D3]/35 underline-offset-4 transition-colors hover:text-[#F08F87] hover:decoration-[#F08F87]/60"
+        {...(props as Omit<React.ComponentProps<typeof Link>, 'href'>)}>
+        {children}
+        {isExternal && <ExternalLink className="size-3" />}
+      </Link>
+    );
+  },
   img: ({ src, alt, ...props }: React.ComponentPropsWithoutRef<'img'>) => {
     const safeSrc = typeof src === 'string' ? src : '/placeholder.svg';
     const altText = alt ?? 'Image';
     return (
-      <Image
-        alt={altText}
+      <Figure
         src={safeSrc}
-        {...props}
+        alt={altText}
+        caption={altText}
         width={800}
         height={500}
-        style={{ width: '100%', height: 'auto' }}
+        {...(props as Partial<FigureProps>)}
       />
     );
   },
-  // Custom components
   MultiFileCodeBlock,
   PathVisualizer,
   Figure,
@@ -125,34 +129,45 @@ export const mdxComponents = {
 
 export function CodeCustom(props: HTMLAttributes<HTMLElement>) {
   const { className, ...rest } = props;
-  return <code {...rest} />;
+  return (
+    <code
+      className={cn(
+        'rounded-md border border-white/10 bg-card px-1.5 py-0.5 font-mono text-[0.9em] text-[#E8EEF2]',
+        className
+      )}
+      {...rest}
+    />
+  );
 }
 
 interface CopyButtonProps {
   text: string;
+  className?: string;
 }
 
-export function CopyButton({ text }: CopyButtonProps) {
-  const [isCopied, setIsCopied] = useState<boolean>(false);
+export function CopyButton({ text, className }: CopyButtonProps) {
+  const [isCopied, setIsCopied] = useState(false);
 
   const copy = async () => {
     await navigator.clipboard.writeText(text);
     setIsCopied(true);
-
-    setTimeout(() => {
-      setIsCopied(false);
-    }, 700);
+    setTimeout(() => setIsCopied(false), 1200);
   };
 
   return (
     <Button
-      size="icon"
-      className={cn('size-7 !bg-slate-700 !text-white absolute right-1 top-1 shadow-smooth')}
-      disabled={isCopied}
+      type="button"
+      size="sm"
+      variant="ghost"
+      className={cn(
+        'h-8 gap-1.5 rounded-md border border-white/10 bg-background/55 px-2 text-xs text-muted-foreground backdrop-blur transition-colors hover:bg-background/80 hover:text-foreground',
+        className
+      )}
+      disabled={!text || isCopied}
       onClick={copy}
-      aria-label="Copy">
-      <span className="sr-only">Copy</span>
-      {isCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+      aria-label={isCopied ? 'Copied code' : 'Copy code'}>
+      {isCopied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
+      <span>{isCopied ? 'Copied' : 'Copy'}</span>
     </Button>
   );
 }
@@ -165,42 +180,109 @@ interface PreProps extends React.HTMLProps<HTMLPreElement> {
 export function PreCustom(props: PreProps) {
   const {
     children,
-    __rawstring__ = '', // because of "unist-util-visit" this prop is passed
-    ['data-language']: dataLanguage = 'Js',
+    className,
+    style,
+    __rawstring__ = '',
+    ['data-language']: dataLanguage = 'text',
+    ...preProps
   } = props;
+  const language = String(dataLanguage || 'text').toLowerCase();
+  const preStyle: React.CSSProperties = {
+    ...style,
+    backgroundColor: '#101720',
+  };
 
   return (
-    <pre className="relative overflow-hidden" {...props}>
-      <p className="absolute bottom-0 right-0 capitalize text-xs font-medium bg-slate-700 text-white p-1 rounded-tl-lg">
-        {dataLanguage}
-      </p>
-      <CopyButton text={__rawstring__} />
-      {children}
-    </pre>
+    <div className="mdx-code-frame not-prose group my-8 overflow-hidden rounded-lg border border-white/10 bg-[#101720] shadow-xl shadow-black/20">
+      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-white/10 bg-[#101720] px-3 py-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex size-2.5 rounded-full bg-[#F08F87]" />
+          <span className="flex size-2.5 rounded-full bg-[#ACC5D3]" />
+          <span className="flex size-2.5 rounded-full bg-muted-foreground/45" />
+          <span className="ml-2 truncate font-mono text-xs uppercase tracking-wide text-muted-foreground">
+            {language}
+          </span>
+        </div>
+        <CopyButton text={__rawstring__} />
+      </div>
+      <pre
+        className={cn(
+          'm-0 overflow-x-auto border-t border-white/[0.03] bg-[#101720] p-4 text-sm leading-6',
+          className
+        )}
+        {...preProps}
+        style={preStyle}>
+        {children}
+      </pre>
+    </div>
   );
 }
 
-type FigureProps = {
+type FigureSize = 'sm' | 'md' | 'lg' | 'full';
+type FigureAlign = 'left' | 'center' | 'right';
+
+export type FigureProps = {
   src: string;
   alt: string;
-  caption: string;
+  caption?: React.ReactNode;
   width?: number;
   height?: number;
+  size?: FigureSize;
+  align?: FigureAlign;
+  maxWidth?: number | string;
+  priority?: boolean;
+  className?: string;
 };
 
-export function Figure({ src, alt, caption, width = 800, height = 500 }: FigureProps) {
+const figureSizeClass: Record<FigureSize, string> = {
+  sm: 'max-w-xl',
+  md: 'max-w-3xl',
+  lg: 'max-w-5xl',
+  full: 'max-w-none',
+};
+
+const figureAlignClass: Record<FigureAlign, string> = {
+  left: 'mr-auto',
+  center: 'mx-auto',
+  right: 'ml-auto',
+};
+
+export function Figure({
+  src,
+  alt,
+  caption,
+  width = 960,
+  height = 600,
+  size = 'md',
+  align = 'center',
+  maxWidth,
+  priority = false,
+  className,
+}: FigureProps) {
+  const style = maxWidth
+    ? { maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth }
+    : undefined;
+
   return (
-    <figure className="flex flex-col items-center justify-center mx-auto">
-      <Image
-        src={src}
-        alt={alt}
-        width={width}
-        height={height}
-        style={{ width: '100%', height: 'auto' }}
-      />
-      <figcaption style={{ fontSize: '0.9em', color: '#555', marginTop: '0.5em' }}>
-        <strong>Figure:</strong> {caption}
-      </figcaption>
+    <figure
+      className={cn('my-10 w-full', figureSizeClass[size], figureAlignClass[align], className)}
+      style={style}>
+      <div className="overflow-hidden rounded-lg border border-white/10 bg-card/40 shadow-xl shadow-black/20">
+        <Image
+          src={src}
+          alt={alt}
+          width={width}
+          height={height}
+          priority={priority}
+          sizes="(min-width: 1024px) 768px, 100vw"
+          className="h-auto w-full object-cover"
+        />
+      </div>
+      {caption && (
+        <figcaption className="mx-auto mt-3 max-w-2xl text-center text-sm leading-6 text-muted-foreground">
+          <span className="font-medium text-foreground/80">Figure.</span> {caption}
+        </figcaption>
+      )}
     </figure>
   );
 }

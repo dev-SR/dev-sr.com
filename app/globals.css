@@ -202,10 +202,38 @@
     width: 100%;
     overflow: auto;
     padding: 1rem;
-    background-color: #262424;
+    background-color: #101720;
     border-radius: 0.5rem;
-    border: 1px solid #44403c;
+    border: 1px solid rgb(255 255 255 / 0.1);
     margin-bottom: 1.5rem;
+  }
+
+  .mdx-code-frame [data-rehype-pretty-code-figure] > pre {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background-color: #101720 !important;
+    box-shadow: none;
+    padding: 1rem 1.25rem;
+  }
+
+  .mdx-code-frame [data-rehype-pretty-code-figure] {
+    margin: 0;
+    background-color: #101720;
+  }
+
+  .mdx-code-frame pre {
+    margin: 0;
+    margin-bottom: 0;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background-color: #101720 !important;
+    box-shadow: none !important;
+  }
+
+  .mdx-code-frame code {
+    background: transparent !important;
+    background-color: transparent !important;
   }
 
   /*Line numbers*/
