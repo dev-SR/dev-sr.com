@@ -3,12 +3,53 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import type React from 'react';
-import { HTMLAttributes, useState } from 'react';
+import { Children, HTMLAttributes, isValidElement, useState } from 'react';
 import { MultiFileCodeBlock } from './code-block';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import PathVisualizer from '@/components/PathVisualizer';
+
+function hasOnlyBlockImageChild(children: React.ReactNode) {
+  const meaningfulChildren = Children.toArray(children).filter(
+    (child) => typeof child !== 'string' || child.trim().length > 0
+  );
+
+  if (meaningfulChildren.length !== 1 || !isValidElement(meaningfulChildren[0])) {
+    return false;
+  }
+
+  const childType = meaningfulChildren[0].type;
+  return childType === 'img' || childType === MdxImage || childType === Figure;
+}
+
+function Paragraph({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) {
+  if (hasOnlyBlockImageChild(children)) {
+    return <>{children}</>;
+  }
+
+  return (
+    <p className="mb-6 text-[1.03rem] leading-8 text-muted-foreground" {...props}>
+      {children}
+    </p>
+  );
+}
+
+function MdxImage({ src, alt, ...props }: React.ComponentPropsWithoutRef<'img'>) {
+  const safeSrc = typeof src === 'string' ? src : '/placeholder.svg';
+  const altText = alt ?? 'Image';
+
+  return (
+    <Figure
+      src={safeSrc}
+      alt={altText}
+      caption={altText}
+      width={800}
+      height={500}
+      {...(props as Partial<FigureProps>)}
+    />
+  );
+}
 
 export const mdxComponents = {
   h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
@@ -39,11 +80,7 @@ export const mdxComponents = {
       {children}
     </h4>
   ),
-  p: ({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) => (
-    <p className="mb-6 text-[1.03rem] leading-8 text-muted-foreground" {...props}>
-      {children}
-    </p>
-  ),
+  p: Paragraph,
   ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
     <ul
       className="mb-7 mt-4 list-disc space-y-2.5 pl-7 text-muted-foreground marker:text-[#ACC5D3]/70 [&>li]:leading-8"
@@ -106,20 +143,7 @@ export const mdxComponents = {
       </Link>
     );
   },
-  img: ({ src, alt, ...props }: React.ComponentPropsWithoutRef<'img'>) => {
-    const safeSrc = typeof src === 'string' ? src : '/placeholder.svg';
-    const altText = alt ?? 'Image';
-    return (
-      <Figure
-        src={safeSrc}
-        alt={altText}
-        caption={altText}
-        width={800}
-        height={500}
-        {...(props as Partial<FigureProps>)}
-      />
-    );
-  },
+  img: MdxImage,
   MultiFileCodeBlock,
   PathVisualizer,
   Figure,

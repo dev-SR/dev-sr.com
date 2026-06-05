@@ -40,6 +40,12 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn(roboto.variable, firaCode.variable, nunito.variable)}>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var k='devsr:splash:v4';var r=window.matchMedia('(prefers-reduced-motion: reduce)').matches;if(r||window.localStorage.getItem(k)){var s=document.createElement('style');s.id='site-splash-guard';s.textContent='.site-splash{display:none!important}';document.head.appendChild(s)}}catch(e){}",
+          }}
+        />
         <link
           href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
           rel="stylesheet"
