@@ -1,82 +1,75 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { ChevronRight, ChevronDown, FileText, Folder } from "lucide-react"
-import type { BlogTree } from "@/lib/mdx"
-import { Button } from "@/components/ui/button"
+import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
+import { ChevronsUpDown, FileText } from 'lucide-react';
+
+import type { BlogNavNode } from '@/lib/mdx';
+import { cn } from '@/lib/utils';
+import { CollapseButton, Tree, type TreeViewElement } from '@/components/ui/file-tree';
 
 interface BlogTreeProps {
-  tree: BlogTree[]
-  className?: string
+  tree: BlogNavNode[];
+  className?: string;
 }
 
-interface TreeNodeProps {
-  node: BlogTree
-  level?: number
+function formatFolderName(name: string) {
+  return name.replace(/-/g, ' ');
 }
 
-function TreeNode({ node, level = 0 }: TreeNodeProps) {
-  const [isExpanded, setIsExpanded] = useState(level < 2) // Auto-expand first 2 levels
-
-  if (node.type === "file" && node.post) {
-    return (
-      <div
-        className={`flex items-center py-2 px-2 hover:bg-muted/50 rounded-md transition-colors`}
-        style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
-      >
-        <FileText className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-        <Link
-          href={`/blog/${node.post.slug}`}
-          className="text-sm text-foreground hover:text-accent transition-colors truncate"
-        >
-          {node.post.title}
-        </Link>
-      </div>
-    )
+function collectFolderIds(nodes: BlogNavNode[], depth = 0, maxDepth = 2): string[] {
+  if (depth >= maxDepth) {
+    return [];
   }
 
-  if (node.type === "directory" && node.children) {
-    return (
-      <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={`w-full justify-start py-2 px-2 h-auto font-normal hover:bg-muted/50`}
-          style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4 mr-2 flex-shrink-0" />
-          ) : (
-            <ChevronRight className="h-4 w-4 mr-2 flex-shrink-0" />
-          )}
-          <Folder className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
-          <span className="text-sm capitalize truncate">{node.name.replace(/-/g, " ")}</span>
-        </Button>
-        {isExpanded && (
-          <div className="mt-1">
-            {node.children.map((child, index) => (
-              <TreeNode key={`${child.path}-${index}`} node={child} level={level + 1} />
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
+  return nodes.flatMap((node) => {
+    if (node.type !== 'directory') {
+      return [];
+    }
 
-  return null
+    return [node.path, ...collectFolderIds(node.children ?? [], depth + 1, maxDepth)];
+  });
+}
+
+function toTreeElements(nodes: BlogNavNode[]): TreeViewElement[] {
+  return nodes.map((node) => {
+    if (node.type === 'directory') {
+      return {
+        id: node.path,
+        name: formatFolderName(node.name),
+        type: 'folder',
+        children: node.children ? toTreeElements(node.children) : [],
+      };
+    }
+
+    return {
+      id: node.slug ?? node.path,
+      name: node.title ?? node.name,
+      type: 'file',
+      href: node.slug ? `/blog/${node.slug}` : undefined,
+    };
+  });
 }
 
 export function BlogTreeNavigation({ tree, className }: BlogTreeProps) {
+  const pathname = usePathname();
+  const elements = useMemo(() => toTreeElements(tree), [tree]);
+  const initialExpandedItems = useMemo(() => collectFolderIds(tree), [tree]);
+  const selectedId = pathname.startsWith('/blog/') ? pathname.replace(/^\/blog\//, '') : undefined;
+
   return (
-    <div className={className}>
-      <h3 className="text-lg font-semibold text-foreground mb-4">Browse Topics</h3>
-      <div className="space-y-1">
-        {tree.map((node, index) => (
-          <TreeNode key={`${node.path}-${index}`} node={node} />
-        ))}
-      </div>
+    <div className={cn('flex flex-col gap-4', className)}>
+      <h3 className="text-lg font-semibold text-foreground">Browse Topics</h3>
+      <Tree
+        className="h-[min(70vh,36rem)]"
+        elements={elements}
+        initialExpandedItems={initialExpandedItems}
+        initialSelectedId={selectedId}
+        fileIcon={<FileText className="size-4 text-muted-foreground" />}>
+        <CollapseButton elements={elements} aria-label="Expand or collapse all topics">
+          <ChevronsUpDown />
+        </CollapseButton>
+      </Tree>
     </div>
-  )
+  );
 }

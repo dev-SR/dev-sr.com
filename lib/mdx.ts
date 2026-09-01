@@ -43,6 +43,26 @@ export interface BlogTree {
   post?: BlogPost;
 }
 
+export interface BlogNavNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  slug?: string;
+  title?: string;
+  children?: BlogNavNode[];
+}
+
+export function toBlogNavTree(nodes: BlogTree[]): BlogNavNode[] {
+  return nodes.map((node) => ({
+    name: node.name,
+    path: node.path,
+    type: node.type,
+    slug: node.post?.slug,
+    title: node.post?.title,
+    children: node.children ? toBlogNavTree(node.children) : undefined,
+  }));
+}
+
 // Recursively discover all MDX files
 export async function discoverMDXFiles(dir: string = contentDirectory): Promise<BlogTree[]> {
   if (!fs.existsSync(dir)) {

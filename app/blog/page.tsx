@@ -1,4 +1,4 @@
-import { getAllPosts, discoverMDXFiles } from '@/lib/mdx';
+import { getAllPosts, discoverMDXFiles, toBlogNavTree } from '@/lib/mdx';
 import { BlogTreeNavigation } from '@/components/blog-tree';
 import { BlogTopicCard, PopularPostCard } from '@/components/ui/blog-index-cards';
 import { Calendar, TrendingUp, Star } from 'lucide-react';
@@ -51,7 +51,7 @@ export default async function BlogPage() {
           {/* Sidebar - Tree Navigation */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <BlogTreeNavigation tree={tree} />
+              <BlogTreeNavigation tree={toBlogNavTree(tree)} />
             </div>
           </div>
 

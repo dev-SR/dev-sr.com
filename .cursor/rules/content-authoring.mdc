@@ -1,0 +1,14 @@
+---
+description: How to author blog posts and MDX custom components
+globs: content/**/*.{md,mdx}
+alwaysApply: false
+---
+
+When creating or editing posts under `content/`, follow [docs/authoring.md](docs/authoring.md).
+
+- Files in `content/` publish. Nested path = slug (`content/math/set/intro.md` → `/blog/math/set/intro`).
+- Use `.mdx` if the post needs `Figure`, `CodeTabs`, or `PathVisualizer`. Do not import components.
+- Frontmatter: `title`, `date`, `excerpt`, `tags`; optional `coverImage` + `coverImageAlt`. Layout already renders the title — start the body at `##`.
+- Fenced code is highlighted automatically. Multi-file = `<CodeTabs>` wrapping fences with `title="filename"`. Diffs/focus/errors use `[!code ++]` style comments, not screenshots.
+- Math is `$inline$` / `$$display$$` (KaTeX). Images live in `public/` and are referenced as `/...`.
+- Never use `MultiFileCodeBlock`. Never put docs or drafts in `content/`.
