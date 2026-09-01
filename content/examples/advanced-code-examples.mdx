@@ -37,13 +37,10 @@ const newUser = createUser({
 
 ## Multi-File Code Block Example
 
-<MultiFileCodeBlock
-  title="React Component with Styles"
-  files={[
-    {
-      filename: "Button.tsx",
-      language: "tsx",
-      content: `import React from 'react';
+<CodeTabs title="React Component with Styles">
+
+```tsx title="Button.tsx"
+import React from 'react';
 import './Button.css';
 
 interface ButtonProps {
@@ -61,18 +58,17 @@ export function Button({
 }: ButtonProps) {
   return (
     <button 
-      className={\`btn btn-\${variant} btn-\${size}\`}
+      className={`btn btn-${variant} btn-${size}`}
       onClick={onClick}
     >
       {children}
     </button>
   );
-}`
-    },
-    {
-      filename: "Button.css",
-      language: "css",
-      content: `.btn {
+}
+```
+
+```css title="Button.css"
+.btn {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 0.375rem;
@@ -103,12 +99,11 @@ export function Button({
 .btn-lg {
   padding: 0.75rem 1.5rem;
   font-size: 1.125rem;
-}`
-    },
-    {
-      filename: "Button.test.tsx",
-      language: "tsx",
-      content: `import { render, screen, fireEvent } from '@testing-library/react';
+}
+```
+
+```tsx title="Button.test.tsx"
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Button } from './Button';
 
 describe('Button', () => {
@@ -131,10 +126,10 @@ describe('Button', () => {
     
     expect(button).toHaveClass('btn', 'btn-secondary', 'btn-lg');
   });
-});`
-    }
-  ]}
-/>
+});
+```
+
+</CodeTabs>
 
 ## Python Algorithm Example
 

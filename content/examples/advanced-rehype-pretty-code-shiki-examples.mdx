@@ -104,42 +104,35 @@ console.log('Not focused')
 
 ## Multi-File Example with Combined Transformers
 
-<MultiFileCodeBlock
-    title="Component with Multiple Transformers"
-    files={[
-        {
-            filename: "Component.tsx",
-            language: "tsx",
-            content: `import React from 'react';
+<CodeTabs title="Component with Multiple Transformers">
+
+```tsx title="Component.tsx"
+import React from 'react';
 // [!code --]
 console.log('Old code') // [!code --]
 console.log('New code') // [!code ++]
 // [!code highlight]
 console.log('Highlighted') // [!code highlight]
 // [!code word:React:1]
-`,
-        },
-        {
-            filename: "Component.css",
-            language: "css",
-            content: `.component {
+```
+
+```css title="Component.css"
+.component {
 padding: 1rem; /* [!code word:padding] */
 margin: 0.5rem; /* [!code focus] */
-}`,
-        },
-        {
-            filename: "Component.test.tsx",
-            language: "tsx",
-            content: `import { render } from '@testing-library/react';
+}
+```
+
+```tsx title="Component.test.tsx"
+import { render } from '@testing-library/react';
 import Component from './Component';
 
 // [!code error]
 render(<Component />) // [!code error]
 console.log('Test passed') // [!code warning]
-`,
-        },
-    ]}
-/>
+```
+
+</CodeTabs>
 
 **Explanation**: This multi-file example combines `transformerNotationDiff`, `transformerNotationHighlight`, `transformerNotationWordHighlight`, `transformerNotationFocus`, and `transformerNotationErrorLevel` to showcase multiple effects in a single code block set.
 

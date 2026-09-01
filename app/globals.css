@@ -191,49 +191,54 @@
       'liga' 1;
   }
 
-  /*rehype-pretty-code*/
+  /* rehype-pretty-code */
   [data-rehype-pretty-code-figure],
   [data-rehype-pretty-code-figure] > pre {
     margin: 0;
     padding: 0;
   }
 
+  [data-rehype-pretty-code-figure] > figcaption {
+    display: none;
+  }
+
+  [data-rehype-pretty-code-figure] {
+    background: transparent;
+  }
+
   [data-rehype-pretty-code-figure] > pre {
     width: 100%;
     overflow: auto;
-    padding: 1rem;
-    background-color: #101720;
-    border-radius: 0.5rem;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    margin-bottom: 1.5rem;
-  }
-
-  .mdx-code-frame [data-rehype-pretty-code-figure] > pre {
+    padding: 1rem 1.25rem;
     margin: 0;
     border: 0;
     border-radius: 0;
-    background-color: #101720 !important;
+    background: transparent;
     box-shadow: none;
-    padding: 1rem 1.25rem;
   }
 
-  .mdx-code-frame [data-rehype-pretty-code-figure] {
+  .mdx-code-frame [data-rehype-pretty-code-figure],
+  .mdx-code-tabs [data-rehype-pretty-code-figure] {
     margin: 0;
-    background-color: #101720;
+    background: transparent;
   }
 
-  .mdx-code-frame pre {
+  .mdx-code-frame [data-rehype-pretty-code-figure] > pre,
+  .mdx-code-tabs [data-rehype-pretty-code-figure] > pre,
+  .mdx-code-frame pre,
+  .mdx-code-tabs pre {
     margin: 0;
-    margin-bottom: 0;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background-color: #101720 !important;
-    box-shadow: none !important;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
   }
 
-  .mdx-code-frame code {
+  .mdx-code-frame code,
+  .mdx-code-tabs code {
     background: transparent !important;
     background-color: transparent !important;
+    border: 0 !important;
   }
 
   /*Line numbers*/
@@ -251,7 +256,7 @@
     width: 1rem;
     margin-right: 2rem;
     text-align: right;
-    color: gray;
+    color: var(--muted-foreground);
   }
 
   code[data-line-numbers-max-digits='2'] > [data-line]::before {
@@ -262,8 +267,25 @@
     width: 3rem;
   }
 
-  /*Line highlighting*/
-  /* code blocks custom styling */
+  /* Line & char highlighting */
+  :root {
+    --code-line-highlight-bg: color-mix(in oklch, #acc5d3 14%, transparent);
+    --code-line-highlight-border: color-mix(in oklch, #acc5d3 40%, transparent);
+    --code-char-highlight-bg: color-mix(in oklch, #acc5d3 20%, transparent);
+    --code-char-special-bg: color-mix(in oklch, #f08f87 18%, transparent);
+    --code-diff-add-bg: color-mix(in oklch, #50fa7b 10%, transparent);
+    --code-diff-add-border: color-mix(in oklch, #50fa7b 45%, transparent);
+    --code-diff-remove-bg: color-mix(in oklch, #ff5555 10%, transparent);
+    --code-diff-remove-border: color-mix(in oklch, #ff5555 45%, transparent);
+    --code-error-bg: color-mix(in oklch, #ff5555 12%, transparent);
+    --code-error-border: color-mix(in oklch, #ff5555 50%, transparent);
+    --code-warning-bg: color-mix(in oklch, #ffbf00 12%, transparent);
+    --code-warning-border: color-mix(in oklch, #ffbf00 50%, transparent);
+    --tnf-blur: 1px;
+    --tnf-nonfocus-opacity: 0.55;
+    --tnf-transition: 200ms;
+  }
+
   [data-line] {
     border-left-width: 2px;
     border-left-style: solid;
@@ -271,154 +293,143 @@
   }
 
   [data-highlighted-line] {
-    background-color: #58404c;
-    border-left-color: #d6277f;
+    background-color: var(--code-line-highlight-bg);
+    border-left-color: var(--code-line-highlight-border);
   }
 
   [data-highlighted-chars] {
-    background-color: #71485d;
-    border-radius: 0.25rem;
-    padding: 0 0.25rem;
-    border-left-color: #d6277f;
+    background-color: var(--code-char-highlight-bg);
+    border-radius: 0.2rem;
+    padding: 0 0.2rem;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
   }
 
   [data-highlighted-chars][data-chars-id='mySpecialHighlight'] {
-    background-color: #874691;
+    background-color: var(--code-char-special-bg);
   }
 
   /* Transformer-specific styles */
-  /* Container for diff-highlighted lines */
   .has-diff {
     position: relative;
   }
 
-  /* Base diff line styling */
   .has-diff code > span[data-line].diff {
-    display: flex; /* align icon + text inline */
+    display: flex;
     align-items: center;
-    padding-left: 0.5rem; /* space for left border */
-    border-left-width: 3px;
+    padding-left: 0.5rem;
+    border-left-width: 2px;
     border-left-style: solid;
-    gap: 0.5rem; /* space between icon and text */
+    gap: 0.5rem;
     transition:
       background-color 0.2s ease,
       border-color 0.2s ease;
   }
 
-  /* Added lines */
   .has-diff code > span[data-line].diff.add {
-    background-color: rgba(80, 250, 123, 0.15); /* greenish bg */
-    border-left-color: #50fc7b; /* matching border */
+    background-color: var(--code-diff-add-bg);
+    border-left-color: var(--code-diff-add-border);
     color: inherit;
   }
 
   .has-diff code > span[data-line].diff.add::before {
-    content: '➕'; /* plus icon */
+    content: '+';
     display: inline-block;
-    color: #50fc7b; /* matches border */
+    font-weight: 600;
+    color: var(--code-diff-add-border);
   }
 
-  /* Removed lines */
   .has-diff code > span[data-line].diff.remove {
-    background-color: rgba(255, 85, 85, 0.15); /* reddish bg */
-    border-left-color: #ff5555; /* matching border */
+    background-color: var(--code-diff-remove-bg);
+    border-left-color: var(--code-diff-remove-border);
     color: inherit;
   }
 
   .has-diff code > span[data-line].diff.remove::before {
-    content: '➖'; /* minus icon */
+    content: '−';
     display: inline-block;
-    color: #ff5555; /* matches border */
+    font-weight: 600;
+    color: var(--code-diff-remove-border);
   }
 
-  /*    transform focus*/
-  /* TransformerNotationFocus — blur non-focused lines, highlight focused ones */
-  /* tweakable variables */
-  :root {
-    --tnf-blur: 2px;
-    --tnf-nonfocus-opacity: 0.45;
-    --tnf-transition: 200ms;
-  }
-
-  /* container that signals focus annotations exist */
+  /* TransformerNotationFocus */
   .has-focused {
     position: relative;
   }
 
-  /* make each line a block and enable smooth transitions */
   .has-focused code > span[data-line] {
     display: block;
     transition:
       filter var(--tnf-transition) ease,
-      opacity var(--tnf-transition) ease,
-      transform var(--tnf-transition) ease;
+      opacity var(--tnf-transition) ease;
     will-change: filter, opacity;
   }
 
-  /* BLUR + DIM everything that is NOT focused */
   .has-focused code > span[data-line]:not(.focused) {
-    filter: blur(var(--tnf-blur)) grayscale(0.2);
+    filter: blur(var(--tnf-blur)) grayscale(0.1);
     opacity: var(--tnf-nonfocus-opacity);
-    pointer-events: none; /* prevents interaction with blurred lines */
-    user-select: none; /* optional: prevents selecting blurred text */
+    pointer-events: none;
+    user-select: none;
   }
 
-  /* KEEP focused lines crisp and visually prominent */
   .has-focused code > span[data-line].focused {
     filter: none;
     opacity: 1;
+    background-color: var(--code-line-highlight-bg);
+    border-left-color: var(--code-line-highlight-border);
   }
 
-  /* Accessibility: slightly reduce blur when pre has keyboard focus */
   .has-focused:focus-within code > span[data-line]:not(.focused) {
-    filter: blur(calc(var(--tnf-blur) * 0.6));
-    opacity: 0.3;
+    filter: blur(calc(var(--tnf-blur) * 0.5));
+    opacity: 0.45;
   }
 
-  /*    error and warning*/
-  /* Container signals lines have error/warning highlights */
+  /* Error and warning */
   .has-highlighted {
     position: relative;
   }
 
-  /* Base highlighted line styling */
   .has-highlighted code > span[data-line].highlighted {
-    display: flex; /* allow icon + text inline */
+    display: flex;
     align-items: center;
-    padding-left: 0.5rem; /* space for border */
-    border-left-width: 3px;
+    padding-left: 0.5rem;
+    border-left-width: 2px;
     border-left-style: solid;
-    gap: 0.5rem; /* space between icon and text */
+    gap: 0.5rem;
     transition:
       background-color 0.2s ease,
       border-color 0.2s ease;
   }
 
-  /* Error line with icon */
+  .has-highlighted code > span[data-line].highlighted:not(.error):not(.warning) {
+    background-color: var(--code-line-highlight-bg);
+    border-left-color: var(--code-line-highlight-border);
+  }
+
   .has-highlighted code > span[data-line].highlighted.error::before {
-    content: '🚫'; /* error icon */
+    content: '×';
     display: inline-block;
-    color: #ff003d; /* matches border */
+    font-weight: 700;
+    color: var(--code-error-border);
   }
 
-  /* Warning line with icon */
   .has-highlighted code > span[data-line].highlighted.warning::before {
-    content: '⚠️'; /* warning icon */
+    content: '!';
     display: inline-block;
-    color: #ffbf00; /* matches border */
+    font-weight: 700;
+    color: var(--code-warning-border);
   }
 
-  /* Colors for line background and border */
   .has-highlighted code > span[data-line].highlighted.error {
-    background-color: #6b2424;
-    border-left-color: #ff003d;
-    color: #fff;
+    background-color: var(--code-error-bg);
+    border-left-color: var(--code-error-border);
+    color: inherit;
   }
 
   .has-highlighted code > span[data-line].highlighted.warning {
-    background-color: #543c1f;
-    border-left-color: #ffbf00;
-    color: #fff;
+    background-color: var(--code-warning-bg);
+    border-left-color: var(--code-warning-border);
+    color: inherit;
   }
 }
 

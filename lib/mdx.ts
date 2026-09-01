@@ -13,6 +13,8 @@ import {
   transformerNotationDiff,
   transformerNotationFocus,
   transformerNotationErrorLevel,
+  transformerNotationHighlight,
+  transformerNotationWordHighlight,
 } from '@shikijs/transformers';
 import { visit } from 'unist-util-visit';
 
@@ -109,6 +111,8 @@ export async function renderMDX(content: string): Promise<MDXRemoteSerializeResu
       transformerNotationDiff(), // [!code ++] / [!code --]
       transformerNotationFocus(), // [!code focus]
       transformerNotationErrorLevel(), // [!code error], [!code warning]
+      transformerNotationHighlight(), // [!code highlight]
+      transformerNotationWordHighlight(), // [!code word:...]
     ],
   };
   return await serialize(content, {
