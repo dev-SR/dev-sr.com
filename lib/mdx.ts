@@ -17,6 +17,7 @@ import {
   transformerNotationWordHighlight,
 } from '@shikijs/transformers';
 import { visit } from 'unist-util-visit';
+import { rehypeDefaultLineNumbers } from '@/lib/rehype-default-line-numbers';
 
 const contentDirectory = path.join(process.cwd(), 'content');
 
@@ -161,6 +162,7 @@ export async function renderMDX(content: string): Promise<MDXRemoteSerializeResu
             }
           });
         },
+        rehypeDefaultLineNumbers,
         [rehypePrettyCode, rehypePrettyCodeOptions],
 
         () => (tree) => {

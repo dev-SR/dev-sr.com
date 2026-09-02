@@ -3,8 +3,13 @@
 import { useMemo, useState } from 'react';
 import { Terminal } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DocsCopyButton } from './docs-copy-button';
 import { cn } from '@/lib/utils';
+import { CodeCopyButton } from '@/components/code/code-copy-button';
+import {
+  CodeContainer,
+  CodeContainerHeader,
+  CodeContainerIcon,
+} from '@/components/code/code-container';
 
 type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun';
 
@@ -32,13 +37,13 @@ export function CommandBlock({ pnpm, npm, yarn, bun, className }: CommandBlockPr
   }
 
   return (
-    <div className={cn('overflow-hidden rounded-xl border border-border bg-card/80', className)}>
+    <CodeContainer className={cn('my-6', className)}>
       <Tabs value={active} onValueChange={(value) => setActive(value as PackageManager)}>
-        <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
+        <CodeContainerHeader>
           <div className="flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded bg-muted">
+            <CodeContainerIcon>
               <Terminal className="size-3.5 text-muted-foreground" />
-            </span>
+            </CodeContainerIcon>
             <TabsList className="h-8 bg-transparent p-0">
               {commands.map(([key]) => (
                 <TabsTrigger
@@ -50,14 +55,14 @@ export function CommandBlock({ pnpm, npm, yarn, bun, className }: CommandBlockPr
               ))}
             </TabsList>
           </div>
-          <DocsCopyButton text={activeCommand} />
-        </div>
+          <CodeCopyButton text={activeCommand} />
+        </CodeContainerHeader>
         {commands.map(([key, command]) => (
           <TabsContent key={key} value={key} className="m-0">
             <pre className="overflow-x-auto p-4 font-mono text-sm text-foreground">{command}</pre>
           </TabsContent>
         ))}
       </Tabs>
-    </div>
+    </CodeContainer>
   );
 }

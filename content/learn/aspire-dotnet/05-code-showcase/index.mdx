@@ -97,19 +97,19 @@ export function LearnPreCustom(props: LearnPreProps) {
   const language = String(props['data-language'] || 'text').toLowerCase();
 
   if (inPrettyFigure) {
-    return <pre className="docs-code-pre m-0" {...props} />;
+    return <pre className="code-pre m-0" {...props} />;
   }
 
   return (
-    <DocsCodeBlock language={language} rawString={props.__rawstring__}>
-      <pre className="docs-code-pre m-0" {...props} />
-    </DocsCodeBlock>
+    <CodeBlock language={language} rawString={props.__rawstring__}>
+      <pre className="code-pre m-0" {...props} />
+    </CodeBlock>
   );
 }
 ```
 
 ```css title="app/globals.css"
-.docs-code-block [data-rehype-pretty-code-figure] > pre {
+.code-block [data-rehype-pretty-code-figure] > pre {
   background: #131419;
   border-radius: 0.5rem;
   border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);

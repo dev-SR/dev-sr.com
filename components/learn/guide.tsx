@@ -66,7 +66,7 @@ export function GuideStep({
         </h3>
       </div>
       {children && (
-        <div className="mt-4 flex flex-col gap-4 [&_.docs-code-block]:my-0 [&>:first-child]:mt-0">
+        <div className="mt-4 flex flex-col gap-4 [&_.code-block]:my-0 [&>:first-child]:mt-0">
           {children}
         </div>
       )}

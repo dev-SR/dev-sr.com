@@ -23,10 +23,10 @@ function splitPreviewChildren(children: React.ReactNode) {
     const props = child.props as Record<string, unknown>;
     const isPrettyFigure = props['data-rehype-pretty-code-figure'] !== undefined;
     const isPre = child.type === 'pre';
-    const isDocsCode =
-      typeof props.className === 'string' && props.className.includes('mdx-code');
+    const isCodeBlock =
+      typeof props.className === 'string' && props.className.includes('code-block');
 
-    if (isPrettyFigure || isPre || isDocsCode) {
+    if (isPrettyFigure || isPre || isCodeBlock) {
       codeNodes.push(child);
       return;
     }
@@ -74,7 +74,7 @@ export function ComponentPreview({
           <div className={cn('flex min-h-44 items-center p-8', alignClass)}>{previewNodes}</div>
         </TabsContent>
         <TabsContent value="code" className="m-0">
-          <div className="[&_.docs-code-block]:my-0">
+          <div className="[&_.code-block]:my-0">
             {codeNodes}
           </div>
         </TabsContent>

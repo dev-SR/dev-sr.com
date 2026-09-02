@@ -173,9 +173,13 @@ function isBlockElement(child: React.ReactElement): boolean {
       name === 'MdxImage' ||
       name === 'Figure' ||
       name === 'PreCustom' ||
+      name === 'LearnPreCustom' ||
       name === 'PrettyCodeFigure' ||
+      name === 'DocsPrettyFigure' ||
       name === 'CodeTabs' ||
-      name === 'CodeFrame'
+      name === 'CodeFrame' ||
+      name === 'CodeBlock' ||
+      name === 'DocsCodeBlock'
     ) {
       return true;
     }

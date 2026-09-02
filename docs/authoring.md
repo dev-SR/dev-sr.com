@@ -83,7 +83,7 @@ Remote images currently work only for `images.unsplash.com` (`next.config.ts` `i
 
 These are registered in `components/mdx/client.tsx` and `components/mdx/server.tsx`. Authors can use them as JSX tags in `.mdx` files. Do not import them.
 
-`CodeFrame`, copy buttons, and syntax highlighting wrap fenced code automatically. Do not call those by hand.
+`CodeBlock`, copy buttons, and syntax highlighting wrap fenced code automatically. Do not call those by hand. `CodeFrame` and `DocsCodeBlock` are deprecated aliases for `CodeBlock`.
 
 ### `Figure`
 
@@ -206,13 +206,13 @@ export function Button() {
 }
 ```
 
-```python showLineNumbers
+```python hideLineNumbers
 def hello():
     print("hi")
 ```
 ````
 
-`title="..."` is the header label and the `CodeTabs` tab name. `showLineNumbers` turns on line numbers.
+`title="..."` is the header label and the `CodeTabs` tab name. Line numbers are **on by default**; add `hideLineNumbers` to a fence to turn them off.
 
 ### Line highlight (meta)
 
@@ -369,7 +369,7 @@ No `date` or `coverImage`. Start body at `##`.
 
 ### Learn-only MDX components
 
-Learn uses **DocsCodeBlock** (expandable fences with language badge + copy). Blog `CodeFrame` / `CodeTabs` are **not** used on Learn pages.
+Learn uses the same **CodeBlock** as blog posts (expandable fences with language badge + copy). Learn-only wrappers: `DocsFileTabs` instead of `CodeTabs`.
 
 | Component | Use |
 | --- | --- |
@@ -435,6 +435,6 @@ cd my-project
 ```
 
 - `Guide` optional props: `title` (section heading), `numbered` (default `false` — grey pill markers; `true` — numbered circles).
-- `GuideStep` requires `title`; children can be prose, inline code, and fenced blocks (uses `DocsCodeBlock`).
+- `GuideStep` requires `title`; children can be prose, inline code, and fenced blocks (rendered via `CodeBlock`).
 
 Long C# files use normal fences with `title="path/file.cs"` — they auto-collapse with **Expand**.

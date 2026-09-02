@@ -1,22 +1,8 @@
 'use client';
 
-import { createContext, useContext } from 'react';
-
-const CodeTabsContext = createContext(false);
-const PrettyCodeFigureContext = createContext(false);
-
-export function CodeTabsProvider({ children }: { children: React.ReactNode }) {
-  return <CodeTabsContext.Provider value={true}>{children}</CodeTabsContext.Provider>;
-}
-
-export function PrettyCodeFigureProvider({ children }: { children: React.ReactNode }) {
-  return <PrettyCodeFigureContext.Provider value={true}>{children}</PrettyCodeFigureContext.Provider>;
-}
-
-export function useInCodeTabs() {
-  return useContext(CodeTabsContext);
-}
-
-export function useInPrettyCodeFigure() {
-  return useContext(PrettyCodeFigureContext);
-}
+export {
+  PrettyFigureProvider as PrettyCodeFigureProvider,
+  FileTabsProvider as CodeTabsProvider,
+  useInPrettyFigure as useInPrettyCodeFigure,
+  useInFileTabs as useInCodeTabs,
+} from '@/components/code/code-block-context';

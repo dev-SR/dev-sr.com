@@ -219,58 +219,33 @@
     box-shadow: none;
   }
 
-  .mdx-code-frame [data-rehype-pretty-code-figure],
-  .mdx-code-tabs [data-rehype-pretty-code-figure] {
-    margin: 0;
-    background: transparent;
-  }
-
-  .mdx-code-frame [data-rehype-pretty-code-figure] > pre,
-  .mdx-code-tabs [data-rehype-pretty-code-figure] > pre,
-  .mdx-code-frame pre,
-  .mdx-code-tabs pre {
-    margin: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-  }
-
-  .mdx-code-frame code,
-  .mdx-code-tabs code {
-    background: transparent !important;
-    background-color: transparent !important;
-    border: 0 !important;
-  }
-
-  /* Learn docs code blocks (Aceternity-style) */
-  .docs-code-block [data-rehype-pretty-code-figure] > pre,
-  .docs-code-block .docs-code-pre {
+  .code-block [data-rehype-pretty-code-figure] > pre,
+  .code-block .code-pre {
     position: relative;
     margin: 0;
-    max-height: var(--docs-code-max-height, 650px);
+    max-height: var(--code-block-max-height, var(--docs-code-max-height, 650px));
     overflow: auto;
-    border-radius: 0.5rem;
-    border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+    border-radius: 0;
+    border: 0;
     background: #131419;
     padding: 1rem 0;
     box-shadow: none;
     scrollbar-gutter: stable;
   }
 
-  .docs-code-block--collapsed [data-rehype-pretty-code-figure] > pre,
-  .docs-code-block--collapsed .docs-code-pre {
+  .code-block--collapsed [data-rehype-pretty-code-figure] > pre,
+  .code-block--collapsed .code-pre {
     max-height: none;
     overflow: hidden;
   }
 
-  .dark .docs-code-block [data-rehype-pretty-code-figure] > pre,
-  .dark .docs-code-block .docs-code-pre {
+  .dark .code-block [data-rehype-pretty-code-figure] > pre,
+  .dark .code-block .code-pre {
     background: #131419;
   }
 
-  .docs-code-block [data-rehype-pretty-code-figure] > pre code,
-  .docs-code-block .docs-code-pre code {
+  .code-block [data-rehype-pretty-code-figure] > pre code,
+  .code-block .code-pre code {
     display: grid;
     background: transparent !important;
     padding: 0 1rem;
@@ -278,13 +253,23 @@
     line-height: 1.5rem;
   }
 
-  .docs-code-block [data-rehype-pretty-code-figure] > figcaption {
+  .code-block [data-rehype-pretty-code-figure] > figcaption {
     display: none;
   }
 
-  .docs-code-block [data-rehype-pretty-code-figure] {
+  .code-block [data-rehype-pretty-code-figure] {
     margin: 0;
     background: transparent;
+  }
+
+  .code-file-tabs {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .code-file-tabs .code-block {
+    margin-top: 0;
+    margin-bottom: 0;
   }
 
   /*Line numbers*/
