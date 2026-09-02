@@ -156,13 +156,13 @@ export const NavbarLogo = () => {
       <span ref={logoContainer} className="flex items-center gap-1.5">
         <span
           ref={sharukh}
-          className="overflow-hidden whitespace-nowrap text-xl font-semibold text-[#F08F87] sm:text-2xl">
+          className="overflow-hidden whitespace-nowrap font-heading text-xl font-semibold tracking-tight text-[#F08F87] sm:text-2xl">
           Sharukh
         </span>
         <img ref={mark} src="/logo.svg" alt="Sharukh Rahman logo" width={40} height={40} />
         <span
           ref={rahman}
-          className="overflow-hidden whitespace-nowrap text-xl font-semibold text-[#ACC5D3] sm:text-2xl">
+          className="overflow-hidden whitespace-nowrap font-heading text-xl font-semibold tracking-tight text-[#ACC5D3] sm:text-2xl">
           Rahman
         </span>
       </span>

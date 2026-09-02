@@ -31,8 +31,10 @@ export function BlogPostPreviewCard({
         <Link
           href={postHref}
           transitionTypes={['post-open']}
-          className={`relative block w-full overflow-hidden ${
-            isLanding ? 'min-h-44 md:h-full md:min-h-full' : 'h-44 shrink-0'
+          className={`relative z-[1] block w-full overflow-hidden bg-card ${
+            isLanding
+              ? 'min-h-[11.75rem] -mb-3 md:mb-0 md:h-full md:min-h-full md:w-[calc(100%+0.75rem)] md:-mr-3'
+              : '-mb-3 h-[11.75rem] shrink-0'
           }`}>
           <ViewTransition name={`${transitionPrefix}-cover-${transitionSlug}`} share="post-cover">
             <Image
@@ -43,13 +45,13 @@ export function BlogPostPreviewCard({
               sizes={
                 isLanding ? '(min-width: 768px) 15rem, 100vw' : '(min-width: 768px) 34vw, 100vw'
               }
-              className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+              className="object-cover scale-[1.03] transition-transform duration-700 group-hover:scale-[1.08]"
             />
           </ViewTransition>
           <div className="pointer-events-none absolute inset-0 bg-black/10" />
           <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent via-transparent to-card/75" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-card via-card/65 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 shadow-[inset_0_-22px_24px_-18px_rgba(0,0,0,0.7)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-linear-to-t from-card via-card/65 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 shadow-[inset_0_-22px_24px_-18px_rgba(0,0,0,0.7)]" />
         </Link>
       ) : (
         <div

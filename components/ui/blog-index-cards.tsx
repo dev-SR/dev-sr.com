@@ -18,13 +18,13 @@ export function PopularPostCard({ post, rank }: PopularPostCardProps) {
         transitionTypes={['post-open']}
         className="flex min-h-24 items-stretch">
         {post.coverImage && (
-          <div className="relative hidden w-28 shrink-0 overflow-hidden sm:block">
+          <div className="relative z-[1] hidden w-[7.75rem] shrink-0 overflow-hidden bg-card -mr-3 sm:block">
             <Image
               src={post.coverImage}
               alt={post.coverImageAlt ?? post.title}
               fill
-              sizes="7rem"
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              sizes="7.75rem"
+              className="object-cover scale-[1.03] transition-transform duration-500 group-hover:scale-110"
             />
             <div className="absolute inset-0 bg-black/10" />
             <div className="absolute inset-0 bg-linear-to-r from-transparent to-card/75" />

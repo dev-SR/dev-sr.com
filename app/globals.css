@@ -111,6 +111,9 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-greycliff), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-fira-code), ui-monospace, monospace;
 }
 
 @layer base {
@@ -124,20 +127,19 @@
   }
 
   body {
-    /* use Roboto as the default sans font via the CSS variable */
     font-family:
-      var(--font-roboto),
+      var(--font-inter),
       ui-sans-serif,
       system-ui,
       -apple-system,
       'Segoe UI',
-      Roboto,
       'Helvetica Neue',
-      Arial;
+      Arial,
+      sans-serif;
     @apply bg-background text-foreground;
   }
 
-  /* Headings should use the heading/display font (Nunito) */
+  /* Headings use Greycliff CF display font */
   h1,
   h2,
   h3,
@@ -145,11 +147,12 @@
   h5,
   h6 {
     font-family:
-      var(--font-nunito),
+      var(--font-greycliff),
       ui-sans-serif,
       system-ui,
       -apple-system,
-      'Segoe UI';
+      'Segoe UI',
+      sans-serif;
   }
 
   /* Default font for code blocks: use the Fira Code variable for mono */

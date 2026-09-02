@@ -204,7 +204,7 @@ export default function SiteSplash() {
 
         <div className="site-splash__lockup relative grid min-h-[clamp(5.3rem,14vw,7.6rem)] w-[min(52rem,calc(100vw-1.5rem))] place-items-center overflow-visible px-[clamp(0.75rem,3vw,2rem)]">
           <div
-            className="site-splash__logo relative z-[2] flex max-w-full min-w-max items-center justify-center gap-[clamp(0.45rem,1.2vw,0.75rem)] [font-family:var(--font-nunito),ui-sans-serif,system-ui] text-[clamp(2.05rem,7.1vw,4.9rem)] font-extrabold leading-none text-foreground"
+            className="site-splash__logo relative z-[2] flex max-w-full min-w-max items-center justify-center gap-[clamp(0.45rem,1.2vw,0.75rem)] font-heading text-[clamp(2.05rem,7.1vw,4.9rem)] font-extrabold leading-none tracking-tight text-foreground"
             aria-label="Sharukh Rahman">
             <SplashWord text="Sharukh" side="left" />
             <span className="site-splash__mark grid size-[clamp(3.35rem,7.3vw,4.6rem)] shrink-0 place-items-center will-change-[transform,opacity,filter]">

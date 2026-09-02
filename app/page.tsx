@@ -88,7 +88,7 @@ export default async function App() {
                   Next.js portfolio, blog, and experiments
                 </Badge>
 
-                <h1 className="max-w-4xl text-5xl font-bold leading-tight text-foreground sm:text-6xl lg:text-7xl">
+                <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-tight text-foreground sm:text-6xl lg:text-7xl">
                   Building sharp web experiences with motion, writing, and useful tools.
                 </h1>
 
