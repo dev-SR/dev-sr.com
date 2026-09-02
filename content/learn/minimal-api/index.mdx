@@ -1,0 +1,30 @@
+---
+title: 'Minimal API'
+description: 'Build HTTP APIs with minimal endpoints, validation, and OpenAPI in ASP.NET Core.'
+icon: 'Network'
+---
+
+## Course overview
+
+Minimal APIs reduce ceremony for small services and microservices. This track covers routing, DI, validation, and testing.
+
+## Chapters
+
+| Chapter | Topics |
+| --- | --- |
+| **Routing** | Endpoints, binding, route groups, filters |
+| **Validation** | FluentValidation, ProblemDetails |
+| **OpenAPI** | Swashbuckle, tags, security schemes |
+
+## First endpoint
+
+```csharp title="Program.cs"
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+app.Run();
+```
+
+Open the **Routing** chapter in the sidebar for full CRUD samples with expandable code blocks.

@@ -1,0 +1,13 @@
+---
+description: How to author Learn study docs under content/learn
+globs: content/learn/**/*.{md,mdx}
+alwaysApply: false
+---
+
+When editing `content/learn/`, follow the Learn section in [docs/authoring.md](docs/authoring.md).
+
+- Publishes at `/learn/...`, not `/blog/...`. Numeric prefixes are for sort only.
+- Frontmatter: `title`, `description`; optional `icon`, `badge`. No `date` / `coverImage`.
+- Use Learn components: `ComponentPreview`, `DocsFileTabs`, `InstallTabs`, `Steps`, `CommandBlock`, `Mermaid`, `FlowDiagram`.
+- Do **not** use blog `CodeFrame`, `CodeTabs`, or `MultiFileCodeBlock` on Learn pages.
+- Fenced code auto-renders as expandable `DocsCodeBlock` with copy + language badge.

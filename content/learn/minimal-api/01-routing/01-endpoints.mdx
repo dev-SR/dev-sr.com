@@ -1,0 +1,165 @@
+---
+title: 'Endpoints & Binding'
+description: 'MapGet/MapPost patterns, route parameters, and validation with large samples.'
+icon: 'Unplug'
+badge: 'New'
+---
+
+## Todo API scaffold
+
+```csharp title="Program.cs"
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<ITodoRepository, InMemoryTodoRepository>();
+var app = builder.Build();
+
+var todos = app.MapGroup("/todos").WithTags("Todos");
+
+todos.MapGet("/", (ITodoRepository repo) => repo.GetAll());
+
+todos.MapGet("/{id:guid}", (Guid id, ITodoRepository repo) =>
+    repo.Find(id) is { } todo ? Results.Ok(todo) : Results.NotFound());
+
+todos.MapPost("/", (CreateTodoRequest request, ITodoRepository repo) =>
+{
+    var todo = repo.Add(request.Title, request.IsComplete);
+    return Results.Created($"/todos/{todo.Id}", todo);
+});
+
+todos.MapPut("/{id:guid}", (Guid id, UpdateTodoRequest request, ITodoRepository repo) =>
+    repo.Update(id, request) ? Results.NoContent() : Results.NotFound());
+
+todos.MapDelete("/{id:guid}", (Guid id, ITodoRepository repo) =>
+    repo.Delete(id) ? Results.NoContent() : Results.NotFound());
+
+app.Run();
+```
+
+## Repository implementation (long sample)
+
+```csharp title="Data/InMemoryTodoRepository.cs"
+public sealed record Todo(Guid Id, string Title, bool IsComplete, DateTimeOffset CreatedAt);
+
+public sealed record CreateTodoRequest(string Title, bool IsComplete = false);
+
+public sealed record UpdateTodoRequest(string? Title, bool? IsComplete);
+
+public interface ITodoRepository
+{
+    IReadOnlyList<Todo> GetAll();
+    Todo? Find(Guid id);
+    Todo Add(string title, bool isComplete);
+    bool Update(Guid id, UpdateTodoRequest request);
+    bool Delete(Guid id);
+}
+
+public sealed class InMemoryTodoRepository : ITodoRepository
+{
+    private readonly List<Todo> _items = [];
+    private readonly object _gate = new();
+
+    public IReadOnlyList<Todo> GetAll()
+    {
+        lock (_gate) return _items.OrderByDescending(t => t.CreatedAt).ToList();
+    }
+
+    public Todo? Find(Guid id)
+    {
+        lock (_gate) return _items.FirstOrDefault(t => t.Id == id);
+    }
+
+    public Todo Add(string title, bool isComplete)
+    {
+        var todo = new Todo(Guid.NewGuid(), title.Trim(), isComplete, DateTimeOffset.UtcNow);
+        lock (_gate) _items.Add(todo);
+        return todo;
+    }
+
+    public bool Update(Guid id, UpdateTodoRequest request)
+    {
+        lock (_gate)
+        {
+            var index = _items.FindIndex(t => t.Id == id);
+            if (index < 0) return false;
+            var current = _items[index];
+            _items[index] = current with
+            {
+                Title = request.Title?.Trim() ?? current.Title,
+                IsComplete = request.IsComplete ?? current.IsComplete,
+            };
+            return true;
+        }
+    }
+
+    public bool Delete(Guid id)
+    {
+        lock (_gate)
+        {
+            var index = _items.FindIndex(t => t.Id == id);
+            if (index < 0) return false;
+            _items.RemoveAt(index);
+            return true;
+        }
+    }
+}
+```
+
+## Multi-file project layout
+
+<DocsFileTabs title="Todo API files">
+
+```csharp title="Contracts/TodoDtos.cs"
+public sealed record TodoResponse(Guid Id, string Title, bool IsComplete, DateTimeOffset CreatedAt);
+
+public static class TodoMappings
+{
+    public static TodoResponse ToResponse(this Todo todo) =>
+        new(todo.Id, todo.Title, todo.IsComplete, todo.CreatedAt);
+}
+```
+
+```csharp title="Endpoints/TodoEndpoints.cs"
+public static class TodoEndpoints
+{
+    public static RouteGroupBuilder MapTodoEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/todos").WithTags("Todos");
+
+        group.MapGet("/", (ITodoRepository repo) =>
+            repo.GetAll().Select(t => t.ToResponse()));
+
+        group.MapGet("/{id:guid}", (Guid id, ITodoRepository repo) =>
+            repo.Find(id)?.ToResponse() is { } response ? Results.Ok(response) : Results.NotFound());
+
+        return group;
+    }
+}
+```
+
+```json title="appsettings.json"
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+</DocsFileTabs>
+
+## TypedResults vs Results
+
+```csharp title="Endpoints/TodoEndpoints.cs"
+todos.MapGet("/summary", (ITodoRepository repo) =>
+{
+    var items = repo.GetAll();
+    return TypedResults.Ok(new // [!code focus]
+    {
+        Total = items.Count,
+        Completed = items.Count(t => t.IsComplete),
+        Open = items.Count(t => !t.IsComplete),
+    });
+});
+```

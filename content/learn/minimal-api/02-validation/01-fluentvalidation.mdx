@@ -1,0 +1,143 @@
+---
+title: 'FluentValidation'
+description: 'Register validators, map ProblemDetails, and test rules with long sample code.'
+icon: 'ListChecks'
+badge: 'Updated'
+---
+
+## Package setup
+
+<InstallTabs>
+  <InstallTab value="cli" label="CLI">
+    <CommandBlock
+      pnpm="dotnet add package FluentValidation.DependencyInjectionExtensions"
+      npm="dotnet add package FluentValidation.DependencyInjectionExtensions"
+      yarn="dotnet add package FluentValidation.DependencyInjectionExtensions"
+      bun="dotnet add package FluentValidation.DependencyInjectionExtensions"
+    />
+  </InstallTab>
+  <InstallTab value="manual" label="Manual">
+    <Steps>
+      <Step>Add the package reference</Step>
+
+      ```xml title="TodoApi.csproj"
+      <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+      ```
+
+      <Step>Register validators from the assembly</Step>
+
+      ```csharp title="Program.cs"
+      builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoValidator>();
+      ```
+    </Steps>
+  </InstallTab>
+</InstallTabs>
+
+## Validator with nested rules
+
+```csharp title="Validators/TodoValidators.cs"
+using FluentValidation;
+
+public sealed class CreateTodoValidator : AbstractValidator<CreateTodoRequest>
+{
+    public CreateTodoValidator()
+    {
+        RuleFor(x => x.Title)
+            .NotEmpty()
+            .MaximumLength(200)
+            .Must(title => !title.Contains('\n'))
+            .WithMessage("Title cannot contain line breaks.");
+
+        RuleFor(x => x.DueDate)
+            .GreaterThan(DateTimeOffset.UtcNow)
+            .When(x => x.DueDate.HasValue)
+            .WithMessage("Due date must be in the future.");
+
+        RuleForEach(x => x.Tags)
+            .NotEmpty()
+            .MaximumLength(32)
+            .Matches("^[a-z0-9-]+$")
+            .WithMessage("Tags must be lowercase alphanumeric with hyphens.");
+    }
+}
+
+public sealed class UpdateTodoValidator : AbstractValidator<UpdateTodoRequest>
+{
+    public UpdateTodoValidator()
+    {
+        RuleFor(x => x.Title)
+            .MaximumLength(200)
+            .When(x => x.Title is not null);
+
+        RuleFor(x => x)
+            .Must(x => x.Title is not null || x.IsComplete is not null)
+            .WithMessage("At least one field must be provided.");
+    }
+}
+```
+
+## Validation filter (long sample)
+
+```csharp title="Filters/FluentValidationFilter.cs"
+using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
+
+public sealed class FluentValidationFilter<TRequest> : IEndpointFilter
+{
+    public async ValueTask<object?> InvokeAsync(
+        EndpointFilterInvocationContext context,
+        EndpointFilterDelegate next)
+    {
+        var request = context.Arguments.OfType<TRequest>().FirstOrDefault();
+        if (request is null)
+            return Results.BadRequest();
+
+        var validator = context.HttpContext.RequestServices.GetService<IValidator<TRequest>>();
+        if (validator is null)
+            return await next(context);
+
+        var result = await validator.ValidateAsync(request, context.HttpContext.RequestAborted);
+        if (result.IsValid)
+            return await next(context);
+
+        var errors = result.Errors
+            .GroupBy(e => e.PropertyName)
+            .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
+
+        return Results.ValidationProblem(errors);
+    }
+}
+
+public static class ValidationExtensions
+{
+    public static RouteHandlerBuilder WithFluentValidation<T>(this RouteHandlerBuilder builder) =>
+        builder.AddEndpointFilter<FluentValidationFilter<T>>();
+}
+```
+
+## UI preview: form validation states
+
+<ComponentPreview>
+  <div className="grid w-full max-w-sm gap-3">
+    <Input placeholder="Todo title" aria-invalid />
+    <p className="text-xs text-destructive">Title is required.</p>
+    <Button className="w-fit">Create todo</Button>
+  </div>
+
+```tsx title="components/todo-form.tsx"
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+export function TodoForm({ error }: { error?: string }) {
+  return (
+    <form className="grid max-w-sm gap-3">
+      <Input placeholder="Todo title" aria-invalid={Boolean(error)} />
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <Button type="submit" className="w-fit">
+        Create todo
+      </Button>
+    </form>
+  );
+}
+```
+</ComponentPreview>

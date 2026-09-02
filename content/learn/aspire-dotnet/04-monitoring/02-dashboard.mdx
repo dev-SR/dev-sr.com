@@ -1,0 +1,152 @@
+---
+title: 'Aspire Dashboard'
+description: 'Explore resources, structured logs, and distributed traces in the local dashboard.'
+icon: 'LayoutDashboard'
+---
+
+## Dashboard mental model
+
+When you `dotnet run` the AppHost, Aspire launches a dashboard that aggregates telemetry from every referenced project.
+
+<FlowDiagram script={`nodes:
+  - id: dash
+    label: Dashboard
+  - id: apphost
+    label: AppHost
+  - id: api
+    label: catalog-api
+  - id: web
+    label: storefront
+  - id: worker
+    label: order-processor
+edges:
+  - source: apphost
+    target: dash
+  - source: api
+    target: dash
+  - source: web
+    target: dash
+  - source: worker
+    target: dash`} />
+
+## Launch configuration
+
+```json title=".vscode/launch.json"
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AppHost",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/AppHost/bin/Debug/net9.0/AppHost.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/AppHost",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_DASHBOARD_OTLP_ENDPOINT_URL": "http://localhost:18889",
+        "DOTNET_RESOURCE_SERVICE_ENDPOINT_URL": "http://localhost:18890"
+      }
+    },
+    {
+      "name": "Catalog API (standalone)",
+      "type": "coreclr",
+      "request": "launch",
+      "program": "${workspaceFolder}/CatalogApi/bin/Debug/net9.0/CatalogApi.dll",
+      "cwd": "${workspaceFolder}/CatalogApi",
+      "env": {
+        "ConnectionStrings__catalog": "Host=localhost;Database=catalog;Username=postgres;Password=postgres"
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full stack",
+      "configurations": ["AppHost"]
+    }
+  ]
+}
+```
+
+## Structured logging patterns
+
+Use consistent log templates so the dashboard filter bar stays useful across services.
+
+```csharp title="OrderProcessor/Workers/OrderConsumer.cs"
+public sealed class OrderConsumer(
+    ILogger<OrderConsumer> logger,
+    CatalogApiClient catalog,
+    IOrderRepository orders)
+{
+    public async Task HandleAsync(OrderPlaced message, CancellationToken ct)
+    {
+        using var scope = logger.BeginScope(new Dictionary<string, object>
+        {
+            ["OrderId"] = message.OrderId,
+            ["CustomerId"] = message.CustomerId,
+        });
+
+        logger.LogInformation("Processing order {OrderId} with {LineCount} lines", message.OrderId, message.Lines.Count);
+
+        foreach (var line in message.Lines)
+        {
+            logger.LogDebug("Checking stock for SKU {Sku}", line.Sku);
+            var available = await catalog.CheckStockAsync(line.Sku, ct);
+            if (available < line.Quantity)
+            {
+                logger.LogWarning("Insufficient stock for {Sku}: need {Need}, have {Have}", line.Sku, line.Quantity, available);
+                await orders.MarkFailedAsync(message.OrderId, "Insufficient stock", ct);
+                return;
+            }
+        }
+
+        await orders.MarkCompletedAsync(message.OrderId, ct);
+        logger.LogInformation("Order {OrderId} completed", message.OrderId);
+    }
+}
+```
+
+## UI preview: status badges
+
+<ComponentPreview>
+  <div className="flex flex-wrap items-center gap-2">
+    <Badge>Running</Badge>
+    <Badge variant="secondary">Waiting</Badge>
+    <Badge variant="outline">Stopped</Badge>
+  </div>
+
+```tsx title="components/resource-status.tsx"
+import { Badge } from '@/components/ui/badge';
+
+type ResourceState = 'Running' | 'Waiting' | 'Stopped';
+
+export function ResourceStatus({ state }: { state: ResourceState }) {
+  const variant =
+    state === 'Running' ? 'default' : state === 'Waiting' ? 'secondary' : 'outline';
+
+  return <Badge variant={variant}>{state}</Badge>;
+}
+```
+</ComponentPreview>
+
+## Troubleshooting checklist
+
+<Steps>
+  <Step>Confirm the AppHost is the startup project</Step>
+
+  ```bash
+  dotnet run --project AppHost
+  ```
+
+  <Step>Open the dashboard URL printed in the console</Step>
+
+  Usually `https://localhost:17xxx` — accept the dev certificate if prompted.
+
+  <Step>Verify OTLP endpoints match between AppHost and services</Step>
+
+  ```bash
+  echo $DOTNET_DASHBOARD_OTLP_ENDPOINT_URL
+  ```
+
+  <Step>Check `/health` returns 200 for each API resource</Step>
+</Steps>

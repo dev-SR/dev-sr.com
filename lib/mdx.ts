@@ -73,6 +73,10 @@ export async function discoverMDXFiles(dir: string = contentDirectory): Promise<
   const tree: BlogTree[] = [];
 
   for (const item of items) {
+    if (dir === contentDirectory && item === 'learn') {
+      continue;
+    }
+
     const fullPath = path.join(dir, item);
     const stat = fs.statSync(fullPath);
     const relativePath = path.relative(contentDirectory, fullPath);

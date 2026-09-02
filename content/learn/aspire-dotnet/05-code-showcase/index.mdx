@@ -1,0 +1,147 @@
+---
+title: 'Code Block Showcase'
+description: 'Large samples, multi-file tabs, diffs, and inline patterns for Learn docs authoring.'
+icon: 'FileCode2'
+---
+
+## Single large fence
+
+Use a normal fenced block with `title="path/file.ext"`. Blocks longer than ~13 lines show **Expand** with a gradient fade.
+
+```tsx title="components/learn/docs-sidebar.tsx"
+'use client';
+
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import type { LearnNavNode } from '@/lib/learn';
+
+function NavLink({ node, depth = 0 }: { node: LearnNavNode; depth?: number }) {
+  const pathname = usePathname();
+  const active = pathname === node.href;
+
+  return (
+    <Link
+      href={node.href}
+      className={cn(
+        'flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors',
+        active ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+      )}
+      style={{ paddingLeft: `${8 + depth * 12}px` }}>
+      {node.title}
+      {node.badge && (
+        <span className="ml-auto rounded-full bg-primary/10 px-1.5 py-0.5 text-[0.65rem] font-medium text-primary">
+          {node.badge}
+        </span>
+      )}
+    </Link>
+  );
+}
+
+function NavSection({ node, depth = 0 }: { node: LearnNavNode; depth?: number }) {
+  if (node.type === 'page' || !node.children?.length) {
+    return <NavLink node={node} depth={depth} />;
+  }
+
+  return (
+    <Accordion type="multiple" defaultValue={[node.slug]}>
+      <AccordionItem value={node.slug} className="border-0">
+        <AccordionTrigger className="py-1.5 text-sm hover:no-underline">
+          {node.title}
+        </AccordionTrigger>
+        <AccordionContent className="pb-0 pl-2">
+          {node.children.map((child) => (
+            <NavSection key={child.slug} node={child} depth={depth + 1} />
+          ))}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+
+export function DocsSidebar({ nav }: { nav: LearnNavNode[] }) {
+  return (
+    <ScrollArea className="h-full pr-3">
+      <nav className="space-y-1">
+        {nav.map((node) => (
+          <NavSection key={node.slug} node={node} />
+        ))}
+      </nav>
+    </ScrollArea>
+  );
+}
+```
+
+## Multi-file tabs
+
+Group related files under one heading — each tab gets its own expandable block.
+
+<DocsFileTabs title="MDX renderer stack">
+
+```tsx title="components/learn/learn-mdx-renderer.tsx"
+import { MDXRemote } from 'next-mdx-remote';
+import type { MDXRemoteSerializeResult } from 'next-mdx-remote';
+import { learnMdxComponents } from './learn-mdx-client';
+
+export function LearnMdxRenderer({ source }: { source: MDXRemoteSerializeResult }) {
+  return <MDXRemote {...source} components={learnMdxComponents} />;
+}
+```
+
+```tsx title="components/learn/learn-code-elements.tsx"
+export function LearnPreCustom(props: LearnPreProps) {
+  const inPrettyFigure = useInDocsPrettyFigure();
+  const language = String(props['data-language'] || 'text').toLowerCase();
+
+  if (inPrettyFigure) {
+    return <pre className="docs-code-pre m-0" {...props} />;
+  }
+
+  return (
+    <DocsCodeBlock language={language} rawString={props.__rawstring__}>
+      <pre className="docs-code-pre m-0" {...props} />
+    </DocsCodeBlock>
+  );
+}
+```
+
+```css title="app/globals.css"
+.docs-code-block [data-rehype-pretty-code-figure] > pre {
+  background: #131419;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+}
+```
+
+</DocsFileTabs>
+
+## Transformer highlights
+
+```csharp title="CatalogApi/Program.cs"
+app.MapPost("/products", async (CreateProductRequest request, CatalogContext db) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Name)) // [!code focus]
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["Name"] = ["Name is required."]
+        });
+
+    var product = new Product(0, request.Name, request.Sku, request.Price); // [!code ++]
+    db.Products.Add(product); // [!code ++]
+    await db.SaveChangesAsync(); // [!code ++]
+    return Results.Created($"/products/{product.Id}", product); // [!code ++]
+    // return Results.Ok(request); // [!code --]
+});
+```
+
+## Command blocks
+
+<CommandBlock
+  pnpm="pnpm add @radix-ui/react-collapsible lucide-react"
+  npm="npm install @radix-ui/react-collapsible lucide-react"
+  yarn="yarn add @radix-ui/react-collapsible lucide-react"
+  bun="bun add @radix-ui/react-collapsible lucide-react"
+/>

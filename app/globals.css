@@ -241,6 +241,50 @@
     border: 0 !important;
   }
 
+  /* Learn docs code blocks (Aceternity-style) */
+  .docs-code-block [data-rehype-pretty-code-figure] > pre,
+  .docs-code-block .docs-code-pre {
+    position: relative;
+    margin: 0;
+    max-height: var(--docs-code-max-height, 650px);
+    overflow: auto;
+    border-radius: 0.5rem;
+    border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
+    background: #131419;
+    padding: 1rem 0;
+    box-shadow: none;
+    scrollbar-gutter: stable;
+  }
+
+  .docs-code-block--collapsed [data-rehype-pretty-code-figure] > pre,
+  .docs-code-block--collapsed .docs-code-pre {
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .dark .docs-code-block [data-rehype-pretty-code-figure] > pre,
+  .dark .docs-code-block .docs-code-pre {
+    background: #131419;
+  }
+
+  .docs-code-block [data-rehype-pretty-code-figure] > pre code,
+  .docs-code-block .docs-code-pre code {
+    display: grid;
+    background: transparent !important;
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+  }
+
+  .docs-code-block [data-rehype-pretty-code-figure] > figcaption {
+    display: none;
+  }
+
+  .docs-code-block [data-rehype-pretty-code-figure] {
+    margin: 0;
+    background: transparent;
+  }
+
   /*Line numbers*/
   /* recommended by https://rehype-pretty-code.netlify.app/ */
   code[data-line-numbers] {
@@ -847,4 +891,17 @@
     transform: none;
     filter: none;
   }
+}
+
+@utility step {
+  counter-increment: step;
+
+  &::before {
+    content: counter(step);
+    @apply absolute -ml-[2.6rem] mt-0.5 flex size-7 items-center justify-center rounded-full border border-border bg-muted font-mono text-xs font-medium text-muted-foreground;
+  }
+}
+
+.learn-content .steps > h3.step {
+  @apply relative;
 }

@@ -1,0 +1,159 @@
+---
+title: 'OpenAPI & Swagger'
+description: 'Document minimal APIs with Swashbuckle, tags, and example payloads.'
+icon: 'BookOpen'
+---
+
+## Swashbuckle setup
+
+```csharp title="Program.cs"
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Todo API",
+        Version = "v1",
+        Description = "Sample minimal API documented for Learn docs.",
+    });
+
+    options.TagActionsBy(api => new[] { api.GroupName ?? "Default" });
+    options.DocInclusionPredicate((_, _) => true);
+});
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Todo API v1");
+        options.DisplayRequestDuration();
+    });
+}
+
+var todos = app.MapGroup("/todos").WithTags("Todos");
+
+todos.MapGet("/", (ITodoRepository repo) => repo.GetAll())
+    .WithName("ListTodos")
+    .WithOpenApi(operation =>
+    {
+        operation.Summary = "List all todos";
+        operation.Description = "Returns todos ordered by creation time descending.";
+        return operation;
+    });
+
+todos.MapPost("/", (CreateTodoRequest request, ITodoRepository repo) =>
+{
+    var todo = repo.Add(request.Title, request.IsComplete);
+    return Results.Created($"/todos/{todo.Id}", todo);
+})
+.WithName("CreateTodo")
+.Produces<Todo>(StatusCodes.Status201Created)
+.ProducesValidationProblem();
+
+app.Run();
+```
+
+## OpenAPI document customization (long sample)
+
+```csharp title="OpenApi/ConfigureSwaggerOptions.cs"
+using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+
+public sealed class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
+{
+    public void Configure(SwaggerGenOptions options)
+    {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme.",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+        });
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer",
+                    },
+                },
+                Array.Empty<string>()
+            }
+        });
+
+        options.MapType<DateOnly>(() => new OpenApiSchema
+        {
+            Type = "string",
+            Format = "date",
+            Example = OpenApiAnyFactory.CreateFromJson("\"2026-09-02\"")
+        });
+    }
+}
+```
+
+## Example OpenAPI fragment
+
+```yaml title="openapi/todos.yaml"
+paths:
+  /todos:
+    get:
+      tags: [Todos]
+      summary: List all todos
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Todo'
+    post:
+      tags: [Todos]
+      summary: Create a todo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTodoRequest'
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Validation error
+components:
+  schemas:
+    Todo:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        isComplete:
+          type: boolean
+```
+
+## Quick start command
+
+<CommandBlock
+  pnpm="dotnet add package Swashbuckle.AspNetCore"
+  npm="dotnet add package Swashbuckle.AspNetCore"
+  yarn="dotnet add package Swashbuckle.AspNetCore"
+  bun="dotnet add package Swashbuckle.AspNetCore"
+/>

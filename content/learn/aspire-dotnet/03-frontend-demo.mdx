@@ -1,0 +1,60 @@
+---
+title: 'Frontend Preview Demo'
+description: 'Static Preview | Code tabs for UI samples in Learn docs.'
+icon: 'Code2'
+badge: 'Demo'
+---
+
+## Component preview
+
+Learn pages can show a **live preview** above the source, similar to shadcn and Aceternity docs.
+
+<ComponentPreview>
+  <div className="flex flex-wrap items-center gap-3">
+    <Button>Login</Button>
+    <Button variant="outline">Login with Google</Button>
+  </div>
+
+```tsx title="login-buttons.tsx"
+import { Button } from '@/components/ui/button';
+
+export function LoginButtons() {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button>Login</Button>
+      <Button variant="outline">Login with Google</Button>
+    </div>
+  );
+}
+```
+</ComponentPreview>
+
+## Multi-file tabs
+
+<DocsFileTabs title="Card component files">
+
+```tsx title="components/ui/card.tsx"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+export function TopicCard({ title, body }: { title: string; body: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>{body}</CardContent>
+    </Card>
+  );
+}
+```
+
+```css title="styles/card.css"
+.topic-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+}
+```
+
+</DocsFileTabs>
+
+Backend chapters can skip previews and rely on expandable `DocsCodeBlock` fences only.

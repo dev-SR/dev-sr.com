@@ -333,3 +333,83 @@ External links get an icon automatically. Headings get `id` slugs for the TOC (`
 - Repeat the frontmatter title as an H1.
 - Invent frontmatter keys (`author`, `draft`, `published`). They are ignored.
 - Hotlink images from hosts that are not in `next.config.ts`.
+
+---
+
+## Learn docs (`content/learn/`)
+
+Study materials live under `content/learn/` and publish at `/learn/...`. They are **not** blog posts — the blog crawler skips `content/learn/`.
+
+| File | URL |
+| --- | --- |
+| `content/learn/aspire-dotnet/index.mdx` | `/learn/aspire-dotnet` |
+| `content/learn/aspire-dotnet/02-apphost/01-resources.mdx` | `/learn/aspire-dotnet/apphost/resources` |
+
+Numeric folder/file prefixes (`01-overview`) control sort order only; they are stripped from URLs.
+
+### Learn frontmatter
+
+```yaml
+---
+title: 'Declaring Resources'
+description: 'Add databases and service references in AppHost.'
+icon: 'Database'
+badge: 'New'
+---
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `title` | yes | Page and sidebar label |
+| `description` | recommended | Subtitle under the title |
+| `icon` | optional | Lucide name: `BookOpen`, `Boxes`, `Code2`, `Database`, `Layers3`, `Network`, `Server` |
+| `badge` | optional | `New` / `Updated` pill in sidebar |
+
+No `date` or `coverImage`. Start body at `##`.
+
+### Learn-only MDX components
+
+Learn uses **DocsCodeBlock** (expandable fences with language badge + copy). Blog `CodeFrame` / `CodeTabs` are **not** used on Learn pages.
+
+| Component | Use |
+| --- | --- |
+| `ComponentPreview` | Static Preview \| Code for frontend demos |
+| `DocsFileTabs` | Multi-file tabs in docs chrome |
+| `InstallTabs` + `InstallTab` | CLI \| Manual install sections |
+| `Steps` + `Step` | Numbered manual install steps |
+| `CommandBlock` | pnpm/npm/yarn/bun command tabs |
+| `Mermaid` | Explicit diagram (`chart` prop) or ` ```mermaid ` fence |
+| `FlowDiagram` | Architecture graphs (`script` YAML/JSON) |
+| `PathVisualizer` | Curriculum YAML graphs |
+
+`Button`, `Card`, `Badge`, `Input` are available inside `ComponentPreview`.
+
+### Examples
+
+```mdx
+<ComponentPreview>
+  <Button>Save</Button>
+
+```tsx title="save-button.tsx"
+<Button>Save</Button>
+```
+</ComponentPreview>
+```
+
+```mdx
+<InstallTabs>
+  <InstallTab value="cli" label="CLI">
+    <CommandBlock pnpm="dotnet add package Aspire.Hosting" npm="dotnet add package Aspire.Hosting" />
+  </InstallTab>
+  <InstallTab value="manual" label="Manual">
+    <Steps>
+      <Step>Install dependencies</Step>
+      ```bash
+      dotnet add package Aspire.Hosting.PostgreSQL
+      ```
+    </Steps>
+  </InstallTab>
+</InstallTabs>
+```
+
+Long C# files use normal fences with `title="path/file.cs"` — they auto-collapse with **Expand**.

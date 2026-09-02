@@ -31,6 +31,7 @@
     "katex": "latest",
     "lenis": "^1.3.23",
     "lucide-react": "^1.17.0",
+    "mermaid": "^11.17.2",
     "next": "16.2.6",
     "next-mdx-remote": "6.0.0",
     "next-themes": "latest",

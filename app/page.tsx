@@ -23,6 +23,14 @@ import { ViewTransition } from 'react';
 
 const projectHighlights = [
   {
+    title: 'Learn Docs',
+    description:
+      'Long-form study tracks for Aspire, Minimal APIs, and architecture — with expandable code, previews, Mermaid, and flow diagrams.',
+    href: '/learn',
+    icon: Layers3,
+    tags: ['Aspire', '.NET', 'Docs'],
+  },
+  {
     title: 'Interactive MDX Knowledge Base',
     description:
       'A structured writing system for algorithms, math, React patterns, syntax-highlighted code, and reusable learning notes.',

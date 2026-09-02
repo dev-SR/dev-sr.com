@@ -1,0 +1,99 @@
+---
+title: 'Declaring Resources'
+description: 'Add databases, caches, and service references in AppHost with expandable code samples.'
+icon: 'Database'
+---
+
+## Resource references
+
+Aspire resources are added in AppHost and injected into consuming projects via `WithReference`.
+
+```csharp title="AppHost/Program.cs"
+var builder = DistributedApplication.CreateBuilder(args);
+
+var postgres = builder.AddPostgres("postgres")
+    .AddDatabase("catalog");
+
+var api = builder.AddProject<Projects.CatalogApi>("catalog-api")
+    .WithReference(postgres);
+
+builder.AddProject<Projects.Storefront>("storefront")
+    .WithReference(api);
+
+builder.Build().Run();
+```
+
+## Manual install workflow
+
+<InstallTabs>
+  <InstallTab value="cli" label="CLI">
+    <CommandBlock
+      pnpm="dotnet add package Aspire.Hosting.PostgreSQL"
+      npm="dotnet add package Aspire.Hosting.PostgreSQL"
+      yarn="dotnet add package Aspire.Hosting.PostgreSQL"
+      bun="dotnet add package Aspire.Hosting.PostgreSQL"
+    />
+  </InstallTab>
+  <InstallTab value="manual" label="Manual">
+    <Steps>
+      <Step>Install dependencies</Step>
+
+      ```xml title="AppHost/AppHost.csproj"
+      <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="9.0.0" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="9.0.0" />
+      </ItemGroup>
+      ```
+
+      <Step>Copy the AppHost bootstrap</Step>
+
+      ```csharp title="AppHost/Program.cs"
+      var builder = DistributedApplication.CreateBuilder(args);
+
+      var postgres = builder.AddPostgres("postgres").AddDatabase("app");
+      var cache = builder.AddRedis("cache");
+
+      var api = builder.AddProject<Projects.ApiService>("api")
+          .WithReference(postgres)
+          .WithReference(cache);
+
+      builder.AddProject<Projects.Web>("web")
+          .WithReference(api);
+
+      builder.Build().Run();
+      ```
+    </Steps>
+  </InstallTab>
+</InstallTabs>
+
+## Connection string injection
+
+Consuming projects receive configuration automatically:
+
+```csharp title="ApiService/Program.cs"
+builder.AddServiceDefaults();
+builder.AddNpgsqlDbContext<CatalogContext>("catalog");
+```
+
+Long YAML configs also collapse cleanly:
+
+```yaml title="aspire.yaml"
+resources:
+  postgres:
+    type: postgres
+    databases:
+      - catalog
+  redis:
+    type: redis
+  catalog-api:
+    type: project
+    path: ../CatalogApi
+    references:
+      - postgres
+      - redis
+  storefront:
+    type: project
+    path: ../Storefront
+    references:
+      - catalog-api
+```
