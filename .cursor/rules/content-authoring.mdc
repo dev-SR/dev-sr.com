@@ -9,6 +9,7 @@ When creating or editing posts under `content/`, follow [docs/authoring.md](docs
 - Files in `content/` publish. Nested path = slug (`content/math/set/intro.md` → `/blog/math/set/intro`).
 - Use `.mdx` if the post needs `Figure`, `CodeTabs`, or `PathVisualizer`. Do not import components.
 - Frontmatter: `title`, `date`, `excerpt`, `tags`; optional `coverImage` + `coverImageAlt`. Layout already renders the title — start the body at `##`.
-- Fenced code is highlighted automatically. Multi-file = `<CodeTabs>` wrapping fences with `title="filename"`. Diffs/focus/errors use `[!code ++]` style comments, not screenshots.
+- Fenced code auto-renders as `CodeBlock` (card shell + header + dark panel). Use `title="filename"` for a copyable path in the header. Line numbers are on by default; use `hideLineNumbers` to opt out.
+- Multi-file = `<CodeTabs>` with editor-style tabs; each fence needs `title="filename"`. Diffs/focus/errors use `[!code ++]` comments, not screenshots.
 - Math is `$inline$` / `$$display$$` (KaTeX). Images live in `public/` and are referenced as `/...`.
-- Never use `MultiFileCodeBlock`. Never put docs or drafts in `content/`.
+- Never use `MultiFileCodeBlock`, `CodeFrame`, or `DocsCodeBlock` in content. Never put docs or drafts in `content/`.

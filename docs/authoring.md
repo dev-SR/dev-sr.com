@@ -85,6 +85,53 @@ These are registered in `components/mdx/client.tsx` and `components/mdx/server.t
 
 `CodeBlock`, copy buttons, and syntax highlighting wrap fenced code automatically. Do not call those by hand. `CodeFrame` and `DocsCodeBlock` are deprecated aliases for `CodeBlock`.
 
+Implementation lives in `components/code/` (shared by blog and Learn).
+
+### `CodeBlock` (automatic)
+
+Every fenced block renders inside a **card shell** (same chrome as `CommandBlock`): `rounded-xl` border, header bar, dark code panel below.
+
+| Header element | Behavior |
+| --- | --- |
+| File icon | Shown on the left |
+| `title="path/file.ext"` | **Copyable filename** in the header — click to copy the path |
+| No `title` | Language label + badge |
+| Copy button | Copies the full fence content |
+| Expand | Long fences (~13+ lines) collapse; click **Expand** or the chevron |
+
+Do not wrap fences in `<CodeBlock>` manually.
+
+### `CodeTabs`
+
+Tabbed multi-file code inside one card. Editor-style file tabs in the header (like an IDE tab bar). Wrap fenced blocks; each fence should have `title="filename"` — that string becomes the tab label and copyable path.
+
+````mdx
+<CodeTabs title="React component with styles">
+
+```tsx title="Button.tsx"
+export function Button({ children }: { children: React.ReactNode }) {
+  return <button className="btn">{children}</button>
+}
+```
+
+```css title="Button.css"
+.btn {
+  padding: 0.5rem 1rem;
+}
+```
+
+</CodeTabs>
+````
+
+Notes:
+
+- Optional `title` on `CodeTabs` is the group heading above the tab bar, not a filename.
+- A single child fence still renders without tabs (full `CodeBlock` chrome).
+- **Copy file** copies the **active** tab’s content. Click the active filename in the header to copy its path.
+- Transformer comments (`[!code ++]`, and so on) work inside tabbed fences.
+
+Do not use `MultiFileCodeBlock` or a `files={[...]}` prop. That API is deprecated and shows a migration warning.
+
 ### `Figure`
 
 Captioned image with size and alignment. Prefer this over a raw `![alt](src)` when you need a caption or a specific width.
@@ -117,37 +164,6 @@ You can also wrap a Markdown image; `Figure` reads `src` / `alt` from the child:
   ![BFS vs DFS](/v1/demo.png)
 </Figure>
 ```
-
-### `CodeTabs`
-
-Tabbed multi-file code. Wrap fenced blocks. Each fence should have `title="filename"` — that string becomes the tab label.
-
-````mdx
-<CodeTabs title="React component with styles">
-
-```tsx title="Button.tsx"
-export function Button({ children }: { children: React.ReactNode }) {
-  return <button className="btn">{children}</button>
-}
-```
-
-```css title="Button.css"
-.btn {
-  padding: 0.5rem 1rem;
-}
-```
-
-</CodeTabs>
-````
-
-Notes:
-
-- Optional `title` on `CodeTabs` is the group heading, not a filename.
-- A single child fence still renders, without tabs.
-- Copy copies the **active** file.
-- Transformer comments (`[!code ++]`, and so on) work inside tabbed fences.
-
-Do not use `MultiFileCodeBlock` or a `files={[...]}` prop. That API is deprecated and shows a migration warning.
 
 ### `PathVisualizer`
 
@@ -191,7 +207,7 @@ Standalone playground: `/tools/path-visualizer`.
 
 ## Code fences (automatic)
 
-Fenced blocks get Shiki highlighting (Dracula, no extra background), a filename/language chrome, and a copy button. No component tag needed.
+Fenced blocks get Shiki highlighting (Dracula), the shared **card shell** header, a dark code panel, and copy. No component tag needed. See **`CodeBlock` (automatic)** above for header behavior.
 
 ### Language and filename
 
@@ -212,7 +228,7 @@ def hello():
 ```
 ````
 
-`title="..."` is the header label and the `CodeTabs` tab name. Line numbers are **on by default**; add `hideLineNumbers` to a fence to turn them off.
+`title="..."` appears in the header (click to copy the path) and becomes the `CodeTabs` / `DocsFileTabs` tab label. Line numbers are **on by default**; add `hideLineNumbers` to a fence to turn them off. `showLineNumbers` in meta is optional and redundant.
 
 ### Line highlight (meta)
 
@@ -369,19 +385,21 @@ No `date` or `coverImage`. Start body at `##`.
 
 ### Learn-only MDX components
 
-Learn uses the same **CodeBlock** as blog posts (expandable fences with language badge + copy). Learn-only wrappers: `DocsFileTabs` instead of `CodeTabs`.
+Learn uses the same **`CodeBlock`** card shell and dark code panel as blog posts. Learn-specific wrappers:
 
 | Component | Use |
 | --- | --- |
-| `ComponentPreview` | Static Preview \| Code for frontend demos |
-| `DocsFileTabs` | Multi-file tabs in docs chrome |
+| `ComponentPreview` | Preview \| Code tabs for frontend demos (code tab uses `CodeBlock`) |
+| `DocsFileTabs` | Multi-file code — same editor-style tab bar as blog `CodeTabs` |
 | `InstallTabs` + `InstallTab` | CLI \| Manual install sections |
-| `Guide` + `GuideStep` | Full-page step-by-step tutorials (install walkthroughs) |
+| `Guide` + `GuideStep` | Step-by-step tutorials |
 | `Steps` + `Step` | Compact numbered steps inside `InstallTabs` manual tab |
-| `CommandBlock` | pnpm/npm/yarn/bun command tabs |
-| `Mermaid` | Explicit diagram (`chart` prop) or ` ```mermaid ` fence |
+| `CommandBlock` | pnpm/npm/yarn/bun commands — same card shell as `CodeBlock` |
+| `Mermaid` | Diagram via `chart` prop or ` ```mermaid ` fence |
 | `FlowDiagram` | Architecture graphs (`script` YAML/JSON) |
 | `PathVisualizer` | Curriculum YAML graphs |
+
+Do **not** use blog-only names `CodeFrame`, `CodeTabs`, or `MultiFileCodeBlock` on Learn pages. Prefer `DocsFileTabs` over `CodeTabs`.
 
 `Button`, `Card`, `Badge`, `Input` are available inside `ComponentPreview`.
 
@@ -435,6 +453,6 @@ cd my-project
 ```
 
 - `Guide` optional props: `title` (section heading), `numbered` (default `false` — grey pill markers; `true` — numbered circles).
-- `GuideStep` requires `title`; children can be prose, inline code, and fenced blocks (rendered via `CodeBlock`).
+- `GuideStep` requires `title`; children can be prose, inline code, and fenced blocks (same `CodeBlock` chrome).
 
-Long C# files use normal fences with `title="path/file.cs"` — they auto-collapse with **Expand**.
+Long files use normal fences with `title="path/file.cs"` — they auto-collapse with **Expand**. The header filename is click-to-copy.
