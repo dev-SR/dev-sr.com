@@ -149,6 +149,17 @@ export function MdxImage({ src, alt, ...props }: React.ComponentPropsWithoutRef<
   );
 }
 
+function getComponentName(type: unknown): string | undefined {
+  if (typeof type !== 'function') {
+    return undefined;
+  }
+
+  // React 19 types `JSXElementConstructor` as a call/construct signature,
+  // which has no `displayName` or `name` on the type even though functions do at runtime.
+  const component = type as { displayName?: string; name?: string };
+  return component.displayName || component.name || undefined;
+}
+
 function isBlockElement(child: React.ReactElement): boolean {
   const type = child.type;
 
@@ -157,7 +168,7 @@ function isBlockElement(child: React.ReactElement): boolean {
   }
 
   if (typeof type === 'function') {
-    const name = type.displayName || type.name;
+    const name = getComponentName(type);
     if (
       name === 'MdxImage' ||
       name === 'Figure' ||
