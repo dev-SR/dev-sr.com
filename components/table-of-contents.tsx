@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 interface TocItem {
@@ -293,18 +292,16 @@ function TocPanel({
   collapsible?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(true);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
   const ancestorIds = useMemo(() => collectAncestorIds(tree, activeId), [tree, activeId]);
   const activeIndex = findActiveIndex(tocItems, activeId);
 
   useEffect(() => {
-    if (!panelRef.current || !activeId) return;
+    const viewport = scrollViewportRef.current;
+    if (!viewport || !activeId) return;
 
-    const viewport = panelRef.current.querySelector<HTMLElement>(
-      '[data-slot="scroll-area-viewport"]'
-    );
-    const activeButton = panelRef.current.querySelector<HTMLElement>(`[data-toc-id="${activeId}"]`);
-    if (!viewport || !activeButton) return;
+    const activeButton = viewport.querySelector<HTMLElement>(`[data-toc-id="${activeId}"]`);
+    if (!activeButton) return;
 
     const nextTop =
       activeButton.offsetTop - viewport.clientHeight / 2 + activeButton.clientHeight / 2;
@@ -314,26 +311,27 @@ function TocPanel({
   if (tocItems.length === 0) return null;
 
   const nav = (
-    <div ref={panelRef}>
-      <ScrollArea
-        className={cn(variant === 'compact' ? 'max-h-[50vh]' : 'max-h-[17rem]')}
-        data-lenis-prevent
-        data-lenis-prevent-wheel
-        data-lenis-prevent-touch>
-        <nav
-          className={cn('py-1', variant === 'compact' ? 'pr-1' : 'py-2')}
-          role="navigation"
-          aria-label="Table of contents"
-          tabIndex={0}>
-          <TocTreeNav
-            nodes={tree}
-            activeId={activeId}
-            ancestorIds={ancestorIds}
-            onNavigate={scrollToHeading}
-            variant={variant}
-          />
-        </nav>
-      </ScrollArea>
+    <div
+      ref={scrollViewportRef}
+      className={cn(
+        'overflow-y-auto overscroll-contain pr-1',
+        variant === 'compact' ? 'max-h-[50vh]' : 'max-h-[calc(100vh-10rem)]'
+      )}
+      role="navigation"
+      aria-label="Table of contents"
+      tabIndex={0}
+      data-lenis-prevent
+      data-lenis-prevent-wheel
+      data-lenis-prevent-touch>
+      <nav className={cn('py-1', variant === 'compact' ? 'pr-1' : 'py-2')}>
+        <TocTreeNav
+          nodes={tree}
+          activeId={activeId}
+          ancestorIds={ancestorIds}
+          onNavigate={scrollToHeading}
+          variant={variant}
+        />
+      </nav>
     </div>
   );
 
@@ -349,7 +347,7 @@ function TocPanel({
   return (
     <div className={cn('relative mb-8', className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="relative overflow-hidden rounded-lg bg-background/20 py-3 backdrop-blur-sm">
+        <div className="relative rounded-lg bg-background/20 py-3 backdrop-blur-sm">
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
