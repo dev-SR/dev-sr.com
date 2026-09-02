@@ -212,7 +212,6 @@
   [data-rehype-pretty-code-figure] > pre {
     width: 100%;
     overflow: auto;
-    padding: 1rem 1.25rem;
     margin: 0;
     border: 0;
     border-radius: 0;
