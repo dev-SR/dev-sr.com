@@ -23,7 +23,7 @@ export function Guide({
 }) {
   return (
     <GuideContext.Provider value={{ numbered }}>
-      <div className={cn('not-prose my-10', className)}>
+      <div className={cn('not-prose my-10', className)} data-toc-exclude>
         {title && (
           <h3 className="mb-6 scroll-m-28 text-lg font-semibold tracking-tight text-foreground">
             {title}
@@ -54,15 +54,17 @@ export function GuideStep({
 
   return (
     <div className={cn(numbered && 'guide-step-numbered', className)}>
-      <h3 className="relative scroll-m-28 text-xl font-semibold tracking-tight text-foreground">
+      <div className="relative">
         {!numbered && (
           <span
             aria-hidden
             className="absolute top-0 -left-[var(--guide-line-offset)] z-20 block h-full w-[6px] rounded-tr-full rounded-br-full bg-muted"
           />
         )}
-        {title}
-      </h3>
+        <h3 className="scroll-m-28 text-xl font-semibold tracking-tight text-foreground">
+          {title}
+        </h3>
+      </div>
       {children && (
         <div className="mt-4 flex flex-col gap-4 [&_.docs-code-block]:my-0 [&>:first-child]:mt-0">
           {children}
