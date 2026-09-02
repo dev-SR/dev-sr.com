@@ -1,0 +1,136 @@
+---
+title: 'Install Workflow'
+description: 'Step-by-step Aspire project setup using Guide and GuideStep components.'
+icon: 'BookOpen'
+badge: 'New'
+---
+
+## Overview
+
+Use `Guide` and `GuideStep` for full-page install walkthroughs with prose and code blocks per step. The existing `Steps` / `Step` pair remains for compact lists inside `InstallTabs`.
+
+## Numbered guide (install walkthrough)
+
+<Guide title="Aspire AppHost bootstrap" numbered>
+  <GuideStep title="Create your solution">
+
+```bash
+dotnet new aspire-starter -n ShopApp
+cd ShopApp
+```
+
+  </GuideStep>
+
+  <GuideStep title="Add PostgreSQL hosting">
+
+```bash
+dotnet add ShopApp.AppHost package Aspire.Hosting.PostgreSQL
+```
+
+  </GuideStep>
+
+  <GuideStep title="Declare resources in AppHost">
+
+Update `AppHost/Program.cs` to add Postgres and wire the API:
+
+```csharp title="AppHost/Program.cs"
+var builder = DistributedApplication.CreateBuilder(args);
+
+var postgres = builder.AddPostgres("postgres")
+    .AddDatabase("catalog");
+
+var api = builder.AddProject<Projects.CatalogApi>("catalog-api")
+    .WithReference(postgres);
+
+builder.AddProject<Projects.Web>("web")
+    .WithReference(api);
+
+builder.Build().Run();
+```
+
+  </GuideStep>
+
+  <GuideStep title="Run the distributed app">
+
+```bash
+dotnet run --project ShopApp.AppHost
+```
+
+Open the Aspire dashboard URL printed in the console.
+
+  </GuideStep>
+</Guide>
+
+## Pill markers (unnumbered)
+
+<Guide title="Tailwind CSS v4-style layout (reference)">
+  <GuideStep title="Create your project">
+
+```bash
+npx create-next-app@latest my-project --typescript --eslint
+cd my-project
+```
+
+  </GuideStep>
+
+  <GuideStep title="Install Tailwind CSS">
+
+```bash
+npm install tailwindcss @tailwindcss/postcss @tailwindcss/cli
+```
+
+  </GuideStep>
+
+  <GuideStep title="Create your CSS file">
+    Create a new CSS file (e.g., `app/globals.css`) and add the Tailwind import:
+
+```css title="app/globals.css"
+@import "tailwindcss";
+
+@theme inline {
+  --font-display: "Inter", "sans-serif";
+  --color-primary-500: oklch(0.84 0.18 117.33);
+  --spacing: 0.25rem;
+}
+```
+
+  </GuideStep>
+
+  <GuideStep title="Configure PostCSS">
+    Update your PostCSS configuration:
+
+```js title="postcss.config.js"
+module.exports = {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
+};
+```
+
+  </GuideStep>
+
+  <GuideStep title="Start your build process">
+
+```bash
+npm run dev
+```
+
+  </GuideStep>
+
+  <GuideStep title="Start using Tailwind">
+
+```tsx title="app/page.tsx"
+export default function Home() {
+  return <h1 className="text-3xl font-bold underline">Hello world!</h1>;
+}
+```
+
+  </GuideStep>
+</Guide>
+
+## When to use Guide vs Steps
+
+| Scenario | Component |
+| --- | --- |
+| Full tutorial with prose + multiple code blocks per step | `Guide` / `GuideStep` |
+| Short manual steps inside `InstallTabs` | `Steps` / `Step` |

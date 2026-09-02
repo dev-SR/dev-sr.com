@@ -902,6 +902,18 @@
   }
 }
 
+@utility guide-step-numbered {
+  counter-increment: guide-step;
+  @apply relative;
+
+  &::before {
+    content: counter(guide-step);
+    top: 0.125rem;
+    left: calc(var(--guide-line-offset, 2rem) * -1);
+    @apply absolute flex size-7 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-muted font-mono text-xs font-medium text-muted-foreground;
+  }
+}
+
 .learn-content .steps > h3.step {
   @apply relative;
 }

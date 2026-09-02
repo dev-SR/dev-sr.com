@@ -12,6 +12,7 @@ import { DocsFileTabs } from './docs-file-tabs';
 import { LearnCodeCustom, LearnPreCustom, DocsPrettyFigure } from './learn-code-elements';
 import { InstallTab, InstallTabs } from './install-tabs';
 import { Step, Steps } from './steps';
+import { Guide, GuideStep } from './guide';
 import { Mermaid } from './mermaid';
 import { FlowDiagram } from './flow-diagram';
 
@@ -35,6 +36,8 @@ export const learnMdxClientComponents = {
   InstallTab,
   Step,
   Steps,
+  Guide,
+  GuideStep,
   Mermaid,
   FlowDiagram,
   PathVisualizer,

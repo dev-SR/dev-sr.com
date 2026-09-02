@@ -165,9 +165,10 @@ function ChapterSection({ node, showIcon = false }: { node: LearnNavNode; showIc
 interface DocsSidebarProps {
   course: LearnNavNode;
   className?: string;
+  rootLabel?: string;
 }
 
-export function DocsSidebar({ course, className }: DocsSidebarProps) {
+export function DocsSidebar({ course, className, rootLabel = 'Course' }: DocsSidebarProps) {
   const sections = course.children ?? [];
   const allAccordionSlugs = useMemo(() => collectAccordionSlugs(sections), [sections]);
   const [expandedSlugs, setExpandedSlugs] = useState<string[]>(allAccordionSlugs);
@@ -180,7 +181,7 @@ export function DocsSidebar({ course, className }: DocsSidebarProps) {
     <aside className={cn('flex h-full min-h-0 flex-col', className)}>
       <div className="mb-4 px-2">
         <Link href={course.href} className="block rounded-md px-2 py-1.5 hover:bg-muted/50">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Course</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{rootLabel}</p>
           <p className="text-sm font-semibold text-foreground">{course.title}</p>
         </Link>
       </div>

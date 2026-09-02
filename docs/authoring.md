@@ -376,7 +376,8 @@ Learn uses **DocsCodeBlock** (expandable fences with language badge + copy). Blo
 | `ComponentPreview` | Static Preview \| Code for frontend demos |
 | `DocsFileTabs` | Multi-file tabs in docs chrome |
 | `InstallTabs` + `InstallTab` | CLI \| Manual install sections |
-| `Steps` + `Step` | Numbered manual install steps |
+| `Guide` + `GuideStep` | Full-page step-by-step tutorials (install walkthroughs) |
+| `Steps` + `Step` | Compact numbered steps inside `InstallTabs` manual tab |
 | `CommandBlock` | pnpm/npm/yarn/bun command tabs |
 | `Mermaid` | Explicit diagram (`chart` prop) or ` ```mermaid ` fence |
 | `FlowDiagram` | Architecture graphs (`script` YAML/JSON) |
@@ -411,5 +412,29 @@ Learn uses **DocsCodeBlock** (expandable fences with language badge + copy). Blo
   </InstallTab>
 </InstallTabs>
 ```
+
+```mdx
+<Guide title="Tailwind CSS v4 Installation" numbered>
+  <GuideStep title="Create your project">
+
+```bash
+npx create-next-app@latest my-project --typescript --eslint
+cd my-project
+```
+
+  </GuideStep>
+
+  <GuideStep title="Create your CSS file">
+    Create a new CSS file (e.g., `app/globals.css`) and add the Tailwind import:
+
+```css title="app/globals.css"
+@import "tailwindcss";
+```
+  </GuideStep>
+</Guide>
+```
+
+- `Guide` optional props: `title` (section heading), `numbered` (default `false` — grey pill markers; `true` — numbered circles).
+- `GuideStep` requires `title`; children can be prose, inline code, and fenced blocks (uses `DocsCodeBlock`).
 
 Long C# files use normal fences with `title="path/file.cs"` — they auto-collapse with **Expand**.
