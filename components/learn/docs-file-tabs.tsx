@@ -10,7 +10,7 @@ interface DocsFileTabsProps {
 
 export function DocsFileTabs({ title, children, className }: DocsFileTabsProps) {
   return (
-    <FileTabs title={title} className={className}>
+    <FileTabs title={title} className={className} showGroupCopy>
       {children}
     </FileTabs>
   );

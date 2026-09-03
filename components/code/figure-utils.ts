@@ -3,6 +3,7 @@ import { Children, isValidElement, type ReactElement, type ReactNode } from 'rea
 export type FileTabItem = {
   id: string;
   label: string;
+  language: string;
   rawString: string;
   element: ReactElement;
 };
@@ -34,6 +35,10 @@ export function extractRawString(node: ReactNode): string {
 function extractLanguage(node: ReactElement): string {
   const language = readProp<string>(node, 'data-language');
   if (language) return language.toLowerCase();
+
+  const className = readProp<string>(node, 'className') ?? '';
+  const classMatch = /\blanguage-([a-z0-9_+-]+)\b/i.exec(className);
+  if (classMatch?.[1]) return classMatch[1].toLowerCase();
 
   const children = readProp<ReactNode>(node, 'children');
   if (!children) return 'text';
@@ -101,14 +106,26 @@ export function extractPreMeta(children: ReactNode): { language: string; rawStri
   Children.forEach(children, (child) => {
     if (!isValidElement(child)) return;
 
-    if (child.type === 'pre' || (child.props as Record<string, unknown>)['data-language']) {
-      const props = child.props as Record<string, unknown>;
-      if (typeof props['data-language'] === 'string') {
-        language = props['data-language'].toLowerCase();
-      }
-      if (typeof props.__rawstring__ === 'string') {
-        rawString = props.__rawstring__;
-      }
+    const props = child.props as Record<string, unknown>;
+    const className = typeof props.className === 'string' ? props.className : '';
+    const classMatch = /\blanguage-([a-z0-9_+-]+)\b/i.exec(className);
+    const isPreLike =
+      child.type === 'pre' ||
+      typeof props['data-language'] === 'string' ||
+      typeof props.__rawstring__ === 'string' ||
+      Boolean(classMatch);
+
+    if (!isPreLike) return;
+
+    if (typeof props['data-language'] === 'string') {
+      language = props['data-language'].toLowerCase();
+    } else if (classMatch?.[1]) {
+      language = classMatch[1].toLowerCase();
+    }
+    if (typeof props.__rawstring__ === 'string') {
+      rawString = props.__rawstring__;
+    } else if (!rawString) {
+      rawString = extractRawString(child);
     }
   });
 
@@ -152,6 +169,7 @@ export function collectFileTabItems(children: ReactNode): FileTabItem[] {
       items.push({
         id: `${label}-${index}`,
         label,
+        language: extractLanguage(child),
         rawString: extractRawString(child),
         element: child,
       });
@@ -163,6 +181,7 @@ export function collectFileTabItems(children: ReactNode): FileTabItem[] {
       items.push({
         id: `${label}-${index}`,
         label,
+        language: extractLanguage(child),
         rawString: extractRawString(child),
         element: child,
       });
@@ -176,6 +195,7 @@ export function collectFileTabItems(children: ReactNode): FileTabItem[] {
     items.push({
       id: `${label}-${index}`,
       label,
+      language: extractLanguage(figure),
       rawString: extractRawString(child),
       element: child,
     });

@@ -15,6 +15,7 @@ import {
 } from './code-container';
 import { CopyableFilename } from './copyable-filename';
 import { collectFileTabItems } from './figure-utils';
+import { LanguageBadge } from './language-badge';
 
 interface FileTabsProps {
   title?: string;
@@ -29,7 +30,7 @@ export function FileTabs({
   title,
   children,
   className,
-  showGroupCopy = false,
+  showGroupCopy = true,
   emptyMessage,
 }: FileTabsProps) {
   const items = useMemo(() => collectFileTabItems(children), [children]);
@@ -47,14 +48,14 @@ export function FileTabs({
     );
   }
 
+  // Single file: let CodeBlock render its own header (copy + language).
+  // Wrapping FileTabsProvider would hide that header.
   if (items.length === 1) {
     return (
-      <FileTabsProvider>
-        <div className={cn('code-file-tabs not-prose my-6', className)}>
-          {title && <h4 className="mb-3 text-sm font-semibold text-foreground">{title}</h4>}
-          {items[0].element}
-        </div>
-      </FileTabsProvider>
+      <div className={cn('code-file-tabs not-prose my-6', className)}>
+        {title && <h4 className="mb-3 text-sm font-semibold text-foreground">{title}</h4>}
+        {items[0].element}
+      </div>
     );
   }
 
@@ -86,15 +87,19 @@ export function FileTabs({
               </TabsList>
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              {activeItem?.language && activeItem.language !== 'text' && (
+                <LanguageBadge language={activeItem.language} />
+              )}
               {activeItem?.label && (
-                <CopyableFilename filename={activeItem.label} className="hidden max-w-[10rem] lg:flex" />
+                <CopyableFilename
+                  filename={activeItem.label}
+                  className="hidden max-w-[10rem] lg:flex"
+                />
               )}
               {showGroupCopy && (
                 <CodeCopyButton
                   text={activeItem?.rawString ?? ''}
-                  showCopyLabel
-                  label="Copy file"
-                  copiedLabel="Copied"
+                  label={activeItem?.label ? `Copy ${activeItem.label}` : 'Copy code'}
                 />
               )}
             </div>

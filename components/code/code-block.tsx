@@ -85,13 +85,11 @@ export function CodeBlock({
         {filename ? (
           <CopyableFilename filename={filename} />
         ) : (
-          <>
-            <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-              {headerLabel}
-            </span>
-            <LanguageBadge language={language} />
-          </>
+          <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
+            {headerLabel}
+          </span>
         )}
+        {language.toLowerCase() !== 'text' && <LanguageBadge language={language} />}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {shouldCollapse && (

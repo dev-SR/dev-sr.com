@@ -49,6 +49,25 @@ export interface LearnCourseSummary {
   pageCount: number;
 }
 
+export interface LearnCatalogCourse extends LearnCourseSummary {
+  href: string;
+  chapterCount: number;
+}
+
+export interface LearnCatalogLesson {
+  title: string;
+  description?: string;
+  href: string;
+  courseSlug: string;
+  courseTitle: string;
+  badge?: string;
+}
+
+export interface LearnCatalog {
+  courses: LearnCatalogCourse[];
+  lessons: LearnCatalogLesson[];
+}
+
 export interface LearnNeighbor {
   slug: string;
   title: string;
@@ -322,17 +341,47 @@ export async function getLearnNav(courseSlug?: string): Promise<LearnNavNode[]> 
 }
 
 export async function getLearnCourses(): Promise<LearnCourseSummary[]> {
+  const catalog = await getLearnCatalog();
+  return catalog.courses.map(({ href: _href, chapterCount: _chapterCount, ...course }) => course);
+}
+
+export async function getLearnCatalog(): Promise<LearnCatalog> {
   const nav = await getLearnNav();
-  return nav
-    .filter((node) => node.type === 'course')
-    .map((course) => ({
-      slug: course.slug.split('/')[0],
+  const courses: LearnCatalogCourse[] = [];
+  const lessons: LearnCatalogLesson[] = [];
+
+  for (const course of nav.filter((node) => node.type === 'course')) {
+    const courseSlug = course.slug.split('/')[0];
+    const leaves = flattenNavLeaves([course]);
+    const chapterCount = (course.children ?? []).filter((child) => child.type === 'chapter').length;
+
+    courses.push({
+      slug: courseSlug,
       title: course.title,
       description: course.description,
       icon: course.icon,
       badge: course.badge,
-      pageCount: flattenNavLeaves([course]).length,
-    }));
+      pageCount: leaves.length,
+      chapterCount,
+      href: course.href,
+    });
+
+    for (const leaf of leaves) {
+      // Skip the course index itself — the course card already covers it
+      if (leaf.slug === course.slug || leaf.slug === courseSlug) continue;
+
+      lessons.push({
+        title: leaf.title,
+        description: leaf.description,
+        href: leaf.href,
+        courseSlug,
+        courseTitle: course.title,
+        badge: leaf.badge,
+      });
+    }
+  }
+
+  return { courses, lessons };
 }
 
 export async function getAllLearnPages(): Promise<LearnPage[]> {
