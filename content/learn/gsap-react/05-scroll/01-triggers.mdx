@@ -4,7 +4,20 @@ description: 'start/end, toggleActions, and section reveal inside a nested scrol
 icon: 'ScrollText'
 ---
 
+## How ScrollTrigger works
+
+**ScrollTrigger** ties a tween (or timeline) to scroll position. You name a `trigger` element, when it should start/end relative to the viewport (`start` / `end`), and either:
+
+- **`toggleActions`** — play / reverse like a gate when thresholds cross (discrete entrances)
+- **`scrub`** — map scroll progress directly to tween progress (linked bars, parallax)
+
+In these demos the scroller is the **preview panel** itself (`scroller: stageRef`), not the page — so scroll inside the stage.
+
 ## Section reveal
+
+Each section fades and rises when its top hits `85%` of the stage. `toggleActions: 'play none none reverse'` plays on enter and reverses on scroll back — no scrub, so the entrance feels like a normal tween.
+
+Scroll inside the preview: sections animate in as they approach, and reverse if you scroll back up.
 
 <ComponentPreview flush previewClassName="min-h-[280px]">
   <GsapScrollReveal />
@@ -37,9 +50,11 @@ gsap.from(el, {
   </DocsFileTabs>
 </ComponentPreview>
 
-Scroll **inside** the preview panel to trigger each section.
-
 ## Scrubbed progress bar
+
+With `scrub: true`, tween progress **is** scroll progress. `ease: 'none'` keeps the mapping 1:1 — an eased scrub would feel sticky. The bar’s `scaleX` grows from the left as you move through the stage.
+
+Use scrub for continuous indicators. Use toggleActions for one-shot reveals — not both on the same tween.
 
 <ComponentPreview flush previewClassName="min-h-[280px]">
   <GsapScrollScrub />
@@ -69,5 +84,3 @@ gsap.to('.bar', {
 
   </DocsFileTabs>
 </ComponentPreview>
-
-Use **`scrub: true`** for scroll-linked progress. Use **`toggleActions`** for discrete play/reverse — not both.

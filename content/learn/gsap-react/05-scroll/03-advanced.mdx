@@ -4,7 +4,15 @@ description: 'ScrollTrigger.batch, horizontal containerAnimation, and refresh.'
 icon: 'ScrollText'
 ---
 
+## Beyond one trigger
+
+Once you have basic reveal and pin, two patterns show up often: **batching** many similar elements efficiently, and **fake horizontal** galleries driven by vertical scroll. Both still use ScrollTrigger — they just scale the idea.
+
 ## Batch enter
+
+Creating one ScrollTrigger per card is fine for dozens, wasteful for hundreds. `ScrollTrigger.batch` groups elements that enter near the same time and hands you an array in `onEnter` — one staggered tween for the batch.
+
+Scroll the grid: cards fade up as clusters enter. `onLeaveBack` resets them so scrolling up can replay the entrance.
 
 <ComponentPreview flush previewClassName="min-h-[300px]">
   <GsapScrollBatch />
@@ -33,7 +41,9 @@ ScrollTrigger.batch('.card', {
 
 ## Fake horizontal scroll
 
-The horizontal tween **must** use `ease: "none"`:
+Pin a wide track and scrub `xPercent` so vertical scroll feels like a horizontal slideshow. The horizontal tween **must** use `ease: 'none'` — any ease would desync scroll distance from panel travel.
+
+`end` is based on track width so longer galleries get more scroll runway. Watch panels slide sideways while you scroll the stage vertically.
 
 <ComponentPreview flush previewClassName="min-h-[200px]">
   <GsapHorizontalGallery />

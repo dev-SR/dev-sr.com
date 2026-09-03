@@ -4,9 +4,15 @@ description: 'Toast enter/exit, bottom sheet dismiss — symmetric paths and eas
 icon: 'Sparkles'
 ---
 
+## Surfaces that appear and leave
+
+Overlays (toasts, sheets, modals) need a clear **enter** and a matching **exit**. Enter with `ease-out` so motion starts immediately; exit slightly faster with `ease-in` so dismiss feels snappy. The travel path should be **symmetric** — leave the same edge you arrived from.
+
 ## Toast enter + exit
 
-Enter with `power2.out`; exit with `power2.in` (slightly faster response):
+Toast rises from below on enter (`from` + `power2.out`). Dismiss sends it back down the same `y` with `power2.in` and a slightly shorter duration so closing feels decisive.
+
+Replay: watch enter settle, then hit × and see the exit mirror the entrance.
 
 <ComponentPreview replay>
   <GsapToastExit />
@@ -33,6 +39,10 @@ gsap.to('.toast', { y: 24, autoAlpha: 0, duration: 0.3, ease: 'power2.in' });
 </ComponentPreview>
 
 ## Bottom sheet
+
+Sheets use `yPercent: 100` (off-screen below) as both start and end. Enter animates to `0`; dismiss returns to `100` and calls `close` in `onComplete` so React unmounts only after the motion finishes.
+
+Open and dismiss: the sheet always slides from / to the bottom edge — never fades out in place.
 
 <ComponentPreview>
   <GsapSheetDismiss />

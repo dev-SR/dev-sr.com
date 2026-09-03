@@ -4,9 +4,15 @@ description: 'DrawSVG stroke reveal, MorphSVG icons, MotionPath along a route.'
 icon: 'Sparkles'
 ---
 
+## SVG as motion targets
+
+GSAP’s SVG plugins treat paths as first-class animation subjects: reveal strokes, morph shapes, or follow a route. Register each plugin once; keep path data in the markup (or production assets) rather than inventing paths at runtime unless you already have them.
+
 ## DrawSVG
 
-Stroke must be visible (`stroke`, `stroke-width`):
+**DrawSVG** animates how much of a stroke is visible (`0` → full length). The path must already have a visible `stroke` and `stroke-width` — fill alone will not draw.
+
+Replay: the polyline paints itself left to right. Great for logos and underlines.
 
 <ComponentPreview replay>
   <GsapDrawSvgLogo />
@@ -37,6 +43,10 @@ gsap.from('.path', { drawSVG: 0, duration: 1.2, ease: 'power2.inOut' });
 
 ## MorphSVG
 
+**MorphSVG** interpolates one path’s `d` into another. Both shapes should be real path data (play ↔ pause icons here). This is true geometry morphing — not the UI “merge” pattern from earlier lessons.
+
+Toggle: the triangle melts into pause bars. Keep morph targets compatible (similar point counts help quality).
+
 <ComponentPreview>
   <GsapMorphIcon />
 
@@ -61,6 +71,10 @@ gsap.to('.path', {
 </ComponentPreview>
 
 ## MotionPath
+
+**MotionPath** moves an element along an SVG path. `align` keeps the target on the route; `autoRotate` aims it along the tangent. Use `ease: 'none'` for constant travel speed along the path.
+
+Watch the dot follow the curve on a loop — map markers, tokens, and orbit accents.
 
 <ComponentPreview>
   <GsapMotionPathDot />

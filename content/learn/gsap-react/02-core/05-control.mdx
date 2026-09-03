@@ -6,7 +6,7 @@ icon: 'Play'
 
 ## Store the tween
 
-All tween methods return a **Tween** instance:
+Every tween method returns a **Tween** instance. Hold the reference when you need transport (play/pause), scrubbing (`progress`), or teardown (`kill`). Fire-and-forget is fine for one-shot entrances; interactive UI almost always needs the handle.
 
 ```tsx
 const tween = gsap.to('.box', { x: 100, duration: 1, paused: true });
@@ -17,7 +17,13 @@ tween.progress(0.5);
 tween.kill();
 ```
 
+Start paused when buttons drive playback — otherwise the tween races ahead of the first click.
+
 ## Transport controls
+
+Store the tween in a ref, start `paused: true`, then wire buttons to `play` / `pause` / `reverse` / `progress`. Same instance for the whole session — do not create a new tween on every click unless you intend to.
+
+Watch the hero tile: Play runs forward, Pause freezes mid-flight, Reverse walks back.
 
 <ComponentPreview>
   <GsapTransportControls />
@@ -43,6 +49,10 @@ tweenRef.current = gsap.to('.gsap-hero', { x: 120, rotation: 360, duration: 2, p
 </ComponentPreview>
 
 ## Hover reverse (`contextSafe`)
+
+Hover enters and leaves create tweens **outside** the `useGSAP` setup callback. Wrap handlers in `contextSafe` so those tweens join the same GSAP context and clean up on unmount.
+
+Enter lifts the card; leave returns it. Rapid hover should not leak tweens after the component is gone.
 
 <ComponentPreview>
   <GsapHoverReverse />
@@ -70,7 +80,9 @@ const onLeave = contextSafe(() => {
 
 ## `overwrite: "auto"`
 
-When users toggle quickly, auto-overwrite kills overlapping properties:
+Spam-toggling starts a new tween while the old one still owns `x`. Without overwrite, both fight and the box overshoots or rubber-bands. `overwrite: 'auto'` kills competing tweens **only on shared properties**, so the latest intent wins.
+
+Toggle quickly: the box always heads to the latest target without stacking mid-flight tweens.
 
 <ComponentPreview>
   <GsapOverwriteAuto />

@@ -4,7 +4,15 @@ description: 'SplitText headlines, ScrambleText loading states, and number ticke
 icon: 'Sparkles'
 ---
 
+## When text moves
+
+Text motion is high-visibility and easy to overuse. Split and scramble belong on **occasional** headlines and status moments. Number tickers fit metrics that change once per view. Always revert SplitText on cleanup so the DOM returns to plain text.
+
 ## SplitText headline
+
+**SplitText** wraps words/chars so you can stagger them like any other targets. Split only what you animate — `words,chars` without `lines` when you do not need line boxes.
+
+Watch characters rise in a tight stagger. Call `split.revert()` when the effect is done or the component unmounts.
 
 <ComponentPreview replay>
   <GsapSplitTextHeadline />
@@ -30,9 +38,11 @@ return () => split.revert();
   </DocsFileTabs>
 </ComponentPreview>
 
-Split only what you animate (`words,chars` without `lines` when lines are not needed).
-
 ## ScrambleText
+
+**ScrambleText** cycles random characters into the final string — classic for loading / decrypt-style status. Keep it monospace so glyph width stays stable while chars thrash.
+
+Replay: noise settles into “Deployment complete.” Use for status lines, not body copy.
 
 <ComponentPreview replay>
   <GsapScrambleLabel />
@@ -55,7 +65,9 @@ gsap.to('.label', {
 
 ## Number ticker
 
-Use **`tabular-nums`** so digits do not shift:
+Tween a plain object’s `value` and write `textContent` in `onUpdate`. That avoids animating the DOM string directly. Use **`tabular-nums`** (or fixed width) so digits do not shift layout as 1 → 2847.
+
+Watch the counter ease up — each frame rounds for display.
 
 <ComponentPreview replay>
   <GsapNumberTicker />

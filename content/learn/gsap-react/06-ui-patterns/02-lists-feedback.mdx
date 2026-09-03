@@ -4,7 +4,15 @@ description: 'List add, error shake, and when CSS press beats GSAP.'
 icon: 'MousePointer2'
 ---
 
+## Feedback that earns its duration
+
+List mutations and validation need short, purposeful motion — enough to show what changed, not enough to slow the task. Prefer transforms and opacity; reach for height only when the layout must open space for a new row.
+
 ## Add list item
+
+When a row mounts, animate it from collapsed / invisible so the list does not pop. `height: 0` → auto height (GSAP can tween height) plus fade makes the insert readable.
+
+Click Add: the new item grows into place instead of appearing fully formed.
 
 <ComponentPreview>
   <GsapListAddRemove />
@@ -33,7 +41,9 @@ gsap.from('.list-item:last-child', {
 
 ## Error shake (rare)
 
-Use sparingly — validation feedback, not decoration:
+A horizontal shake is **attention**, not decoration. Use it for failed validation once — not on every keystroke. Short `repeat` + `yoyo` on `x` is enough; long shakes feel cartoonish.
+
+Submit with invalid input: the field jitters, then rests. Do not loop forever.
 
 <ComponentPreview>
   <GsapErrorShake />
@@ -57,6 +67,10 @@ gsap.fromTo('.field', { x: 0 }, { x: 8, duration: 0.08, repeat: 5, yoyo: true, e
 </ComponentPreview>
 
 ## CSS press only
+
+Press feedback (scale on `:active`) runs dozens of times a day. CSS transitions at **100–160ms** beat GSAP here — no JS on every pointer down, and the browser already composites `transform`.
+
+Press and hold: the button scales slightly. No tween instance, no cleanup.
 
 <ComponentPreview>
   <GsapCssPressOnly />

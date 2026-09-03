@@ -6,7 +6,7 @@ icon: 'MousePointer2'
 
 ## Transform aliases
 
-GSAP's `x`, `y`, `scale`, and `rotation` map to compositor-friendly transforms — not `left`, `top`, or `width`.
+GSAP's `x`, `y`, `scale`, and `rotation` map to compositor-friendly **transforms** — not `left`, `top`, or `width`. Layout properties force reflow every frame; transforms usually stay on the GPU layer.
 
 | GSAP | Prefer over |
 | --- | --- |
@@ -15,7 +15,13 @@ GSAP's `x`, `y`, `scale`, and `rotation` map to compositor-friendly transforms �
 | `scale` | animating `width`/`height` for simple zoom |
 | `transformOrigin` | popovers scaling from trigger |
 
+Reach for layout animation only when the document must reflow (accordion height, FLIP between grid and list). For slides, lifts, and pops, stay on transforms.
+
 ## Drawer (`xPercent`)
+
+`xPercent` moves an element by a **percentage of its own width** — ideal for off-canvas drawers that should fully clear the viewport regardless of pixel size.
+
+Toggle open/closed: `0` seats the panel; `100` parks it off to the right. Same duration and ease both ways keeps the sheet predictable.
 
 <ComponentPreview>
   <GsapDrawerSlide />
@@ -42,7 +48,9 @@ gsap.to('.gsap-drawer', {
 
 ## Origin-aware popover
 
-Popovers scale from the trigger, not center:
+Default `transformOrigin` is the element's center, so a menu scales from the middle of nowhere. Set origin to the **trigger corner** (`top left`) so the panel grows out of the button that opened it.
+
+Watch: scale + fade from the filter control — it feels attached, not floating in.
 
 <ComponentPreview>
   <GsapOriginPopover />
@@ -75,6 +83,10 @@ gsap.fromTo('.gsap-popover', { scale: 0.95, autoAlpha: 0 }, {
 
 ## Accordion chevron
 
+`rotation` is a transform — cheap and smooth. Rotate the chevron to mirror open/closed; keep the panel height change separate (or use Flip / grid tricks) so you are not animating layout on the icon.
+
+Click the row: the chevron turns `180°` with `power2.out` while the panel reveals.
+
 <ComponentPreview>
   <GsapAccordionChevron />
 
@@ -101,6 +113,10 @@ gsap.to('.gsap-chevron', { rotation: open ? 180 : 0, duration: 0.25, ease: 'powe
 
 ## Good vs bad
 
+Same visual travel, different cost. Top bar uses `x` (transform). Bottom bar uses `left` (layout). Side by side, both move — only one stays compositor-friendly under load.
+
+Prefer transforms unless the layout itself must change. When a class should take over after a tween finishes, use `clearProps` so inline styles do not stick.
+
 <ComponentPreview>
   <GsapTransformVsLayout />
 
@@ -126,5 +142,3 @@ gsap.to('.gsap-bad', { left: 80, duration: 1, repeat: -1, yoyo: true }); // layo
 
   </DocsFileTabs>
 </ComponentPreview>
-
-Use `clearProps` when a class should take over after the tween completes.

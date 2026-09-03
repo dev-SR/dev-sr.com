@@ -6,6 +6,8 @@ icon: 'Play'
 
 ## The four methods
 
+A **tween** is one animation: take targets from A to B over a duration with an ease. Almost everything else in GSAP (timelines, ScrollTrigger, Flip) builds on these four methods.
+
 | Method | Use |
 | --- | --- |
 | `gsap.to()` | Animate **to** vars from current state (most common) |
@@ -13,7 +15,13 @@ icon: 'Play'
 | `gsap.fromTo()` | Explicit start and end |
 | `gsap.set()` | Apply immediately (duration 0) |
 
+Prefer `to` when you know the destination. Prefer `from` when the end state already lives in CSS. Use `fromTo` when neither end is trustworthy (loading handoffs, interrupted states). Use `set` to establish a known starting point before a sequence runs.
+
 ## Toast entrance (`from`)
+
+`gsap.from()` is for **entrances**: you describe where the element starts (below, invisible), and GSAP animates to its natural CSS state. Prefer this over `to` when the stylesheet already holds the resting look.
+
+Watch: the toast rises `24px` and fades in with `power2.out` so motion is visible immediately, then settles.
 
 <ComponentPreview replay>
   <GsapToastEnter />
@@ -36,6 +44,10 @@ gsap.from('.gsap-toast', { y: 24, autoAlpha: 0, duration: 0.35, ease: 'power2.ou
 </ComponentPreview>
 
 ## Skeleton → content (`fromTo`)
+
+`fromTo` locks **both** ends. That matters when two elements trade places — skeleton out, content in — and you cannot rely on “whatever the DOM looks like right now.”
+
+Watch the handoff: skeletons fade slightly before content rises in. Delays stagger the two tweens so the swap feels intentional, not a hard cut.
 
 <ComponentPreview replay>
   <GsapSkeletonToContent />
@@ -68,6 +80,10 @@ gsap.to('.gsap-skeleton', { autoAlpha: 0, duration: 0.2, delay: 0.3 });
 
 ## `set` before a sequence
 
+`gsap.set()` applies values with **zero duration** — a reliable initial state. Without it, a replay or remount can start from whatever the last tween left behind.
+
+Here dots are forced to `scale: 0` / invisible, then a staggered `to` brings them in. `set` is the reset; `to` is the show.
+
 <ComponentPreview replay>
   <GsapSetBeforeSequence />
 
@@ -92,7 +108,9 @@ gsap.to('.gsap-dot', { scale: 1, autoAlpha: 1, stagger: 0.08, duration: 0.25 });
 
 ## Function-based values
 
-Each target gets a value from `(index, target, targets)`:
+Any tween property can be a **function** `(index, target, targets) => value`. Each target gets its own end value without writing a loop of separate tweens.
+
+Watch the avatars: `x: (i) => i * 48` fans them out by index while `stagger` keeps the cascade readable.
 
 <ComponentPreview replay>
   <GsapAvatarRow />

@@ -4,7 +4,15 @@ description: 'CustomWiggle, Physics2D, PhysicsProps, and PixiPlugin on canvas.'
 icon: 'Layers3'
 ---
 
+## Specialty motion
+
+These plugins add **physics-flavored** and canvas-oriented motion. Use them for delight or game-like UI — not for every button. Register only what the page needs; Pixi especially should stay behind a dynamic import.
+
 ## Physics2D
+
+**Physics2D** launches an element with velocity, angle, and gravity — a projectile arc without hand-keyframing `x`/`y`. Duration is how long the simulation runs.
+
+Replay: the ball kicks up and falls under gravity. Good for confetti-adjacent accents, not form validation.
 
 <ComponentPreview replay>
   <GsapPhysics2D />
@@ -28,6 +36,10 @@ gsap.to('.ball', {
 </ComponentPreview>
 
 ## PhysicsProps
+
+**PhysicsProps** attaches velocity / acceleration / friction per property (`x`, `y`, …) with optional `end` targets. More control than Physics2D when axes need different rules.
+
+Watch the orb glide with horizontal velocity and vertical acceleration — a soft throw, not a bounce loop.
 
 <ComponentPreview replay>
   <GsapPhysicsProps />
@@ -55,6 +67,10 @@ gsap.to('.obj', {
 
 ## CustomWiggle
 
+**CustomWiggle** builds a named ease that oscillates (wiggle) before settling. Register with `CustomWiggle.create`, then use that name as `ease` (or drive `wiggleY`-style props depending on setup).
+
+Replay: the box shakes with a defined wiggle count, then rests — attention without a full physics sim.
+
 <ComponentPreview replay>
   <GsapCustomWiggleDemo />
 
@@ -75,7 +91,9 @@ gsap.to('.box', { duration: 2, wiggleY: 20, ease: 'myWiggle' });
 
 ## PixiPlugin
 
-Isolated dynamic import — only loads on this page:
+**PixiPlugin** lets GSAP tween PixiJS display-object props (`pixi: { x, rotation, scale }`). Keep Pixi behind an **isolated dynamic import** so canvas code only loads on pages that need it.
+
+The demo stage is a canvas sprite under GSAP control — same mental model as DOM tweens, different renderer.
 
 <ComponentPreview>
   <GsapPixiSprite />

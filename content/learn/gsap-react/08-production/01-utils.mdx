@@ -4,9 +4,15 @@ description: 'clamp, mapRange, quickTo, snap, distribute, and random in producti
 icon: 'BookOpen'
 ---
 
+## Helpers for production UI
+
+`gsap.utils` are small functions you reach for constantly: clamp values, map ranges, snap to grids, distribute across targets, and drive high-frequency updates without allocating a new tween every frame. Prefer them over reinventing math in every handler.
+
 ## quickTo — mouse follower
 
-Reuse one tween instead of creating hundreds per frame:
+**`quickTo`** returns a reusable setter that retargets one property on one element. On `pointermove`, call `xTo(n)` / `yTo(n)` instead of `gsap.to` hundreds of times per second.
+
+Move the cursor: the follower eases toward it. `clamp` keeps it inside the stage.
 
 <ComponentPreview>
   <GsapQuickToFollower />
@@ -31,6 +37,10 @@ yTo(gsap.utils.clamp(0, maxY, y));
 
 ## mapRange — scroll → rotation
 
+**`mapRange(inMin, inMax, outMin, outMax)`** converts a value from one numeric range to another. Scroll progress `0→1` becomes dial rotation `0→360` without manual algebra each frame.
+
+Scroll the stage: the dial spins in lockstep with progress.
+
 <ComponentPreview flush previewClassName="min-h-[200px]">
   <GsapMapRangeProgress />
 
@@ -51,6 +61,10 @@ gsap.to('.dial', { rotation: mapRot(scrollProgress), duration: 0.1, overwrite: t
 </ComponentPreview>
 
 ## distribute — scale from center
+
+**`distribute`** assigns each target a value across a range based on position (`from: 'center'`). One tween, many end scales — similar spirit to stagger, but for the property value itself.
+
+Replay: middle items grow larger; edges stay smaller.
 
 <ComponentPreview replay>
   <GsapDistributeScale />
@@ -78,6 +92,10 @@ gsap.to('.item', {
 
 ## snap — grid click
 
+**`snap(increment)`** (or an array of points) rounds a number to the nearest step. After a drag or click, tween `x`/`y` to the snapped cell so UI docks to a grid.
+
+Click around the stage: the block eases onto a 40px lattice.
+
 <ComponentPreview>
   <GsapSnapGrid />
 
@@ -98,6 +116,10 @@ gsap.to('.block', { x: snap(x), y: snap(y), duration: 0.25, ease: 'power2.out' }
 </ComponentPreview>
 
 ## random stagger
+
+String values like `'random(-40, 40, 5)'` pick a random end per target (optional increment). Combine with `stagger: { from: 'random' }` for organic scatter without writing a loop.
+
+Replay: dots jump to random offsets in a short cascade.
 
 <ComponentPreview replay>
   <GsapRandomStagger />

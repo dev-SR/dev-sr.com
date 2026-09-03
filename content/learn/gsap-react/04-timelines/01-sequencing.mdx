@@ -4,9 +4,27 @@ description: 'Modal choreography, onboarding beats, and splash-style letter reve
 icon: 'Play'
 ---
 
+## Why timelines
+
+A **timeline** is a clock that owns multiple tweens. Instead of juggling delays, you place each beat with a **position parameter** so choreography stays readable and editable.
+
+| Position | Meaning |
+| --- | --- |
+| (default) | Append after the previous end |
+| `'<'` | Start with the previous tween |
+| `'<0.05'` | 0.05s after the previous starts |
+| `'-=0.1'` | Overlap — start 0.1s before the previous ends |
+| `'+=0.15'` | Gap — wait 0.15s after the previous ends |
+
 ## Modal open sequence
 
-Overlay → panel → staggered children with `"<"` and `"-="`:
+Open a modal as three beats, not one fade: dim the world, grow the panel, then stagger the contents. `defaults` on the timeline apply ease (and other shared vars) to every child unless overridden.
+
+1. Overlay fades in  
+2. Panel scales up slightly overlapping (`'<0.05'`)  
+3. Children stagger in overlapping the panel finish (`'-=0.1'`)
+
+Watch: backdrop first, then card, then copy and buttons cascade.
 
 <ComponentPreview>
   <GsapModalSequence />
@@ -39,6 +57,10 @@ tl.from('.overlay', { autoAlpha: 0, duration: 0.2 })
 
 ## Onboarding three-beat
 
+Sequential steps with breathing room: `'+=0.15'` inserts a gap after each step finishes so the next card does not pile on. Good for checklists and wizards where reading time matters.
+
+Three steps slide in one after another — not a simultaneous stagger.
+
 <ComponentPreview replay>
   <GsapOnboardingBeat />
 
@@ -62,6 +84,10 @@ tl.from('.step-1', { x: -20, autoAlpha: 0 })
 </ComponentPreview>
 
 ## Splash-style letters
+
+Letter reveals are often one staggered tween rather than a deep timeline — still “sequencing,” just flattened. `back.out` gives a soft overshoot per glyph.
+
+Splashy marketing moments only — do not stagger every heading in the app.
 
 <ComponentPreview replay>
   <GsapSplashLetters />

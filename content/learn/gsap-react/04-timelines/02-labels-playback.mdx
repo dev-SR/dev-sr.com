@@ -4,7 +4,17 @@ description: 'addLabel, tweenTo, notification stacks, and GSDevTools for debuggi
 icon: 'Play'
 ---
 
+## Named beats
+
+**Labels** mark named times on a timeline so you can seek, branch, or document choreography without magic numbers. `addLabel('details', '+=0.2')` plants a bookmark; `tweenTo('details')` animates the playhead there instead of jumping.
+
+Use labels for multi-step tours, onboarding that can skip ahead, and any timeline you will scrub in DevTools.
+
 ## Label tour
+
+Paused timeline with `intro` and `details` labels. Buttons (or `tweenTo`) move between beats — the dot pulses at intro, the panel appears at details.
+
+Watch the playhead travel between named sections rather than raw seconds.
 
 <ComponentPreview>
   <GsapLabelTour />
@@ -35,6 +45,10 @@ tl.tweenTo('details'); // seek to label
 
 ## Notification stack
 
+A stack of toasts is usually a staggered entrance, not deep labels — but it still belongs in the playback chapter: same idea of coordinated timing across siblings. Each notification slides in from the right with a short stagger so the stack builds instead of popping as one block.
+
+Replay to see the cascade rebuild from empty.
+
 <ComponentPreview replay>
   <GsapNotificationStack />
 
@@ -56,6 +70,10 @@ gsap.from('.notif', { x: 40, autoAlpha: 0, stagger: 0.1, duration: 0.35, ease: '
 </ComponentPreview>
 
 ## GSDevTools (dev only)
+
+**GSDevTools** attaches a scrubber UI to any timeline or tween so you can pause, loop, and inspect timing while building. Point it at the animation instance with `GSDevTools.create({ animation: tl })`.
+
+Use it to dial in overlaps and labels — then strip it before shipping.
 
 <ComponentPreview>
   <GsapGSDevToolsDemo />

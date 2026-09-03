@@ -4,9 +4,15 @@ description: 'Pin sections while scrolling and tie animation progress to scroll 
 icon: 'ScrollText'
 ---
 
+## Pinning a section
+
+**Pin** freezes a trigger in the viewport while the user keeps scrolling through an artificial distance (`end: '+=200'`). Put motion on **children** inside the pin — transforming the pinned node itself fights ScrollTrigger’s pin transforms.
+
+`pinSpacing: true` inserts spacer so the rest of the page does not jump under the pin. `scrub: 0.5` slightly smooths the linked animation.
+
 ## Pinned walkthrough
 
-Pin the panel; animate **children**, not the pinned node's own transform:
+Scroll the stage: the analytics panel sticks, then releases after the pin distance. Content inside can still animate while the shell is pinned.
 
 <ComponentPreview flush previewClassName="min-h-[320px]">
   <GsapScrollPin />
@@ -38,6 +44,10 @@ scrollTrigger: {
 </ComponentPreview>
 
 ## ScrollTo section
+
+**ScrollToPlugin** animates the scroller to a target (`y: '#section-b'`) instead of a hard jump. Pair with nav buttons for in-panel section jumps — same idea as page anchors, with easing.
+
+Click A / B: the stage eases to that section with a small `offsetY` so headers are not flush against the edge.
 
 <ComponentPreview flush previewClassName="min-h-[280px]">
   <GsapScrollToSection />

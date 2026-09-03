@@ -6,6 +6,10 @@ icon: 'BookOpen'
 
 ## Animate transform and opacity
 
+Smooth UI hangs on **what** you animate. Prefer `x` / `y` / `scale` / `rotation` / `autoAlpha` — compositor-friendly. Animating `left`, `top`, `width`, or `height` forces layout every frame unless you truly need reflow (accordion, Flip).
+
+Same travel, two costs: top uses transform; bottom uses `left`. Prefer the top pattern by default.
+
 <ComponentPreview>
   <GsapTransformVsLayout />
 
@@ -30,11 +34,11 @@ gsap.to(el, { left: 100, width: 200 });
 
 ## Stagger vs many tweens
 
-One staggered tween beats N separate tweens with manual `delay`.
+One staggered tween beats N separate tweens with manual `delay`. Fewer instances, one ease, easier overwrite and cleanup. Reach for many tweens only when each target truly needs different vars or timelines.
 
 ## quickTo for frequent updates
 
-See [Utils](/learn/gsap-react/production/utils) — essential for pointer followers and scrubbed values.
+Pointer followers and scrubbed values should not call `gsap.to` every event. See [Utils](/learn/gsap-react/production/utils) — `quickTo` retargets one property without allocating a new tween per frame.
 
 ## Cleanup checklist
 
@@ -54,4 +58,4 @@ Hint the browser only on elements that **will** animate:
 }
 ```
 
-Do not set on every element preemptively.
+Do not set on every element preemptively — it costs memory and can create unnecessary layers.

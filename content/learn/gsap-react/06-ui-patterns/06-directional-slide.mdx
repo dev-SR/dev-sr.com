@@ -6,7 +6,11 @@ icon: 'MousePointer2'
 
 ## The primitive
 
-A **directional slide** enters from the side that matches navigation — forward slides in from the right, back from the left. Sign of `next - prev` chooses `xPercent`.
+A **directional slide** enters from the side that matches navigation — forward from the right, back from the left — so the panel feels like it came from where you were going. Sign of `next - prev` chooses `xPercent` (positive vs negative). Skip when `dir === 0` (first paint) so the initial view does not slide in from nowhere.
+
+This is **not** a shared element: the panel remounts or rewrites content; only the motion direction carries continuity. Contrast with a traveling underline, which is one persistent node.
+
+Click 1 → 2 → 3 and reverse: notice the entrance side flips with direction.
 
 <ComponentPreview>
   <GsapDirectionalSlidePrimitive />
@@ -35,7 +39,9 @@ gsap.fromTo(
 
 ## Use case — tabs + underline
 
-Compose with a **shared element** underline (persistent `x` + `scaleX`). Do not conditional-render the underline — that snaps.
+Compose two primitives: a **shared element** underline (`x` + `scaleX` on one persistent bar) plus a **directional slide** on the panel. Do not conditional-render the underline — remounting snaps it. Keep `overwrite: 'auto'` on the indicator so rapid tab changes retarget cleanly.
+
+Switch tabs: the underline travels; the panel slides in from the direction of travel.
 
 <ComponentPreview>
   <GsapDirectionalSlideTabs />

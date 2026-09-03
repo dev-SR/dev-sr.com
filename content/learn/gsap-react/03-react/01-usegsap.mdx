@@ -6,7 +6,11 @@ icon: 'Code2'
 
 ## Always pass `scope`
 
-Without a scope, `.box` matches **every** `.box` on the page.
+`useGSAP` from `@gsap/react` is the React-friendly way to create tweens: it runs after mount, scopes selectors, and **reverts** the GSAP context on unmount so nothing leaks.
+
+Without a `scope`, a selector like `.box` matches **every** `.box` on the page — including demos in other components. Always pass a ref to the local container.
+
+Side-by-side scopes: identical class names, each box only moves inside its own ref.
 
 <ComponentPreview replay>
   <GsapScopeIsolation />
@@ -36,11 +40,11 @@ useGSAP(() => {
   </DocsFileTabs>
 </ComponentPreview>
 
-Two identical selectors — only descendants of each ref animate.
-
 ## `revertOnUpdate`
 
-When a prop changes, revert the previous context and re-run:
+When motion depends on props or state, list those values in `dependencies`. With `revertOnUpdate: true`, GSAP tears down the previous context and re-runs the setup so you never stack duplicate tweens on the same node.
+
+Drag the slider: `targetX` changes, the old tween reverts, a fresh `to` aims at the new position.
 
 <ComponentPreview>
   <GsapRevertOnUpdate />
@@ -70,8 +74,10 @@ useGSAP(
 
 ```tsx
 useGSAP(() => { /* gsap code */ }, {
-  scope: containerRef,       // ref or element
+  scope: containerRef,       // ref or element — scopes querySelector
   dependencies: [value],     // re-run when these change
   revertOnUpdate: true,      // revert context on dependency change
 });
 ```
+
+For tweens created in event handlers (click, hover), wrap them with `contextSafe` — covered in [Context-Safe & SSR](/learn/gsap-react/react/context-ssr).

@@ -4,13 +4,22 @@ description: 'Offset multiple targets — grids, nav, chat, and filter results.'
 icon: 'Layers3'
 ---
 
-## Simple stagger
+## What stagger does
+
+**Stagger** offsets the start time of the same tween across many targets so a group enters as a cascade instead of one block. One tween, many starts — cheaper and cleaner than N separate tweens with manual `delay`.
 
 ```tsx
 stagger: 0.06  // 0.06s between each target
+// or: { amount: 0.4, from: 'start' } — total window shared across items
 ```
 
+Use it for occasional page loads and reveal moments. Skip it on lists people navigate dozens of times per day — repetition turns delight into noise.
+
 ## Dashboard grid
+
+A number stagger (`0.06`) puts a fixed gap between each card. Dense grids read as a soft wave rather than a pop of everything at once.
+
+Watch the cards rise in reading order (left → right, top → bottom).
 
 <ComponentPreview replay>
   <GsapStaggerGrid />
@@ -41,6 +50,10 @@ gsap.from('.gsap-card', {
 
 ## Sidebar nav (`amount`)
 
+`stagger: { amount: 0.4 }` spreads starts across a **fixed total window**. Add or remove items and the cascade still finishes in ~0.4s — better than a number stagger that grows with list length.
+
+`from: 'start'` means top item first. Nav items slide in from the left within that budget.
+
 <ComponentPreview replay>
   <GsapStaggerNav />
 
@@ -67,6 +80,10 @@ gsap.from('.gsap-nav-item', {
 
 ## From center
 
+`from: 'center'` starts the middle target first and fans outward. Also useful: `'edges'`, `'random'`, or a numeric index.
+
+Filter chips bloom from the middle — good for tag clouds and toolbars where the center is the focus.
+
 <ComponentPreview replay>
   <GsapStaggerCenter />
 
@@ -89,6 +106,10 @@ stagger: { amount: 0.35, from: 'center' }
 </ComponentPreview>
 
 ## Chat messages
+
+Conversation UI wants a slightly longer gap so each bubble reads as a turn. `stagger: 0.12` is slower than a dashboard grid — that pacing matches reading speed.
+
+Messages rise in order; left/right alignment stays CSS, motion stays transform + fade.
 
 <ComponentPreview replay>
   <GsapStaggerChat />

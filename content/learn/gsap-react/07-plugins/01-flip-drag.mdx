@@ -4,7 +4,15 @@ description: 'FLIP layout transitions, Draggable cards, and Observer swipe galle
 icon: 'MousePointer2'
 ---
 
+## Layout and pointer plugins
+
+These plugins cover three different jobs: **Flip** animates between two layouts, **Draggable** makes elements pointer-movable, and **Observer** turns gestures into callbacks without owning the DOM transform yourself.
+
 ## Flip grid ↔ list
+
+**Flip** (First, Last, Invert, Play) records positions with `Flip.getState`, you change the DOM (grid ↔ list), then `Flip.from` animates from the recorded state to the new layout. Capture state **before** the React/DOM update; run `Flip.from` after paint (`requestAnimationFrame`).
+
+Toggle layout: items travel to their new slots instead of popping. `absolute: true` helps during the flight when flow would otherwise jump.
 
 <ComponentPreview>
   <GsapFlipGrid />
@@ -34,6 +42,10 @@ requestAnimationFrame(() => {
 </ComponentPreview>
 
 ## Draggable + inertia
+
+**Draggable** attaches pointer drag to `x`/`y` (or rotation, scroll). Pair with **InertiaPlugin** so release flings with momentum and settles against `bounds`. `edgeResistance` softens the walls.
+
+Drag the card and release: it coasts, then stops inside the dashed frame.
 
 <ComponentPreview>
   <GsapDraggableCard />
@@ -65,6 +77,10 @@ Draggable.create('.card', {
 </ComponentPreview>
 
 ## Observer swipe
+
+**Observer** listens for wheel, touch, and pointer gestures and fires `onLeft` / `onRight` (and more) without implementing drag math. Use it for carousels and swipe navigation where you animate the track yourself.
+
+Swipe or drag sideways on the stage: slides advance with a tolerance so tiny moves do not count.
 
 <ComponentPreview>
   <GsapObserverSwipe />
