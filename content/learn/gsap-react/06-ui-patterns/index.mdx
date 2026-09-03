@@ -1,6 +1,6 @@
 ---
 title: 'UI Patterns'
-description: 'Production recipes — toasts, sheets, lists, and text motion with purpose.'
+description: 'Production recipes — overlays, lists, text, and motion primitives by type.'
 icon: 'Sparkles'
 ---
 
@@ -8,12 +8,19 @@ icon: 'Sparkles'
 
 Every animation here passes the **purpose** test: spatial consistency, state indication, feedback, or preventing a jarring change.
 
-| Lesson | Patterns |
-| --- | --- |
-| [Entrances & overlays](/learn/gsap-react/ui-patterns/entrances-overlays) | Toast, sheet, symmetric exit |
-| [Lists & feedback](/learn/gsap-react/ui-patterns/lists-feedback) | Add row, error shake, CSS press |
-| [Text](/learn/gsap-react/ui-patterns/text) | SplitText, scramble, ticker |
+Lessons after text are named by **animation type**, then show a use case:
+
+| Lesson | Primitive | Use case |
+| --- | --- | --- |
+| [Entrances & overlays](/learn/gsap-react/ui-patterns/entrances-overlays) | — | Toast, sheet, symmetric exit |
+| [Lists & feedback](/learn/gsap-react/ui-patterns/lists-feedback) | — | Add row, error shake, CSS press |
+| [Text](/learn/gsap-react/ui-patterns/text) | — | SplitText, scramble, ticker |
+| [Shared element](/learn/gsap-react/ui-patterns/shared-element) | Traveling highlight (`x` + `scaleX`) | Segmented tabs |
+| [Origin-aware](/learn/gsap-react/ui-patterns/origin-aware) | Directional `scaleY` origin | Chapter rail |
+| [Direction-aware](/learn/gsap-react/ui-patterns/direction-aware) | Panel `xPercent` by sign | Tabs + underline |
+| [Continuity](/learn/gsap-react/ui-patterns/continuity) | `scaleX` grow from edge | Search expand |
+| [Merge](/learn/gsap-react/ui-patterns/merge) | Collapse → emerge | Glyph merge |
 
 <Callout variant="tip" title="Duration budgets">
-  Toasts ~300–400ms · modals/sheets 200–500ms · press feedback 100–160ms (CSS).
+  Toasts ~300–400ms · modals/sheets 200–500ms · indicators / continuity ~280ms · press feedback 100–160ms (CSS).
 </Callout>

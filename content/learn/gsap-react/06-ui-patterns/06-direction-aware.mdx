@@ -1,0 +1,78 @@
+---
+title: 'Direction-aware'
+description: 'Content slides with navigation direction; compose a traveling underline for the active tab.'
+icon: 'MousePointer2'
+---
+
+## The primitive
+
+A **direction-aware transition** slides one way going forward and the opposite way going back. Sign of `next - prev` chooses `xPercent`.
+
+<ComponentPreview>
+  <GsapDirectionAwarePrimitive />
+
+  <DocsFileTabs title="Direction-aware">
+
+```tsx title="direction-aware.tsx"
+const dir = Math.sign(next - prev); // 1 forward, -1 back
+if (dir === 0) return; // skip first paint
+gsap.fromTo(
+  '.gsap-dir-panel',
+  { xPercent: dir * 8, autoAlpha: 0 },
+  { xPercent: 0, autoAlpha: 1, duration: 0.22, ease: 'power2.out' }
+);
+```
+
+```html title="direction-aware-markup.html"
+<button>1</button>
+<button>2</button>
+<button>3</button>
+<div class="gsap-dir-panel">Panel content</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Use case — tabs + underline
+
+Compose with a **shared element** underline (persistent `x` + `scaleX`). Do not conditional-render the underline — that snaps.
+
+<ComponentPreview>
+  <GsapDirectionAwareTabs />
+
+  <DocsFileTabs title="Tabs with direction">
+
+```tsx title="direction-tabs.tsx"
+// underline — shared element
+gsap.to('.gsap-indicator', {
+  x: target.offsetLeft,
+  scaleX: target.offsetWidth / baseWidth,
+  duration: 0.28,
+  ease: 'power2.inOut',
+  transformOrigin: 'left center',
+  overwrite: 'auto',
+});
+
+// panel — direction-aware
+const dir = Math.sign(next - prev);
+gsap.fromTo(
+  '.gsap-dir-panel',
+  { xPercent: dir * 8, autoAlpha: 0 },
+  { xPercent: 0, autoAlpha: 1, duration: 0.22, ease: 'power2.out' }
+);
+```
+
+```html title="direction-tabs-markup.html"
+<div class="relative flex gap-4 border-b">
+  <span class="gsap-indicator absolute bottom-0 left-0 h-0.5 bg-foreground"></span>
+  <button class="gsap-indicator-target">Overview</button>
+  <button class="gsap-indicator-target">Analytics</button>
+  <button class="gsap-indicator-target">Billing</button>
+</div>
+<div class="gsap-dir-panel">…</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+See [Shared element](/learn/gsap-react/ui-patterns/shared-element) for the indicator alone.

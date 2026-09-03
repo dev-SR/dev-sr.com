@@ -1,0 +1,80 @@
+---
+title: 'Continuity'
+description: 'Connect before and after with scaleX — grow chrome from the trigger, never squash text.'
+icon: 'MousePointer2'
+---
+
+## The primitive
+
+A **continuity transition** keeps the user oriented by visually connecting before and after. Grow a bar from the left with `scaleX` — not `width`.
+
+<ComponentPreview>
+  <GsapContinuityPrimitive />
+
+  <DocsFileTabs title="Continuity">
+
+```tsx title="continuity.tsx"
+gsap.to('.gsap-continuity-track', {
+  scaleX: open ? 1 : 0.35,
+  duration: 0.28,
+  ease: 'power3.out',
+  transformOrigin: 'left center',
+  overwrite: 'auto',
+});
+```
+
+```html title="continuity-markup.html"
+<div class="overflow-hidden">
+  <div class="gsap-continuity-track h-3 w-full origin-left scale-x-[0.35] rounded-full"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Use case — search expand
+
+Scale **chrome only**. The input sits inside and fades in after the track opens so glyphs never stretch.
+
+<ComponentPreview>
+  <GsapSearchExpand />
+
+  <DocsFileTabs title="Search expand">
+
+```tsx title="search-expand.tsx"
+const tl = gsap.timeline({ defaults: { overwrite: 'auto' } });
+if (open) {
+  tl.to('.gsap-search-track', {
+    scaleX: 1,
+    duration: 0.28,
+    ease: 'power3.out',
+    transformOrigin: 'left center',
+  }).to('.gsap-search-input', { autoAlpha: 1, duration: 0.18 }, '+=0.08');
+} else {
+  tl.to('.gsap-search-input', { autoAlpha: 0, duration: 0.12 })
+    .to('.gsap-search-track', {
+      scaleX: 0.35,
+      duration: 0.28,
+      ease: 'power3.out',
+      transformOrigin: 'left center',
+    });
+}
+```
+
+```html title="search-expand-markup.html"
+<button aria-label="Open search">Search</button>
+<div class="overflow-hidden">
+  <div class="gsap-search-track origin-left scale-x-[0.35] rounded-md border">
+    <input class="gsap-search-input opacity-0" placeholder="Search docs…" />
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Icon press stays CSS (`scale(0.97)`, 160ms).
+
+<Callout variant="dont" title="Do not tween width">
+  `width` / `left` force layout every frame. `scaleX` with `transform-origin: left center` stays on the compositor.
+</Callout>

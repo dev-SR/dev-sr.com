@@ -370,6 +370,74 @@ export const HTML_SNIPPETS = {
   <div class="gsap-good absolute size-8 rounded"></div>
   <div class="gsap-bad absolute size-8 rounded"></div>
 </div>`,
+
+  'shared-element.tsx': `<div class="relative flex gap-1 rounded-lg bg-muted p-1">
+  <span class="gsap-indicator absolute inset-y-1 left-0 rounded-md bg-card"></span>
+  <button class="gsap-indicator-target flex-1">A</button>
+  <button class="gsap-indicator-target flex-1">B</button>
+  <button class="gsap-indicator-target flex-1">C</button>
+</div>`,
+
+  'segmented-tabs.tsx': `<div class="relative flex gap-1 rounded-lg bg-muted p-1">
+  <span class="gsap-indicator absolute inset-y-1 left-0 rounded-md bg-card shadow-sm"></span>
+  <button class="gsap-indicator-target">Overview</button>
+  <button class="gsap-indicator-target">Analytics</button>
+  <button class="gsap-indicator-target">Billing</button>
+</div>`,
+
+  'origin-aware.tsx': `<nav>
+  <button>
+    <span>01</span>
+    <span class="gsap-origin-bar"></span>
+  </button>
+</nav>`,
+
+  'chapter-rail.tsx': `<nav>
+  <button class="gsap-nav-item" style="--chapter-color: #ff6651">
+    <span class="gsap-nav-wash"></span>
+    <span class="gsap-nav-number">01</span>
+    <span class="gsap-nav-bar"></span>
+  </button>
+</nav>
+<section id="gsap-chapter-0" class="gsap-chapter-section">Overview</section>`,
+
+  'direction-aware.tsx': `<button>1</button>
+<button>2</button>
+<button>3</button>
+<div class="gsap-dir-panel">Panel content</div>`,
+
+  'direction-tabs.tsx': `<div class="relative flex gap-4 border-b">
+  <span class="gsap-indicator absolute bottom-0 left-0 h-0.5 bg-foreground"></span>
+  <button class="gsap-indicator-target">Overview</button>
+  <button class="gsap-indicator-target">Analytics</button>
+  <button class="gsap-indicator-target">Billing</button>
+</div>
+<div class="gsap-dir-panel">…</div>`,
+
+  'continuity.tsx': `<div class="overflow-hidden">
+  <div class="gsap-continuity-track h-3 w-full origin-left scale-x-[0.35] rounded-full"></div>
+</div>`,
+
+  'search-expand.tsx': `<button aria-label="Open search">Search</button>
+<div class="overflow-hidden">
+  <div class="gsap-search-track origin-left scale-x-[0.35] rounded-md border">
+    <input class="gsap-search-input opacity-0" placeholder="Search docs…" />
+  </div>
+</div>`,
+
+  'merge.tsx': `<div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-left absolute size-16 rounded-xl border"></div>
+  <span class="gsap-merge-plus absolute">+</span>
+  <div class="gsap-merge-right absolute size-16 rounded-xl border"></div>
+  <div class="gsap-merge-result absolute size-16 rounded-xl"></div>
+</div>`,
+
+  'glyph-merge.tsx': `<div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-left absolute">ে</div>
+  <span class="gsap-merge-plus">+</span>
+  <div class="gsap-merge-right absolute">ক</div>
+  <div class="gsap-merge-result absolute">কে</div>
+</div>`,
 };
 
 export function htmlTitleFor(fileTitle) {

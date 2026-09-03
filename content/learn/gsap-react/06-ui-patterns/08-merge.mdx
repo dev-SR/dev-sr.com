@@ -1,0 +1,122 @@
+---
+title: 'Merge'
+description: 'Anticipation, motion blur, particle impact, and an elastic emerge — rare delight merge.'
+icon: 'Sparkles'
+---
+
+## The primitive
+
+A **merge** collapses two elements into one meeting point, then a single result **emerges**. Both tile **centers** land on `midX` so they never cross. Opacity fades as they converge. Blur, particles, and elastic pop sell the impact. This is not MorphSVG.
+
+Sequence:
+
+1. **Anticipation** — lift + glow (opaque)
+2. **Converge** — both centers land on `midX` (`meetLeft = midX - tileW/2`); `scale` + `autoAlpha` together, no overshoot
+3. **Impact** — particle burst + expanding glow ring
+4. **Collapse** — scale into the point, fade out
+5. **Birth** — result elastic pop from `0.25` with brightness flash
+6. **Settle** — soften the glow
+
+<ComponentPreview replay>
+  <GsapMergePrimitive />
+
+  <DocsFileTabs title="Merge">
+
+```tsx title="merge.tsx"
+const midX = stageW / 2;
+const meetLeft = midX - tileW / 2; // both centers land on midX
+const leftTravelX = meetLeft; // from left: 0
+const rightTravelX = meetLeft - rightStart; // from left: rightStart
+
+gsap.set([left, right, result], { transformOrigin: '50% 50%' });
+
+tl.to([left, right], { y: -8, duration: 0.28, ease: 'power2.out' })
+  .to(left, {
+    x: leftTravelX,
+    scale: 0.35,
+    autoAlpha: 0.35,
+    filter: 'blur(1px) drop-shadow(0 0 14px #a78bfa)',
+    duration: 0.5,
+    ease: 'power2.inOut',
+  }, 'merge')
+  .to(right, {
+    x: rightTravelX,
+    scale: 0.35,
+    autoAlpha: 0.35,
+    filter: 'blur(1px) drop-shadow(0 0 14px #a78bfa)',
+    duration: 0.5,
+    ease: 'power2.inOut',
+  }, 'merge')
+  .add(() => {
+    spawnParticles(midX, midY, '#f472b6');
+    spawnGlowRing(midX, midY);
+  })
+  .to([left, right], {
+    autoAlpha: 0,
+    scale: 0.12,
+    filter: 'blur(6px)',
+    duration: 0.22,
+    ease: 'power2.in',
+  })
+  .fromTo(result,
+    { scale: 0.25, autoAlpha: 0, filter: 'blur(8px) brightness(2)' },
+    {
+      scale: 1,
+      autoAlpha: 1,
+      filter: 'blur(0px) brightness(1) drop-shadow(0 0 22px #f472b6)',
+      duration: 0.55,
+      ease: 'elastic.out(1, 0.55)',
+    }
+  )
+  .to(result, { filter: 'drop-shadow(0 0 10px #f472b6)', duration: 0.4 });
+```
+
+```html title="merge-markup.html"
+<div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-left absolute size-16 rounded-xl border"></div>
+  <span class="gsap-merge-plus absolute">+</span>
+  <div class="gsap-merge-right absolute size-16 rounded-xl border"></div>
+  <div class="gsap-merge-result absolute size-16 rounded-xl"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Particles and the glow ring are temporary DOM nodes appended at impact, then removed in `onComplete`. Prefer `prefers-reduced-motion`: skip blur / particles / elastic — fade to the result only.
+
+Keep left, right, and result in the DOM for the whole timeline — remounting mid-sequence kills the handoff.
+
+## Use case — glyph merge
+
+Same polished merge: `ে` + `ক` → `কে`. Do not MorphSVG letter outlines unless you already have production path data.
+
+<ComponentPreview replay>
+  <GsapGlyphMerge />
+
+  <DocsFileTabs title="Glyph merge">
+
+```tsx title="glyph-merge.tsx"
+const meetLeft = midX - tileW / 2;
+// same merge timeline; result shows কে
+.to(left, { x: meetLeft, scale: 0.35, autoAlpha: 0.35, duration: 0.5 }, 'merge')
+.to(right, { x: meetLeft - rightStart, scale: 0.35, autoAlpha: 0.35, duration: 0.5 }, 'merge')
+.add(() => { spawnParticles(midX, midY); spawnGlowRing(midX, midY); })
+.to([left, right], { autoAlpha: 0, scale: 0.12, duration: 0.22 })
+.fromTo(result,
+  { scale: 0.25, autoAlpha: 0, filter: 'blur(8px) brightness(2)' },
+  { scale: 1, autoAlpha: 1, duration: 0.55, ease: 'elastic.out(1, 0.55)' }
+);
+```
+
+```html title="glyph-merge-markup.html"
+<div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-left absolute">ে</div>
+  <span class="gsap-merge-plus">+</span>
+  <div class="gsap-merge-right absolute">ক</div>
+  <div class="gsap-merge-result absolute">কে</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>

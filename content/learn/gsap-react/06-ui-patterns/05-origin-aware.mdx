@@ -1,0 +1,80 @@
+---
+title: 'Origin-aware'
+description: 'scaleY grows from the edge you came from — directional state on a rail.'
+icon: 'MousePointer2'
+---
+
+## The primitive
+
+**Origin-aware animation** grows or shrinks from a meaningful edge. On a vertical rail, the active tick uses `scaleY` with `transformOrigin` that flips by direction — down from the top (`100% 0%`), up from the bottom (`100% 100%`).
+
+This is **not** a shared element. Each tick has its own bar; you grow the next and collapse the previous.
+
+<ComponentPreview>
+  <GsapOriginAwarePrimitive />
+
+  <DocsFileTabs title="Origin-aware">
+
+```tsx title="origin-aware.tsx"
+const down = index > prev;
+gsap.to('.gsap-origin-bar', { scaleY: 0, duration: 0.2, ease: 'power2.inOut', overwrite: 'auto' });
+gsap.set(activeBar, { transformOrigin: down ? '100% 0%' : '100% 100%' });
+gsap.to(activeBar, { scaleY: 1, duration: 0.2, ease: 'power2.inOut', overwrite: 'auto' });
+```
+
+```html title="origin-aware-markup.html"
+<nav>
+  <button>
+    <span>01</span>
+    <span class="gsap-origin-bar"></span>
+  </button>
+  <!-- more ticks -->
+</nav>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Use case — chapter rail
+
+Click or scroll — one `setActive(index)`. Wash + bar are real elements (not `:after`). Number opacity stays **CSS**.
+
+<ComponentPreview flush previewClassName="min-h-[360px]">
+  <GsapChapterNav />
+
+  <DocsFileTabs title="Chapter rail">
+
+```tsx title="chapter-rail.tsx"
+const down = index > prev;
+gsap.to('.gsap-nav-bar', { scaleY: 0, duration: 0.2, ease: 'power2.inOut', overwrite: 'auto' });
+gsap.to('.gsap-nav-wash', { autoAlpha: 0, duration: 0.2, overwrite: 'auto' });
+gsap.set(activeBar, { transformOrigin: down ? '100% 0%' : '100% 100%' });
+gsap.to(activeBar, { scaleY: 1, duration: 0.2, ease: 'power2.inOut', overwrite: 'auto' });
+gsap.to(activeWash, { autoAlpha: 0.3, duration: 0.2, ease: 'power2.out', overwrite: 'auto' });
+
+ScrollTrigger.create({
+  trigger: section,
+  scroller: stage,
+  start: 'top 40%',
+  onToggle: (self) => { if (self.isActive) setActive(i); },
+});
+gsap.to(stage, { scrollTo: section, duration: 0.45, ease: 'power2.inOut' });
+```
+
+```html title="chapter-rail-markup.html"
+<nav>
+  <button class="gsap-nav-item" style="--chapter-color: #ff6651">
+    <span class="gsap-nav-wash"></span>
+    <span class="gsap-nav-number">01</span>
+    <span class="gsap-nav-bar"></span>
+  </button>
+</nav>
+<section id="gsap-chapter-0" class="gsap-chapter-section">Overview</section>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+<Callout variant="tip" title="overwrite: auto">
+  Spam-clicking retargets mid-flight. CSS `transition` on `scaleY` restarts from zero and pops.
+</Callout>

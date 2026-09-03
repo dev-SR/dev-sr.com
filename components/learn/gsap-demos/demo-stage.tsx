@@ -1,10 +1,10 @@
 'use client';
 
-import { forwardRef, useRef, useImperativeHandle } from 'react';
+import { forwardRef, useRef, useImperativeHandle, type HTMLAttributes, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-export interface DemoStageProps {
-  children: React.ReactNode;
+export interface DemoStageProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
   className?: string;
   scroll?: boolean;
   height?: string | number;
@@ -12,7 +12,7 @@ export interface DemoStageProps {
 }
 
 export const DemoStage = forwardRef<HTMLDivElement, DemoStageProps>(function DemoStage(
-  { children, className, scroll = false, height, id },
+  { children, className, scroll = false, height, id, ...props },
   ref
 ) {
   const innerRef = useRef<HTMLDivElement>(null);
@@ -27,7 +27,8 @@ export const DemoStage = forwardRef<HTMLDivElement, DemoStageProps>(function Dem
         scroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
         className
       )}
-      style={height ? { height: typeof height === 'number' ? `${height}px` : height } : undefined}>
+      style={height ? { height: typeof height === 'number' ? `${height}px` : height } : undefined}
+      {...props}>
       {children}
     </div>
   );

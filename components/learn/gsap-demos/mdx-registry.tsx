@@ -67,6 +67,17 @@ export const gsapDemoComponents = {
   GsapErrorShake: demo(() => import('./ui-patterns'), 'GsapErrorShake'),
   GsapCssPressOnly: demo(() => import('./ui-patterns'), 'GsapCssPressOnly'),
 
+  GsapSharedElementPrimitive: demo(() => import('./primitives'), 'GsapSharedElementPrimitive'),
+  GsapSharedElementTabs: demo(() => import('./primitives'), 'GsapSharedElementTabs'),
+  GsapOriginAwarePrimitive: demo(() => import('./primitives'), 'GsapOriginAwarePrimitive'),
+  GsapChapterNav: demo(() => import('./primitives'), 'GsapChapterNav'),
+  GsapDirectionAwarePrimitive: demo(() => import('./primitives'), 'GsapDirectionAwarePrimitive'),
+  GsapDirectionAwareTabs: demo(() => import('./primitives'), 'GsapDirectionAwareTabs'),
+  GsapContinuityPrimitive: demo(() => import('./primitives'), 'GsapContinuityPrimitive'),
+  GsapSearchExpand: demo(() => import('./primitives'), 'GsapSearchExpand'),
+  GsapMergePrimitive: demo(() => import('./primitives'), 'GsapMergePrimitive'),
+  GsapGlyphMerge: demo(() => import('./primitives'), 'GsapGlyphMerge'),
+
   GsapSplitTextHeadline: demo(() => import('./text'), 'GsapSplitTextHeadline'),
   GsapScrambleLabel: demo(() => import('./text'), 'GsapScrambleLabel'),
   GsapNumberTicker: demo(() => import('./text'), 'GsapNumberTicker'),

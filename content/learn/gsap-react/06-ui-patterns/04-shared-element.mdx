@@ -1,0 +1,78 @@
+---
+title: 'Shared element'
+description: 'One highlight travels and transforms between items — the active-item primitive.'
+icon: 'MousePointer2'
+---
+
+## The primitive
+
+A **shared element transition** moves one element from where it was to where it goes next. For active UI chrome, that element is a single persistent pill — not a new background remounted on the active tab.
+
+Tween `x` and `scaleX` (layout width = first item). Do **not** tween `width`.
+
+<ComponentPreview>
+  <GsapSharedElementPrimitive />
+
+  <DocsFileTabs title="Shared element">
+
+```tsx title="shared-element.tsx"
+// pill width = first target; travel with x + scaleX
+gsap.to('.gsap-indicator', {
+  x: target.offsetLeft,
+  scaleX: target.offsetWidth / baseWidth,
+  duration: 0.28,
+  ease: 'power2.inOut',
+  transformOrigin: 'left center',
+  overwrite: 'auto',
+});
+```
+
+```html title="shared-element-markup.html"
+<div class="relative flex gap-1 rounded-lg bg-muted p-1">
+  <span class="gsap-indicator absolute inset-y-1 left-0 rounded-md bg-card"></span>
+  <button class="gsap-indicator-target flex-1">A</button>
+  <button class="gsap-indicator-target flex-1">B</button>
+  <button class="gsap-indicator-target flex-1">C</button>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Skip from A to C — the pill must **slide**, not pop. Remounting the pill inside the active button makes Flip / CSS look like a snap.
+
+Close alternate: **layout animation** (size and position animate instead of snapping). Same job; `x` + `scaleX` is the GPU-friendly path.
+
+## Use case — segmented tabs
+
+Same indicator, product labels:
+
+<ComponentPreview>
+  <GsapSharedElementTabs />
+
+  <DocsFileTabs title="Segmented tabs">
+
+```tsx title="segmented-tabs.tsx"
+gsap.to('.gsap-indicator', {
+  x: target.offsetLeft,
+  scaleX: target.offsetWidth / baseWidth,
+  duration: 0.28,
+  ease: 'power2.inOut',
+  transformOrigin: 'left center',
+  overwrite: 'auto',
+});
+```
+
+```html title="segmented-tabs-markup.html"
+<div class="relative flex gap-1 rounded-lg bg-muted p-1">
+  <span class="gsap-indicator absolute inset-y-1 left-0 rounded-md bg-card shadow-sm"></span>
+  <button class="gsap-indicator-target">Overview</button>
+  <button class="gsap-indicator-target">Analytics</button>
+  <button class="gsap-indicator-target">Billing</button>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Panel content here is static. For directional content swaps, see [Direction-aware](/learn/gsap-react/ui-patterns/direction-aware).
