@@ -1,19 +1,19 @@
 ---
-title: 'Direction-aware'
+title: 'Directional slide'
 description: 'Content slides with navigation direction; compose a traveling underline for the active tab.'
 icon: 'MousePointer2'
 ---
 
 ## The primitive
 
-A **direction-aware transition** slides one way going forward and the opposite way going back. Sign of `next - prev` chooses `xPercent`.
+A **directional slide** enters from the side that matches navigation — forward slides in from the right, back from the left. Sign of `next - prev` chooses `xPercent`.
 
 <ComponentPreview>
-  <GsapDirectionAwarePrimitive />
+  <GsapDirectionalSlidePrimitive />
 
-  <DocsFileTabs title="Direction-aware">
+  <DocsFileTabs title="Directional slide">
 
-```tsx title="direction-aware.tsx"
+```tsx title="directional-slide.tsx"
 const dir = Math.sign(next - prev); // 1 forward, -1 back
 if (dir === 0) return; // skip first paint
 gsap.fromTo(
@@ -23,7 +23,7 @@ gsap.fromTo(
 );
 ```
 
-```html title="direction-aware-markup.html"
+```html title="directional-slide-markup.html"
 <button>1</button>
 <button>2</button>
 <button>3</button>
@@ -38,9 +38,9 @@ gsap.fromTo(
 Compose with a **shared element** underline (persistent `x` + `scaleX`). Do not conditional-render the underline — that snaps.
 
 <ComponentPreview>
-  <GsapDirectionAwareTabs />
+  <GsapDirectionalSlideTabs />
 
-  <DocsFileTabs title="Tabs with direction">
+  <DocsFileTabs title="Tabs with directional slide">
 
 ```tsx title="direction-tabs.tsx"
 // underline — shared element
@@ -53,7 +53,7 @@ gsap.to('.gsap-indicator', {
   overwrite: 'auto',
 });
 
-// panel — direction-aware
+// panel — directional slide
 const dir = Math.sign(next - prev);
 gsap.fromTo(
   '.gsap-dir-panel',

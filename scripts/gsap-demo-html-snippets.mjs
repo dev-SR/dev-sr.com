@@ -385,7 +385,7 @@ export const HTML_SNIPPETS = {
   <button class="gsap-indicator-target">Billing</button>
 </div>`,
 
-  'origin-aware.tsx': `<nav>
+  'anchored-scale.tsx': `<nav>
   <button>
     <span>01</span>
     <span class="gsap-origin-bar"></span>
@@ -401,7 +401,7 @@ export const HTML_SNIPPETS = {
 </nav>
 <section id="gsap-chapter-0" class="gsap-chapter-section">Overview</section>`,
 
-  'direction-aware.tsx': `<button>1</button>
+  'directional-slide.tsx': `<button>1</button>
 <button>2</button>
 <button>3</button>
 <div class="gsap-dir-panel">Panel content</div>`,
@@ -432,7 +432,16 @@ export const HTML_SNIPPETS = {
   <div class="gsap-merge-result absolute size-16 rounded-xl"></div>
 </div>`,
 
+  'merge-absorb.tsx': `<div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-beam absolute h-0.5 w-20 rounded-full bg-accent"></div>
+  <div class="gsap-merge-left absolute size-16 rounded-xl border"></div>
+  <span class="gsap-merge-plus absolute">+</span>
+  <div class="gsap-merge-right absolute size-16 rounded-xl border"></div>
+  <div class="gsap-merge-result absolute size-16 rounded-xl"></div>
+</div>`,
+
   'glyph-merge.tsx': `<div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-beam absolute h-0.5 w-20 bg-accent"></div>
   <div class="gsap-merge-left absolute">ে</div>
   <span class="gsap-merge-plus">+</span>
   <div class="gsap-merge-right absolute">ক</div>

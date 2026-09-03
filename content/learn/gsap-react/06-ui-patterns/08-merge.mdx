@@ -1,74 +1,28 @@
 ---
 title: 'Merge'
-description: 'Anticipation, motion blur, particle impact, and an elastic emerge — rare delight merge.'
+description: 'Collision merge vs true absorb merge — dissolve into the meeting point while the result emerges.'
 icon: 'Sparkles'
 ---
 
-## The primitive
+## Collision merge
 
-A **merge** collapses two elements into one meeting point, then a single result **emerges**. Both tile **centers** land on `midX` so they never cross. Opacity fades as they converge. Blur, particles, and elastic pop sell the impact. This is not MorphSVG.
-
-Sequence:
-
-1. **Anticipation** — lift + glow (opaque)
-2. **Converge** — both centers land on `midX` (`meetLeft = midX - tileW/2`); `scale` + `autoAlpha` together, no overshoot
-3. **Impact** — particle burst + expanding glow ring
-4. **Collapse** — scale into the point, fade out
-5. **Birth** — result elastic pop from `0.25` with brightness flash
-6. **Settle** — soften the glow
+Tiles meet at `midX`, fade, then the result pops in **after** they vanish. Clear impact, but it can read as a cut.
 
 <ComponentPreview replay>
   <GsapMergePrimitive />
 
-  <DocsFileTabs title="Merge">
+  <DocsFileTabs title="Collision merge">
 
 ```tsx title="merge.tsx"
-const midX = stageW / 2;
-const meetLeft = midX - tileW / 2; // both centers land on midX
-const leftTravelX = meetLeft; // from left: 0
-const rightTravelX = meetLeft - rightStart; // from left: rightStart
-
-gsap.set([left, right, result], { transformOrigin: '50% 50%' });
-
-tl.to([left, right], { y: -8, duration: 0.28, ease: 'power2.out' })
-  .to(left, {
-    x: leftTravelX,
-    scale: 0.35,
-    autoAlpha: 0.35,
-    filter: 'blur(1px) drop-shadow(0 0 14px #a78bfa)',
-    duration: 0.5,
-    ease: 'power2.inOut',
-  }, 'merge')
-  .to(right, {
-    x: rightTravelX,
-    scale: 0.35,
-    autoAlpha: 0.35,
-    filter: 'blur(1px) drop-shadow(0 0 14px #a78bfa)',
-    duration: 0.5,
-    ease: 'power2.inOut',
-  }, 'merge')
-  .add(() => {
-    spawnParticles(midX, midY, '#f472b6');
-    spawnGlowRing(midX, midY);
-  })
-  .to([left, right], {
-    autoAlpha: 0,
-    scale: 0.12,
-    filter: 'blur(6px)',
-    duration: 0.22,
-    ease: 'power2.in',
-  })
-  .fromTo(result,
-    { scale: 0.25, autoAlpha: 0, filter: 'blur(8px) brightness(2)' },
-    {
-      scale: 1,
-      autoAlpha: 1,
-      filter: 'blur(0px) brightness(1) drop-shadow(0 0 22px #f472b6)',
-      duration: 0.55,
-      ease: 'elastic.out(1, 0.55)',
-    }
-  )
-  .to(result, { filter: 'drop-shadow(0 0 10px #f472b6)', duration: 0.4 });
+const meetLeft = midX - tileW / 2;
+tl.to([left, right], { y: -8, duration: 0.28 })
+  .to(left, { x: meetLeft, scale: 0.35, autoAlpha: 0.35, filter: 'blur(1px)', duration: 0.5 }, 'merge')
+  .to(right, { x: meetLeft - rightStart, scale: 0.35, autoAlpha: 0.35, filter: 'blur(1px)', duration: 0.5 }, 'merge')
+  .add(() => spawnParticles(midX, midY))
+  .to([left, right], { autoAlpha: 0, scale: 0.12, duration: 0.22 })
+  .fromTo(result, { scale: 0.25, autoAlpha: 0 }, {
+    scale: 1, autoAlpha: 1, duration: 0.55, ease: 'elastic.out(1, 0.55)',
+  });
 ```
 
 ```html title="merge-markup.html"
@@ -83,13 +37,67 @@ tl.to([left, right], { y: -8, duration: 0.28, ease: 'power2.out' })
   </DocsFileTabs>
 </ComponentPreview>
 
-Particles and the glow ring are temporary DOM nodes appended at impact, then removed in `onComplete`. Prefer `prefers-reduced-motion`: skip blur / particles / elastic — fade to the result only.
+## Absorb merge (true merge)
 
-Keep left, right, and result in the DOM for the whole timeline — remounting mid-sequence kills the handoff.
+Not collision-and-swap: the pieces **dissolve into** the meeting point while the result **emerges from the same space**.
+
+1. Lift
+2. Slide toward each other with a connecting **beam**
+3. Overlap — particle burst + beam flash
+4. **Absorb** — shrink + blur + fade into `midX`
+5. **Result** starts mid-absorb (`absorb+=0.06`) with elastic overshoot
+
+<ComponentPreview replay>
+  <GsapMergeAbsorb />
+
+  <DocsFileTabs title="Absorb merge">
+
+```tsx title="merge-absorb.tsx"
+tl.to([left, right], { y: -6, duration: 0.35, ease: 'power2.out' })
+  .to(left, { x: leftOverlapX, duration: 0.5, ease: 'power2.inOut' }, 'converge')
+  .to(right, { x: rightOverlapX, duration: 0.5, ease: 'power2.inOut' }, 'converge')
+  .to(beam, { autoAlpha: 0.75, scaleX: 1, duration: 0.4 }, 'converge')
+  .add(() => spawnParticles(midX, midY))
+  .to(beam, { autoAlpha: 0, scaleX: 1.55, filter: 'brightness(2.2)', duration: 0.3 })
+  // absorb + emerge overlap — this is the merge
+  .to(left, {
+    x: leftTravelX, scale: 0.55, autoAlpha: 0, filter: 'blur(3px)',
+    duration: 0.35, ease: 'power2.in',
+  }, 'absorb')
+  .to(right, {
+    x: rightTravelX, scale: 0.7, autoAlpha: 0, filter: 'blur(2px)',
+    duration: 0.35, ease: 'power2.in',
+  }, 'absorb')
+  .fromTo(result,
+    { scale: 0.3, autoAlpha: 0, filter: 'blur(8px) brightness(2)' },
+    {
+      scale: 1, autoAlpha: 1, filter: 'blur(0px) brightness(1)',
+      duration: 0.65, ease: 'elastic.out(1, 0.5)',
+    },
+    'absorb+=0.06'
+  );
+```
+
+```html title="merge-absorb-markup.html"
+<div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-beam absolute h-0.5 w-20 rounded-full bg-accent"></div>
+  <div class="gsap-merge-left absolute size-16 rounded-xl border"></div>
+  <span class="gsap-merge-plus absolute">+</span>
+  <div class="gsap-merge-right absolute size-16 rounded-xl border"></div>
+  <div class="gsap-merge-result absolute size-16 rounded-xl"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+<Callout variant="tip" title="Overlap the labels">
+  Start the result tween on `absorb+=0.06`, not after absorb finishes. That handoff is what sells reconstitution instead of a cut.
+</Callout>
 
 ## Use case — glyph merge
 
-Same polished merge: `ে` + `ক` → `কে`. Do not MorphSVG letter outlines unless you already have production path data.
+`ে` + `ক` → `কে` using the absorb variation.
 
 <ComponentPreview replay>
   <GsapGlyphMerge />
@@ -97,20 +105,23 @@ Same polished merge: `ে` + `ক` → `কে`. Do not MorphSVG letter outlines
   <DocsFileTabs title="Glyph merge">
 
 ```tsx title="glyph-merge.tsx"
-const meetLeft = midX - tileW / 2;
-// same merge timeline; result shows কে
-.to(left, { x: meetLeft, scale: 0.35, autoAlpha: 0.35, duration: 0.5 }, 'merge')
-.to(right, { x: meetLeft - rightStart, scale: 0.35, autoAlpha: 0.35, duration: 0.5 }, 'merge')
-.add(() => { spawnParticles(midX, midY); spawnGlowRing(midX, midY); })
-.to([left, right], { autoAlpha: 0, scale: 0.12, duration: 0.22 })
+// same absorb timeline; result shows কে
+.to(left, { x: leftOverlapX, duration: 0.5 }, 'converge')
+.to(right, { x: rightOverlapX, duration: 0.5 }, 'converge')
+.to(beam, { autoAlpha: 0.75, scaleX: 1, duration: 0.4 }, 'converge')
+.add(() => spawnParticles(midX, midY))
+.to(left, { x: leftTravelX, scale: 0.55, autoAlpha: 0, filter: 'blur(3px)', duration: 0.35 }, 'absorb')
+.to(right, { x: rightTravelX, scale: 0.7, autoAlpha: 0, filter: 'blur(2px)', duration: 0.35 }, 'absorb')
 .fromTo(result,
-  { scale: 0.25, autoAlpha: 0, filter: 'blur(8px) brightness(2)' },
-  { scale: 1, autoAlpha: 1, duration: 0.55, ease: 'elastic.out(1, 0.55)' }
+  { scale: 0.3, autoAlpha: 0, filter: 'blur(8px) brightness(2)' },
+  { scale: 1, autoAlpha: 1, duration: 0.65, ease: 'elastic.out(1, 0.5)' },
+  'absorb+=0.06'
 );
 ```
 
 ```html title="glyph-merge-markup.html"
 <div class="relative h-24 w-56 overflow-visible">
+  <div class="gsap-merge-beam absolute h-0.5 w-20 bg-accent"></div>
   <div class="gsap-merge-left absolute">ে</div>
   <span class="gsap-merge-plus">+</span>
   <div class="gsap-merge-right absolute">ক</div>

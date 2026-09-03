@@ -1,28 +1,28 @@
 ---
-title: 'Origin-aware'
+title: 'Anchored scale'
 description: 'scaleY grows from the edge you came from — directional state on a rail.'
 icon: 'MousePointer2'
 ---
 
 ## The primitive
 
-**Origin-aware animation** grows or shrinks from a meaningful edge. On a vertical rail, the active tick uses `scaleY` with `transformOrigin` that flips by direction — down from the top (`100% 0%`), up from the bottom (`100% 100%`).
+An **anchored scale** grows or shrinks from a meaningful edge. On a vertical rail, the active tick uses `scaleY` with `transformOrigin` that flips by direction — down from the top (`100% 0%`), up from the bottom (`100% 100%`).
 
 This is **not** a shared element. Each tick has its own bar; you grow the next and collapse the previous.
 
 <ComponentPreview>
-  <GsapOriginAwarePrimitive />
+  <GsapAnchoredScalePrimitive />
 
-  <DocsFileTabs title="Origin-aware">
+  <DocsFileTabs title="Anchored scale">
 
-```tsx title="origin-aware.tsx"
+```tsx title="anchored-scale.tsx"
 const down = index > prev;
 gsap.to('.gsap-origin-bar', { scaleY: 0, duration: 0.2, ease: 'power2.inOut', overwrite: 'auto' });
 gsap.set(activeBar, { transformOrigin: down ? '100% 0%' : '100% 100%' });
 gsap.to(activeBar, { scaleY: 1, duration: 0.2, ease: 'power2.inOut', overwrite: 'auto' });
 ```
 
-```html title="origin-aware-markup.html"
+```html title="anchored-scale-markup.html"
 <nav>
   <button>
     <span>01</span>

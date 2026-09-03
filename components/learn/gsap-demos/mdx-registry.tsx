@@ -69,13 +69,14 @@ export const gsapDemoComponents = {
 
   GsapSharedElementPrimitive: demo(() => import('./primitives'), 'GsapSharedElementPrimitive'),
   GsapSharedElementTabs: demo(() => import('./primitives'), 'GsapSharedElementTabs'),
-  GsapOriginAwarePrimitive: demo(() => import('./primitives'), 'GsapOriginAwarePrimitive'),
+  GsapAnchoredScalePrimitive: demo(() => import('./primitives'), 'GsapAnchoredScalePrimitive'),
   GsapChapterNav: demo(() => import('./primitives'), 'GsapChapterNav'),
-  GsapDirectionAwarePrimitive: demo(() => import('./primitives'), 'GsapDirectionAwarePrimitive'),
-  GsapDirectionAwareTabs: demo(() => import('./primitives'), 'GsapDirectionAwareTabs'),
+  GsapDirectionalSlidePrimitive: demo(() => import('./primitives'), 'GsapDirectionalSlidePrimitive'),
+  GsapDirectionalSlideTabs: demo(() => import('./primitives'), 'GsapDirectionalSlideTabs'),
   GsapContinuityPrimitive: demo(() => import('./primitives'), 'GsapContinuityPrimitive'),
   GsapSearchExpand: demo(() => import('./primitives'), 'GsapSearchExpand'),
   GsapMergePrimitive: demo(() => import('./primitives'), 'GsapMergePrimitive'),
+  GsapMergeAbsorb: demo(() => import('./primitives'), 'GsapMergeAbsorb'),
   GsapGlyphMerge: demo(() => import('./primitives'), 'GsapGlyphMerge'),
 
   GsapSplitTextHeadline: demo(() => import('./text'), 'GsapSplitTextHeadline'),

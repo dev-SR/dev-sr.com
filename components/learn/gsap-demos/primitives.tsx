@@ -131,11 +131,11 @@ export function GsapSharedElementTabs() {
   );
 }
 
-/* ─── Origin-aware ─── */
+/* ─── Anchored scale ─── */
 
 const TICKS = 5;
 
-export function GsapOriginAwarePrimitive() {
+export function GsapAnchoredScalePrimitive() {
   const scope = useRef<HTMLDivElement>(null);
   const activeRef = useRef(0);
   const [active, setActiveState] = useState(0);
@@ -356,9 +356,9 @@ export function GsapChapterNav() {
   );
 }
 
-/* ─── Direction-aware ─── */
+/* ─── Directional slide ─── */
 
-export function GsapDirectionAwarePrimitive() {
+export function GsapDirectionalSlidePrimitive() {
   const scope = useRef<HTMLDivElement>(null);
   const prevRef = useRef(0);
   const [active, setActive] = useState(0);
@@ -402,7 +402,7 @@ export function GsapDirectionAwarePrimitive() {
   );
 }
 
-export function GsapDirectionAwareTabs() {
+export function GsapDirectionalSlideTabs() {
   const scope = useRef<HTMLDivElement>(null);
   const prevRef = useRef(0);
   const [active, setActive] = useState(0);
@@ -567,9 +567,7 @@ export function GsapSearchExpand() {
 
 /* ─── Merge ─── */
 
-const MERGE_GLOW = '#f472b6';
-const MERGE_TRAIL = '#a78bfa';
-const MERGE_RING = '#38bdf8';
+const MERGE_PARTICLE = '#f472b6';
 
 function spawnMergeParticles(stage: HTMLElement, x: number, y: number, color: string) {
   for (let i = 0; i < 12; i++) {
@@ -595,29 +593,6 @@ function spawnMergeParticles(stage: HTMLElement, x: number, y: number, color: st
       onComplete: () => p.remove(),
     });
   }
-}
-
-function spawnMergeGlowRing(stage: HTMLElement, x: number, y: number) {
-  const ring = document.createElement('div');
-  ring.setAttribute('aria-hidden', 'true');
-  ring.className = 'pointer-events-none absolute size-20 rounded-full border-2';
-  ring.style.left = `${x - 40}px`;
-  ring.style.top = `${y - 40}px`;
-  ring.style.borderColor = MERGE_RING;
-  ring.style.zIndex = '15';
-  stage.appendChild(ring);
-
-  gsap.fromTo(
-    ring,
-    { scale: 0.45, opacity: 0.85 },
-    {
-      scale: 2.1,
-      opacity: 0,
-      duration: 0.75,
-      ease: 'power2.out',
-      onComplete: () => ring.remove(),
-    }
-  );
 }
 
 type MergeDemoConfig = {
@@ -706,12 +681,11 @@ function MergeStage({
 
       const tl = gsap.timeline();
 
-      // 1. Anticipation — lift + glow
+      // 1. Anticipation — lift
       tl.to([left, right], {
         y: -8,
         duration: 0.28,
         ease: 'power2.out',
-        filter: `drop-shadow(0 0 14px ${MERGE_TRAIL})`,
       });
 
       if (plus) {
@@ -726,7 +700,7 @@ function MergeStage({
           y: 0,
           scale: 0.35,
           autoAlpha: 0.35,
-          filter: `blur(1px) drop-shadow(0 0 14px ${MERGE_TRAIL})`,
+          filter: 'blur(1px)',
           duration: 0.5,
           ease: 'power2.inOut',
         },
@@ -738,17 +712,16 @@ function MergeStage({
           y: 0,
           scale: 0.35,
           autoAlpha: 0.35,
-          filter: `blur(1px) drop-shadow(0 0 14px ${MERGE_TRAIL})`,
+          filter: 'blur(1px)',
           duration: 0.5,
           ease: 'power2.inOut',
         },
         'merge'
       );
 
-      // 3. Impact — particles + glow ring at midX / midY
+      // 3. Impact — particles at midX / midY
       tl.add(() => {
-        spawnMergeParticles(root, midX, midY, MERGE_GLOW);
-        spawnMergeGlowRing(root, midX, midY);
+        spawnMergeParticles(root, midX, midY, MERGE_PARTICLE);
       });
 
       // 4. Collapse into the shared point
@@ -771,18 +744,11 @@ function MergeStage({
         {
           scale: 1,
           autoAlpha: 1,
-          filter: `blur(0px) brightness(1) drop-shadow(0 0 22px ${MERGE_GLOW})`,
+          filter: 'blur(0px) brightness(1)',
           duration: 0.55,
           ease: 'elastic.out(1, 0.55)',
         }
       );
-
-      // 6. Settle glow
-      tl.to(result, {
-        filter: `drop-shadow(0 0 10px ${MERGE_GLOW})`,
-        duration: 0.4,
-        ease: 'power1.out',
-      });
     },
     { scope }
   );
@@ -832,9 +798,260 @@ export function GsapMergePrimitive() {
   );
 }
 
+/** True merge: slide → beam → absorb into the point while the result emerges from the same space. */
+function MergeAbsorbStage({
+  tileClass,
+  resultClass,
+  leftContent,
+  rightContent,
+  resultContent,
+  fontClassName,
+}: MergeDemoConfig) {
+  const scope = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const root = scope.current;
+      if (!root) return;
+
+      const left = root.querySelector<HTMLElement>('.gsap-merge-left');
+      const right = root.querySelector<HTMLElement>('.gsap-merge-right');
+      const plus = root.querySelector<HTMLElement>('.gsap-merge-plus');
+      const beam = root.querySelector<HTMLElement>('.gsap-merge-beam');
+      const result = root.querySelector<HTMLElement>('.gsap-merge-result');
+      if (!left || !right || !result) return;
+
+      const reduce =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const stageW = root.clientWidth;
+      const stageH = root.clientHeight;
+      const tileW = left.offsetWidth;
+      const tileH = left.offsetHeight;
+      const midX = stageW / 2;
+      const midY = stageH / 2;
+      const rightStart = stageW - tileW;
+      const meetLeft = midX - tileW / 2;
+      const leftTravelX = meetLeft;
+      const rightTravelX = meetLeft - rightStart;
+      // Partial converge so tiles overlap before absorb (never cross midX centers past each other)
+      const leftOverlapX = leftTravelX * 0.72;
+      const rightOverlapX = rightTravelX * 0.72;
+
+      const top = (stageH - tileH) / 2;
+
+      gsap.set(left, {
+        left: 0,
+        top,
+        x: 0,
+        y: 0,
+        scale: 1,
+        autoAlpha: 1,
+        filter: 'none',
+        transformOrigin: '50% 50%',
+      });
+      gsap.set(right, {
+        left: rightStart,
+        top,
+        x: 0,
+        y: 0,
+        scale: 1,
+        autoAlpha: 1,
+        filter: 'none',
+        transformOrigin: '50% 50%',
+      });
+      gsap.set(result, {
+        left: meetLeft,
+        top,
+        scale: 0.3,
+        autoAlpha: 0,
+        filter: 'none',
+        transformOrigin: '50% 50%',
+      });
+      if (plus) gsap.set(plus, { autoAlpha: 1, scale: 1 });
+      if (beam) {
+        gsap.set(beam, {
+          left: midX,
+          top: midY,
+          xPercent: -50,
+          yPercent: -50,
+          scaleX: 0.2,
+          autoAlpha: 0,
+          transformOrigin: '50% 50%',
+          filter: 'none',
+        });
+      }
+
+      if (reduce) {
+        const tl = gsap.timeline();
+        if (plus) tl.to(plus, { autoAlpha: 0, duration: 0.1 });
+        if (beam) tl.set(beam, { autoAlpha: 0 });
+        tl.to([left, right], { autoAlpha: 0, duration: 0.12 }, 0);
+        tl.to(result, { autoAlpha: 1, scale: 1, duration: 0.18, ease: 'power1.out' });
+        return;
+      }
+
+      const tl = gsap.timeline();
+
+      // 1. Lift & energize
+      tl.to([left, right], {
+        y: -6,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+
+      if (plus) {
+        tl.to(plus, { autoAlpha: 0, scale: 0.95, duration: 0.12, ease: 'power2.out' }, '<0.08');
+      }
+
+      // 2. Slide toward each other + connecting beam
+      tl.to(
+        left,
+        {
+          x: leftOverlapX,
+          y: 0,
+          duration: 0.5,
+          ease: 'power2.inOut',
+        },
+        'converge'
+      )
+        .to(
+          right,
+          {
+            x: rightOverlapX,
+            y: 0,
+            duration: 0.5,
+            ease: 'power2.inOut',
+          },
+          'converge'
+        );
+
+      if (beam) {
+        tl.to(
+          beam,
+          {
+            autoAlpha: 0.75,
+            scaleX: 1,
+            duration: 0.4,
+            ease: 'power2.out',
+          },
+          'converge'
+        );
+      }
+
+      // 3. Overlap flash — particles + beam pop
+      tl.add(() => {
+        spawnMergeParticles(root, midX, midY, MERGE_PARTICLE);
+      });
+
+      if (beam) {
+        tl.to(beam, {
+          autoAlpha: 0,
+          scaleX: 1.55,
+          filter: 'brightness(2.2)',
+          duration: 0.3,
+          ease: 'power2.out',
+        });
+      }
+
+      // 4–5. Absorb INTO the merge point while result emerges from the same space
+      tl.to(
+        left,
+        {
+          x: leftTravelX,
+          scale: 0.55,
+          autoAlpha: 0,
+          filter: 'blur(3px)',
+          duration: 0.35,
+          ease: 'power2.in',
+        },
+        'absorb'
+      )
+        .to(
+          right,
+          {
+            x: rightTravelX,
+            scale: 0.7,
+            autoAlpha: 0,
+            filter: 'blur(2px)',
+            duration: 0.35,
+            ease: 'power2.in',
+          },
+          'absorb'
+        )
+        .fromTo(
+          result,
+          {
+            scale: 0.3,
+            autoAlpha: 0,
+            filter: 'blur(8px) brightness(2)',
+          },
+          {
+            scale: 1,
+            autoAlpha: 1,
+            filter: 'blur(0px) brightness(1)',
+            duration: 0.65,
+            ease: 'elastic.out(1, 0.5)',
+          },
+          'absorb+=0.06'
+        );
+    },
+    { scope }
+  );
+
+  return (
+    <DemoStage
+      className={cn(
+        'flex items-center justify-center overflow-visible p-10',
+        fontClassName
+      )}>
+      <div ref={scope} className="relative h-24 w-56 overflow-visible">
+        <div
+          aria-hidden
+          className="gsap-merge-beam pointer-events-none absolute z-[5] h-0.5 w-20 rounded-full bg-accent"
+        />
+        <div
+          className={cn(
+            'gsap-merge-left absolute z-10 flex items-center justify-center will-change-transform',
+            tileClass
+          )}>
+          {leftContent}
+        </div>
+        <span className="gsap-merge-plus pointer-events-none absolute top-1/2 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+          +
+        </span>
+        <div
+          className={cn(
+            'gsap-merge-right absolute z-10 flex items-center justify-center will-change-transform',
+            tileClass
+          )}>
+          {rightContent}
+        </div>
+        <div
+          className={cn(
+            'gsap-merge-result absolute z-20 flex items-center justify-center will-change-transform',
+            resultClass
+          )}>
+          {resultContent}
+        </div>
+      </div>
+    </DemoStage>
+  );
+}
+
+export function GsapMergeAbsorb() {
+  return (
+    <MergeAbsorbStage
+      tileClass="size-16 rounded-xl border border-border bg-card shadow-sm"
+      resultClass="size-16 rounded-xl border border-border bg-accent/80 shadow-sm"
+    />
+  );
+}
+
 export function GsapGlyphMerge() {
   return (
-    <MergeStage
+    <MergeAbsorbStage
       fontClassName={notoBengali.className}
       tileClass="size-20 rounded-xl border border-border bg-card shadow-sm"
       resultClass="size-20 rounded-xl border border-border bg-card shadow-sm"
