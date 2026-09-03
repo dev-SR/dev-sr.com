@@ -1,0 +1,82 @@
+---
+title: 'Text Motion'
+description: 'SplitText headlines, ScrambleText loading states, and number tickers.'
+icon: 'Sparkles'
+---
+
+## SplitText headline
+
+<ComponentPreview replay>
+  <GsapSplitTextHeadline />
+
+  <DocsFileTabs title="Split text">
+
+```tsx title="split-text.tsx"
+import { SplitText } from 'gsap/SplitText';
+gsap.registerPlugin(SplitText);
+
+const split = SplitText.create('.headline', { type: 'words,chars' });
+gsap.from(split.chars, { y: 20, autoAlpha: 0, stagger: 0.02, duration: 0.35 });
+return () => split.revert();
+```
+
+```html title="split-text-markup.html"
+<h3 class="gsap-headline text-xl font-bold">
+  Ship motion that feels right
+</h3>
+<!-- SplitText splits into chars: split.chars -->
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Split only what you animate (`words,chars` without `lines` when lines are not needed).
+
+## ScrambleText
+
+<ComponentPreview replay>
+  <GsapScrambleLabel />
+
+  <DocsFileTabs title="Scramble text">
+
+```tsx title="scramble-text.tsx"
+gsap.to('.label', {
+  duration: 1.2,
+  scrambleText: { text: 'Deployment complete', chars: '01', revealDelay: 0.4 },
+});
+```
+
+```html title="scramble-text-markup.html"
+<p class="gsap-scramble font-mono">Loading........</p>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Number ticker
+
+Use **`tabular-nums`** so digits do not shift:
+
+<ComponentPreview replay>
+  <GsapNumberTicker />
+
+  <DocsFileTabs title="Number ticker">
+
+```tsx title="number-ticker.tsx"
+gsap.to(obj, {
+  value: 2847,
+  duration: 1.5,
+  ease: 'power2.out',
+  onUpdate: () => { el.textContent = Math.round(obj.value).toLocaleString(); },
+});
+```
+
+```html title="number-ticker-markup.html"
+<div class="text-center">
+  <p>Active users</p>
+  <p class="gsap-ticker text-3xl font-bold tabular-nums">0</p>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>

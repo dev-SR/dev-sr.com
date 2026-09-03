@@ -1,0 +1,115 @@
+---
+title: 'Stagger'
+description: 'Offset multiple targets — grids, nav, chat, and filter results.'
+icon: 'Layers3'
+---
+
+## Simple stagger
+
+```tsx
+stagger: 0.06  // 0.06s between each target
+```
+
+## Dashboard grid
+
+<ComponentPreview replay>
+  <GsapStaggerGrid />
+
+  <DocsFileTabs title="Stagger grid">
+
+```tsx title="stagger-grid.tsx"
+gsap.from('.gsap-card', {
+  y: 20,
+  autoAlpha: 0,
+  duration: 0.35,
+  ease: 'power2.out',
+  stagger: 0.06,
+});
+```
+
+```html title="stagger-grid-markup.html"
+<div class="gsap-card-grid grid grid-cols-3 gap-2">
+  <article class="gsap-card rounded-lg border bg-card p-3">Metric 1</article>
+  <article class="gsap-card rounded-lg border bg-card p-3">Metric 2</article>
+  <article class="gsap-card rounded-lg border bg-card p-3">Metric 3</article>
+  <!-- …more .gsap-card items -->
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Sidebar nav (`amount`)
+
+<ComponentPreview replay>
+  <GsapStaggerNav />
+
+  <DocsFileTabs title="Stagger nav">
+
+```tsx title="stagger-nav.tsx"
+gsap.from('.gsap-nav-item', {
+  x: -16,
+  autoAlpha: 0,
+  stagger: { amount: 0.4, from: 'start' },
+});
+```
+
+```html title="stagger-nav-markup.html"
+<nav class="gsap-nav flex flex-col gap-1">
+  <span class="gsap-nav-item rounded-md px-3 py-2">Overview</span>
+  <span class="gsap-nav-item rounded-md px-3 py-2">Analytics</span>
+  <span class="gsap-nav-item rounded-md px-3 py-2">Team</span>
+</nav>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## From center
+
+<ComponentPreview replay>
+  <GsapStaggerCenter />
+
+  <DocsFileTabs title="Stagger center">
+
+```tsx title="stagger-center.tsx"
+stagger: { amount: 0.35, from: 'center' }
+// also: 'edges', 'random', index number
+```
+
+```html title="stagger-center-markup.html"
+<div class="flex flex-wrap gap-2">
+  <span class="gsap-pill rounded-full border px-3 py-1">Design</span>
+  <span class="gsap-pill rounded-full border px-3 py-1">Engineering</span>
+  <span class="gsap-pill rounded-full border px-3 py-1">Product</span>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Chat messages
+
+<ComponentPreview replay>
+  <GsapStaggerChat />
+
+  <DocsFileTabs title="Stagger chat">
+
+```tsx title="stagger-chat.tsx"
+gsap.from('.gsap-msg', { y: 12, autoAlpha: 0, stagger: 0.12, duration: 0.28, ease: 'power2.out' });
+```
+
+```html title="stagger-chat-markup.html"
+<div class="flex flex-col gap-2">
+  <div class="gsap-msg self-start rounded-lg px-3 py-2">Hey, ship today?</div>
+  <div class="gsap-msg self-end rounded-lg px-3 py-2">Almost — running tests.</div>
+  <div class="gsap-msg self-start rounded-lg px-3 py-2">Nice. Ping me when green.</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+<Callout variant="tip" title="Frequency">
+  Staggered group entrances belong on pages users see occasionally — not on lists navigated dozens of times per day.
+</Callout>

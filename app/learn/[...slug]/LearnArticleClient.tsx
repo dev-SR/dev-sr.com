@@ -67,10 +67,10 @@ export function LearnArticleClient({
           )}
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)_12rem] xl:grid-cols-[17rem_minmax(0,1fr)_13rem]">
+        <div className="grid items-start gap-8 lg:grid-cols-[16rem_minmax(0,1fr)_12rem] xl:grid-cols-[17rem_minmax(0,1fr)_13rem]">
           <div className="hidden lg:block">
             {courseNav && (
-              <div className="sticky top-28 h-[calc(100vh-8rem)]">
+              <div className="sticky top-28">
                 <DocsSidebar course={courseNav} />
               </div>
             )}

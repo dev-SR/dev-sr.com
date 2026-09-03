@@ -1,0 +1,132 @@
+---
+title: 'Getting Started'
+description: 'Your first GSAP tween in React with useGSAP, plugin registration, and autoAlpha.'
+icon: 'Play'
+---
+
+## Why GSAP in React?
+
+GSAP gives you **timeline sequencing**, **runtime control** (pause, reverse, seek), **scroll-linked animation**, and **SVG plugins** — things that get awkward in CSS alone. In React, the `@gsap/react` package provides `useGSAP()` for scoped setup and automatic cleanup.
+
+Prefer CSS for high-frequency feedback (button press). Use GSAP when motion has a job: orient the user, bridge a state change, or choreograph several elements.
+
+## First entrance: toast
+
+<ComponentPreview replay>
+  <GsapToastEnter />
+
+  <DocsFileTabs title="Toast enter">
+
+```tsx title="toast-enter.tsx"
+'use client';
+
+import { useRef } from 'react';
+import { gsap, useGSAP } from '@/lib/gsap';
+
+export function GsapToastEnter() {
+  const scope = useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      gsap.from('.gsap-toast', {
+        y: 24,
+        autoAlpha: 0,
+        duration: 0.35,
+        ease: 'power2.out',
+      });
+    },
+    { scope }
+  );
+
+  return (
+    <div ref={scope}>
+      <div className="gsap-toast rounded-lg border bg-card px-4 py-3 shadow-md">
+        Changes saved
+      </div>
+    </div>
+  );
+}
+```
+
+```html title="toast-enter-markup.html"
+<!-- scope ref wraps all GSAP targets -->
+<div>
+  <!-- gsap.from('.gsap-toast', …) -->
+  <div class="gsap-toast rounded-lg border bg-card px-4 py-3 shadow-md">
+    <p>Changes saved</p>
+    <p>Your settings were updated.</p>
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Click **Replay** to remount the preview and replay the entrance.
+
+### Key ideas
+
+- **`useGSAP(callback, { scope })`** — runs on the client; reverts tweens on unmount.
+- **`scope`** — limits selectors like `.gsap-toast` to descendants of the ref.
+- **`autoAlpha`** — animates opacity and toggles `visibility` at zero (better than raw `opacity` for dismissible UI).
+- **`gsap.from()`** — animates **from** the vars **to** the element's current state (great for entrances).
+
+## Empty state scale-in
+
+Never animate from `scale(0)` — start from `scale(0.95)` so the element does not appear from nowhere.
+
+<ComponentPreview replay>
+  <GsapEmptyStateEnter />
+
+  <DocsFileTabs title="Empty state">
+
+```tsx title="empty-state.tsx"
+gsap.from('.gsap-empty', {
+  scale: 0.95,
+  autoAlpha: 0,
+  duration: 0.4,
+  ease: 'power2.out',
+});
+```
+
+```html title="empty-state-markup.html"
+<div>
+  <!-- gsap.from('.gsap-empty', …) -->
+  <div class="gsap-empty flex flex-col items-center gap-2 rounded-xl border border-dashed px-8 py-10">
+    <div>✦</div>
+    <p>No projects yet</p>
+    <button>New project</button>
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## When CSS is enough
+
+<ComponentPreview>
+  <GsapCssPressOnly />
+
+  <DocsFileTabs title="Press feedback">
+
+```tsx title="press-feedback.css"
+.demo-press-btn:active {
+  transform: scale(0.97);
+  transition: transform 160ms ease-out;
+}
+```
+
+```html title="press-feedback-markup.html"
+<!-- CSS-only press — no GSAP -->
+<button class="demo-press-btn">Save changes</button>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+<Callout variant="dont" title="Do not GSAP everything">
+  Press feedback seen tens of times per day belongs in CSS — fast, interruptible, zero JS overhead.
+</Callout>
+
+Next: **Core** — tweens, transforms, easing, stagger, and playback control.

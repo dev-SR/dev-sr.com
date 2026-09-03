@@ -15,3 +15,5 @@ export function DocsFileTabs({ title, children, className }: DocsFileTabsProps) 
     </FileTabs>
   );
 }
+
+DocsFileTabs.displayName = 'DocsFileTabs';

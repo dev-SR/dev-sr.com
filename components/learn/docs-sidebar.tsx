@@ -10,14 +10,17 @@ import {
   Code2,
   Database,
   Layers3,
+  MousePointer2,
   Network,
+  Play,
+  ScrollText,
   Server,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
 import type { LearnNavNode } from '@/lib/learn';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -26,8 +29,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Code2,
   Database,
   Layers3,
+  MousePointer2,
   Network,
+  Play,
+  ScrollText,
   Server,
+  Sparkles,
 };
 
 function getIcon(name?: string) {
@@ -178,29 +185,27 @@ export function DocsSidebar({ course, className, rootLabel = 'Course' }: DocsSid
   }, [allAccordionSlugs]);
 
   return (
-    <aside className={cn('flex h-full min-h-0 flex-col', className)}>
+    <aside className={cn('flex flex-col', className)}>
       <div className="mb-4 px-2">
         <Link href={course.href} className="block rounded-md px-2 py-1.5 hover:bg-muted/50">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{rootLabel}</p>
           <p className="text-sm font-semibold text-foreground">{course.title}</p>
         </Link>
       </div>
-      <ScrollArea className="flex-1 px-1">
-        <AccordionPrimitive.Root
-          type="multiple"
-          value={expandedSlugs}
-          onValueChange={setExpandedSlugs}>
-          <nav className="flex flex-col gap-1 pb-6">
-            {sections.map((section) =>
-              section.type === 'chapter' || (section.children?.length ?? 0) > 0 ? (
-                <ChapterSection key={section.slug} node={section} showIcon />
-              ) : (
-                <NavLink key={section.slug} node={section} />
-              )
-            )}
-          </nav>
-        </AccordionPrimitive.Root>
-      </ScrollArea>
+      <AccordionPrimitive.Root
+        type="multiple"
+        value={expandedSlugs}
+        onValueChange={setExpandedSlugs}>
+        <nav className="flex flex-col gap-1 px-1 pb-6">
+          {sections.map((section) =>
+            section.type === 'chapter' || (section.children?.length ?? 0) > 0 ? (
+              <ChapterSection key={section.slug} node={section} showIcon />
+            ) : (
+              <NavLink key={section.slug} node={section} />
+            )
+          )}
+        </nav>
+      </AccordionPrimitive.Root>
     </aside>
   );
 }

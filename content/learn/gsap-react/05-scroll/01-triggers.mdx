@@ -1,0 +1,73 @@
+---
+title: 'Scroll Triggers'
+description: 'start/end, toggleActions, and section reveal inside a nested scroller.'
+icon: 'ScrollText'
+---
+
+## Section reveal
+
+<ComponentPreview flush previewClassName="min-h-[280px]">
+  <GsapScrollReveal />
+
+  <DocsFileTabs title="Scroll reveal">
+
+```tsx title="scroll-reveal.tsx"
+gsap.from(el, {
+  y: 40,
+  autoAlpha: 0,
+  duration: 0.6,
+  ease: 'power2.out',
+  scrollTrigger: {
+    trigger: el,
+    scroller: stageRef.current,
+    start: 'top 85%',
+    toggleActions: 'play none none reverse',
+  },
+});
+```
+
+```html title="scroll-reveal-markup.html"
+<div class="space-y-24">
+  <section class="gsap-reveal rounded-lg border bg-card p-4">Section 1 — scroll to reveal</section>
+  <section class="gsap-reveal rounded-lg border bg-card p-4">Section 2 — scroll to reveal</section>
+  <section class="gsap-reveal rounded-lg border bg-card p-4">Section 3 — scroll to reveal</section>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Scroll **inside** the preview panel to trigger each section.
+
+## Scrubbed progress bar
+
+<ComponentPreview flush previewClassName="min-h-[280px]">
+  <GsapScrollScrub />
+
+  <DocsFileTabs title="Scroll scrub">
+
+```tsx title="scroll-scrub.tsx"
+gsap.to('.bar', {
+  scaleX: 1,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: stageRef.current,
+    scroller: stageRef.current,
+    start: 'top top',
+    end: 'bottom bottom',
+    scrub: true,
+  },
+});
+```
+
+```html title="scroll-scrub-markup.html"
+<div class="sticky top-0 h-1 rounded-full bg-muted">
+  <div class="gsap-scrub-bar h-full w-full origin-left scale-x-0 bg-accent"></div>
+</div>
+<!-- scroll progress drives scaleX on .gsap-scrub-bar -->
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Use **`scrub: true`** for scroll-linked progress. Use **`toggleActions`** for discrete play/reverse — not both.

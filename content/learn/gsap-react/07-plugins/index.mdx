@@ -1,0 +1,20 @@
+---
+title: 'Plugins'
+description: 'Flip, Draggable, SVG, Observer, Physics, Pixi — register before use, revert on unmount.'
+icon: 'Layers3'
+---
+
+All GSAP plugins ship in the public **`gsap`** npm package. No Club token required.
+
+```tsx
+import { Flip } from 'gsap/Flip';
+gsap.registerPlugin(Flip);
+```
+
+| Lesson | Plugins |
+| --- | --- |
+| [Flip & Drag](/learn/gsap-react/plugins/flip-drag) | Layout, kanban, inertia |
+| [SVG](/learn/gsap-react/plugins/svg) | DrawSVG, MorphSVG, MotionPath |
+| [Observer & more](/learn/gsap-react/plugins/observer-scrollto) | Swipe, Physics, Pixi, CustomWiggle |
+
+Revert plugin instances (`split.revert()`, kill Draggable) on unmount — `useGSAP` handles most cleanup.

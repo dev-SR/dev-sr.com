@@ -1,0 +1,68 @@
+---
+title: 'Advanced Scroll'
+description: 'ScrollTrigger.batch, horizontal containerAnimation, and refresh.'
+icon: 'ScrollText'
+---
+
+## Batch enter
+
+<ComponentPreview flush previewClassName="min-h-[300px]">
+  <GsapScrollBatch />
+
+  <DocsFileTabs title="Scroll batch">
+
+```tsx title="scroll-batch.tsx"
+ScrollTrigger.batch('.card', {
+  scroller: stageRef.current,
+  start: 'top 90%',
+  onEnter: (batch) => gsap.to(batch, { autoAlpha: 1, y: 0, stagger: 0.08, overwrite: true }),
+  onLeaveBack: (batch) => gsap.set(batch, { autoAlpha: 0, y: 30, overwrite: true }),
+});
+```
+
+```html title="scroll-batch-markup.html"
+<div class="grid grid-cols-2 gap-2">
+  <div class="gsap-batch-card rounded-lg border bg-card p-3">Card 1</div>
+  <div class="gsap-batch-card rounded-lg border bg-card p-3">Card 2</div>
+  <!-- …more .gsap-batch-card items -->
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Fake horizontal scroll
+
+The horizontal tween **must** use `ease: "none"`:
+
+<ComponentPreview flush previewClassName="min-h-[200px]">
+  <GsapHorizontalGallery />
+
+  <DocsFileTabs title="Horizontal gallery">
+
+```tsx title="horizontal-gallery.tsx"
+gsap.to(panels, {
+  xPercent: -100 * (panels.length - 1),
+  ease: 'none', // required
+  scrollTrigger: {
+    trigger: wrap,
+    scroller: stageRef.current,
+    pin: true,
+    scrub: true,
+    end: () => `+=${wrap.offsetWidth}`,
+  },
+});
+```
+
+```html title="horizontal-gallery-markup.html"
+<div class="flex w-[300%]">
+  <div class="gsap-h-panel min-w-full">Design</div>
+  <div class="gsap-h-panel min-w-full">Build</div>
+  <div class="gsap-h-panel min-w-full">Ship</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Create ScrollTriggers **top-to-bottom** on the page, or set **`refreshPriority`** when order differs.

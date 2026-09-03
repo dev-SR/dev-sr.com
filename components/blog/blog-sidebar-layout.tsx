@@ -55,13 +55,13 @@ export function BlogSidebarLayout({
 
       <div
         className={cn(
-          'grid gap-8',
+          'grid items-start gap-8',
           showAside
             ? 'lg:grid-cols-[16rem_minmax(0,1fr)_12rem] xl:grid-cols-[17rem_minmax(0,1fr)_13rem]'
             : 'lg:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[17rem_minmax(0,1fr)]'
         )}>
         <div className="hidden lg:block">
-          <div className="sticky top-28 h-[calc(100vh-8rem)]">
+          <div className="sticky top-28">
             <DocsSidebar course={nav} rootLabel="Blog" />
           </div>
         </div>

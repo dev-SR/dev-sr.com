@@ -175,7 +175,9 @@ Interactive curriculum graph. Pass YAML or JSON as a string.
 | `height` | number \| string | `600` |
 | `theme.monthColors` | `Record<string, string>` | built-in pastels |
 
-YAML shape (months → weeks → topics). Use a template string so `{ }` is not parsed as JSX:
+YAML shape (months → weeks → topics). Use a template string so `{ }` is not parsed as JSX.
+
+> **Learn MDX limitation:** Inline `script={`…`}` blocks that contain `{ name: … }` topic entries are stripped by the MDX compiler (props become `{}`). On Learn pages, use plain topic strings in YAML, or wrap `PathVisualizer` in a registered client component with the script in a `.ts` file (see `GsapCoursePath`).
 
 ```mdx
 <PathVisualizer
@@ -378,7 +380,7 @@ badge: 'New'
 | --- | --- | --- |
 | `title` | yes | Page and sidebar label |
 | `description` | recommended | Subtitle under the title |
-| `icon` | optional | Lucide name: `BookOpen`, `Boxes`, `Code2`, `Database`, `Layers3`, `Network`, `Server` |
+| `icon` | optional | Lucide name: `BookOpen`, `Boxes`, `Code2`, `Database`, `Layers3`, `Network`, `Server`, `Sparkles` |
 | `badge` | optional | `New` / `Updated` pill in sidebar |
 
 No `date` or `coverImage`. Start body at `##`.
@@ -389,7 +391,8 @@ Learn uses the same **`CodeBlock`** card shell and dark code panel as blog posts
 
 | Component | Use |
 | --- | --- |
-| `ComponentPreview` | Preview \| Code tabs for frontend demos (code tab uses `CodeBlock`) |
+| `ComponentPreview` | Preview \| Code tabs for frontend demos. Props: `replay` (remount one-shot animations), `flush` (full-bleed stage for scroll/pin demos), `previewClassName`, `align`. |
+| `Callout` | Note / tip / warning / do-not callouts. Props: `variant` (`note` \| `tip` \| `warning` \| `dont`), optional `title`. |
 | `DocsFileTabs` | Multi-file code — same editor-style tab bar as blog `CodeTabs` |
 | `InstallTabs` + `InstallTab` | CLI \| Manual install sections |
 | `Guide` + `GuideStep` | Step-by-step tutorials |
@@ -414,6 +417,62 @@ Do **not** use blog-only names `CodeFrame`, `CodeTabs`, or `MultiFileCodeBlock` 
 ```
 </ComponentPreview>
 ```
+
+One-shot motion (page load, stagger in) should set `replay` so readers can remount the preview without a refresh.
+
+**GSAP lessons:** always pair the TSX (or CSS) tab with an **HTML markup tab** inside `DocsFileTabs` so readers see which DOM/classes GSAP targets. `ComponentPreview` routes `DocsFileTabs` to the Code tab automatically.
+
+```mdx
+<ComponentPreview replay>
+  <GsapToastEnter />
+
+  <DocsFileTabs title="Toast enter">
+
+```tsx title="toast-enter.tsx"
+export function GsapToastEnter() {
+  const scope = useRef<HTMLDivElement>(null);
+  useGSAP(() => {
+    gsap.from('.gsap-toast', { y: 24, autoAlpha: 0, duration: 0.35, ease: 'power2.out' });
+  }, { scope });
+  return (
+    <div ref={scope}>
+      <div className="gsap-toast">Changes saved</div>
+    </div>
+  );
+}
+```
+
+```html title="toast-enter-markup.html"
+<div>
+  <div class="gsap-toast rounded-lg border bg-card px-4 py-3">Changes saved</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+```
+
+Interactive demos (click, drag, toggle) usually omit `replay`. Scroll/pin demos use `flush` and a tall `previewClassName`:
+
+```mdx
+<ComponentPreview flush previewClassName="min-h-80">
+  <GsapScrollReveal />
+
+  <DocsFileTabs title="Scroll reveal">
+
+```tsx title="scroll-reveal.tsx"
+/* scroller is DemoStage, not window */
+```
+
+```html title="scroll-reveal-markup.html"
+<section class="gsap-reveal">Section 1 — scroll to reveal</section>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+```
+
+Custom preview components (e.g. `GsapToastEnter`) are registered dynamically in `components/learn/gsap-demos/mdx-registry.tsx` — do not import them in the MDX file.
 
 ```mdx
 <InstallTabs>

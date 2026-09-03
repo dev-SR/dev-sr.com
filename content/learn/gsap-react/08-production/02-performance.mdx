@@ -1,0 +1,57 @@
+---
+title: 'Performance'
+description: 'Compositor properties, will-change, stagger vs N tweens, and cleanup.'
+icon: 'BookOpen'
+---
+
+## Animate transform and opacity
+
+<ComponentPreview>
+  <GsapTransformVsLayout />
+
+  <DocsFileTabs title="Gpu only">
+
+```tsx title="gpu-only.tsx"
+// ✓ compositor
+gsap.to(el, { x: 100, autoAlpha: 0 });
+// ✗ layout every frame
+gsap.to(el, { left: 100, width: 200 });
+```
+
+```html title="gpu-only-markup.html"
+<div>
+  <div class="gsap-good absolute size-8 rounded"></div>
+  <div class="gsap-bad absolute size-8 rounded"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Stagger vs many tweens
+
+One staggered tween beats N separate tweens with manual `delay`.
+
+## quickTo for frequent updates
+
+See [Utils](/learn/gsap-react/production/utils) — essential for pointer followers and scrubbed values.
+
+## Cleanup checklist
+
+- **`useGSAP`** reverts context on unmount
+- **`ScrollTrigger.getAll().forEach(t => t.kill())`** on SPA route change if needed
+- **`split.revert()`** for SplitText
+- **`Draggable.get(...).kill()`** when removing drag targets
+- Pause or kill off-screen animations
+
+## will-change
+
+Hint the browser only on elements that **will** animate:
+
+```css
+.will-animate {
+  will-change: transform;
+}
+```
+
+Do not set on every element preemptively.

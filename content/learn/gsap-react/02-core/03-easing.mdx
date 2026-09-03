@@ -1,0 +1,64 @@
+---
+title: 'Easing'
+description: 'Built-in eases, ease-out for UI, and why ease-in feels sluggish on dropdowns.'
+icon: 'Play'
+---
+
+## Default feel
+
+UI entrances and exits should use **`ease-out`** (`power2.out`, `power3.out`) — they start fast and settle, so the user sees motion immediately.
+
+<ComponentPreview replay>
+  <GsapEaseCompare />
+
+  <DocsFileTabs title="Ease compare">
+
+```tsx title="ease-compare.tsx"
+gsap.from('.gsap-toast', { y: 40, autoAlpha: 0, duration: 0.5, ease: 'power2.out' });
+gsap.from('.gsap-toast', { y: 40, autoAlpha: 0, duration: 0.5, ease: 'back.out(1.7)' });
+gsap.from('.gsap-toast', { y: 40, autoAlpha: 0, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
+```
+
+```html title="ease-compare-markup.html"
+<div class="flex gap-4">
+  <div class="gsap-toast rounded-lg border bg-card px-4 py-3">power2.out</div>
+  <div class="gsap-toast rounded-lg border bg-card px-4 py-3">back.out</div>
+  <div class="gsap-toast rounded-lg border bg-card px-4 py-3">elastic.out</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## `ease-in` on UI
+
+<ComponentPreview replay>
+  <GsapEaseInVsOut />
+
+  <DocsFileTabs title="Ease in vs out">
+
+```tsx title="ease-in-vs-out.tsx"
+// ✓ Responsive — power2.out
+gsap.fromTo('.dropdown', { y: -8, autoAlpha: 0, scale: 0.97 }, { y: 0, autoAlpha: 1, scale: 1, ease: 'power2.out' });
+
+// ✗ Sluggish — power2.in delays the moment users watch
+gsap.fromTo('.dropdown', { y: -8, autoAlpha: 0, scale: 0.97 }, { y: 0, autoAlpha: 1, scale: 1, ease: 'power2.in' });
+```
+
+```html title="ease-in-vs-out-markup.html"
+<div class="flex gap-8">
+  <div class="gsap-dropdown-out w-36 rounded-lg border bg-card p-3">Feels responsive</div>
+  <div class="gsap-dropdown-in w-36 rounded-lg border bg-card p-3">Feels sluggish</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+<Callout variant="dont" title="Never ease-in on UI">
+  `ease-in` starts slow. On a 200ms dropdown, the important frame is late — it feels unresponsive even at the same duration.
+</Callout>
+
+## CustomEase
+
+For drawer curves and brand motion, use **CustomEase** on the [plugins](/learn/gsap-react/plugins/observer-scrollto) chapter.

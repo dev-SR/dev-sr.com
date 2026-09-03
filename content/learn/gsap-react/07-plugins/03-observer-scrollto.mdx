@@ -1,0 +1,100 @@
+---
+title: 'Observer, Physics & Pixi'
+description: 'CustomWiggle, Physics2D, PhysicsProps, and PixiPlugin on canvas.'
+icon: 'Layers3'
+---
+
+## Physics2D
+
+<ComponentPreview replay>
+  <GsapPhysics2D />
+
+  <DocsFileTabs title="Physics2d">
+
+```tsx title="physics2d.tsx"
+gsap.to('.ball', {
+  duration: 2,
+  physics2D: { velocity: 280, angle: -75, gravity: 600 },
+});
+```
+
+```html title="physics2d-markup.html"
+<div class="relative h-full overflow-hidden">
+  <div class="gsap-ball absolute bottom-4 left-1/2 size-8 rounded-full"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## PhysicsProps
+
+<ComponentPreview replay>
+  <GsapPhysicsProps />
+
+  <DocsFileTabs title="Physics props">
+
+```tsx title="physics-props.tsx"
+gsap.to('.obj', {
+  duration: 2,
+  physicsProps: {
+    x: { velocity: 120, end: 200 },
+    y: { velocity: -80, acceleration: 200 },
+  },
+});
+```
+
+```html title="physics-props-markup.html"
+<div class="relative h-full overflow-hidden">
+  <div class="gsap-glide absolute bottom-4 left-1/2 size-8 rounded-full"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## CustomWiggle
+
+<ComponentPreview replay>
+  <GsapCustomWiggleDemo />
+
+  <DocsFileTabs title="Custom wiggle">
+
+```tsx title="custom-wiggle.tsx"
+import { CustomWiggle } from 'gsap/CustomWiggle';
+CustomWiggle.create('myWiggle', { wiggles: 12, type: 'easeOut' });
+gsap.to('.box', { duration: 2, wiggleY: 20, ease: 'myWiggle' });
+```
+
+```html title="custom-wiggle-markup.html"
+<div class="gsap-wiggle-box size-16 rounded-lg"></div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## PixiPlugin
+
+Isolated dynamic import — only loads on this page:
+
+<ComponentPreview>
+  <GsapPixiSprite />
+
+  <DocsFileTabs title="Pixi plugin">
+
+```tsx title="pixi-plugin.tsx"
+import { PixiPlugin } from 'gsap/PixiPlugin';
+gsap.registerPlugin(PixiPlugin);
+gsap.to(sprite, { pixi: { x: 200, rotation: 360, scale: 1.2 }, duration: 2 });
+```
+
+```html title="pixi-plugin-markup.html"
+<canvas><!-- Pixi stage; GSAP animates pixi sprite properties --></canvas>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+<Callout variant="note">
+  This site smooths page scroll with **Lenis**, not ScrollSmoother. ScrollSmoother needs a wrapper/content DOM structure — use it only when you control the full page layout.
+</Callout>

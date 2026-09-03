@@ -1,0 +1,25 @@
+---
+title: 'React Integration'
+description: 'useGSAP, scope, contextSafe callbacks, and SSR-safe patterns.'
+icon: 'Code2'
+---
+
+## Why useGSAP?
+
+`useGSAP()` from `@gsap/react` replaces manual `useEffect` + `gsap.context()` for most cases. It:
+
+- Runs only on the client
+- **Reverts** tweens and ScrollTriggers on unmount
+- Provides **`contextSafe`** for event handlers
+- Accepts **`scope`**, **`dependencies`**, and **`revertOnUpdate`**
+
+Register the hook before use:
+
+```tsx
+gsap.registerPlugin(useGSAP);
+```
+
+| Lesson | Topics |
+| --- | --- |
+| [useGSAP](/learn/gsap-react/react/usegsap) | Scope, dependencies, revertOnUpdate |
+| [Context & SSR](/learn/gsap-react/react/context-ssr) | contextSafe, reduced motion, no SSR gsap calls |

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { learnMdxServerComponents } from './learn-mdx-server';
 import { ComponentPreview } from './component-preview';
+import { Callout } from './callout';
 import { CommandBlock } from './command-block';
 import { DocsFileTabs } from './docs-file-tabs';
 import { LearnCodeCustom, LearnPreCustom, DocsPrettyFigure } from './learn-code-elements';
@@ -15,6 +16,7 @@ import { Step, Steps } from './steps';
 import { Guide, GuideStep } from './guide';
 import { Mermaid } from './mermaid';
 import { FlowDiagram } from './flow-diagram';
+import { gsapDemoComponents } from './gsap-demos/mdx-registry';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
   loading: () => (
@@ -26,10 +28,12 @@ const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
 
 export const learnMdxClientComponents = {
   ...learnMdxServerComponents,
+  ...gsapDemoComponents,
   figure: DocsPrettyFigure,
   code: LearnCodeCustom,
   pre: LearnPreCustom,
   ComponentPreview,
+  Callout,
   DocsFileTabs,
   CommandBlock,
   InstallTabs,

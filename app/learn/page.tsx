@@ -6,8 +6,12 @@ import {
   Code2,
   Database,
   Layers3,
+  MousePointer2,
   Network,
+  Play,
+  ScrollText,
   Server,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import Header from '@/components/Header';
@@ -21,8 +25,12 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Code2,
   Database,
   Layers3,
+  MousePointer2,
   Network,
+  Play,
+  ScrollText,
   Server,
+  Sparkles,
 };
 
 function getIcon(name?: string) {
@@ -40,7 +48,8 @@ export default async function LearnPage() {
         <div className="mb-10">
           <h1 className="text-4xl font-bold tracking-tight text-foreground">Learn</h1>
           <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-            In-depth study materials for backend architecture, .NET Aspire, APIs, and system design.
+            In-depth study materials for backend architecture, APIs, animation with GSAP, and system
+            design.
           </p>
         </div>
 

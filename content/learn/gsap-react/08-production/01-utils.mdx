@@ -1,0 +1,125 @@
+---
+title: 'gsap.utils'
+description: 'clamp, mapRange, quickTo, snap, distribute, and random in production UI.'
+icon: 'BookOpen'
+---
+
+## quickTo — mouse follower
+
+Reuse one tween instead of creating hundreds per frame:
+
+<ComponentPreview>
+  <GsapQuickToFollower />
+
+  <DocsFileTabs title="Quick to">
+
+```tsx title="quick-to.tsx"
+const xTo = gsap.quickTo('.follower', 'x', { duration: 0.4, ease: 'power3' });
+const yTo = gsap.quickTo('.follower', 'y', { duration: 0.4, ease: 'power3' });
+xTo(gsap.utils.clamp(0, maxX, x));
+yTo(gsap.utils.clamp(0, maxY, y));
+```
+
+```html title="quick-to-markup.html"
+<div class="relative h-full cursor-crosshair">
+  <div class="gsap-follower absolute size-8 rounded-full"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## mapRange — scroll → rotation
+
+<ComponentPreview flush previewClassName="min-h-[200px]">
+  <GsapMapRangeProgress />
+
+  <DocsFileTabs title="Map range">
+
+```tsx title="map-range.tsx"
+const mapRot = gsap.utils.mapRange(0, 1, 0, 360);
+gsap.to('.dial', { rotation: mapRot(scrollProgress), duration: 0.1, overwrite: true });
+```
+
+```html title="map-range-markup.html"
+<div class="sticky top-4 flex justify-center">
+  <div class="gsap-dial size-12 rounded-full border-4 border-accent border-t-transparent"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## distribute — scale from center
+
+<ComponentPreview replay>
+  <GsapDistributeScale />
+
+  <DocsFileTabs title="Distribute">
+
+```tsx title="distribute.tsx"
+gsap.to('.item', {
+  scale: gsap.utils.distribute({ base: 0.7, amount: 0.6, from: 'center' }),
+  duration: 0.5,
+});
+```
+
+```html title="distribute-markup.html"
+<div class="flex gap-2">
+  <div class="gsap-dist-item size-8 rounded"></div>
+  <div class="gsap-dist-item size-8 rounded"></div>
+  <div class="gsap-dist-item size-8 rounded"></div>
+  <!-- …more .gsap-dist-item -->
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## snap — grid click
+
+<ComponentPreview>
+  <GsapSnapGrid />
+
+  <DocsFileTabs title="Snap grid">
+
+```tsx title="snap-grid.tsx"
+const snap = gsap.utils.snap(40);
+gsap.to('.block', { x: snap(x), y: snap(y), duration: 0.25, ease: 'power2.out' });
+```
+
+```html title="snap-grid-markup.html"
+<div class="relative h-full">
+  <div class="gsap-snap-block absolute size-8 rounded"></div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## random stagger
+
+<ComponentPreview replay>
+  <GsapRandomStagger />
+
+  <DocsFileTabs title="Random stagger">
+
+```tsx title="random-stagger.tsx"
+gsap.to('.dot', {
+  x: 'random(-40, 40, 5)',
+  y: 'random(-20, 20, 5)',
+  stagger: { amount: 0.3, from: 'random' },
+});
+```
+
+```html title="random-stagger-markup.html"
+<div class="relative h-16 w-48">
+  <span class="gsap-rand-dot absolute size-2 rounded-full"></span>
+  <!-- …more .gsap-rand-dot -->
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Omit the value argument to get a reusable function: `const clamp = gsap.utils.clamp(0, 100); clamp(150);`

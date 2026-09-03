@@ -1,0 +1,21 @@
+---
+title: 'Timelines'
+description: 'Sequence multi-step UI motion with gsap.timeline and the position parameter.'
+icon: 'Layers3'
+---
+
+## Why timelines?
+
+Prefer timelines over chaining `delay`. Use the **position parameter** for `"<"`, `"+=0.2"`, and labels.
+
+| Lesson | Topics |
+| --- | --- |
+| [Sequencing](/learn/gsap-react/timelines/sequencing) | Modal open, onboarding beats |
+| [Labels & playback](/learn/gsap-react/timelines/labels-playback) | Seek, nested timelines, GSDevTools |
+
+```tsx
+const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+tl.from('.overlay', { autoAlpha: 0, duration: 0.2 })
+  .from('.panel', { scale: 0.95, autoAlpha: 0, duration: 0.28 }, '<0.05')
+  .from('.item', { y: 12, autoAlpha: 0, stagger: 0.06 }, '-=0.1');
+```

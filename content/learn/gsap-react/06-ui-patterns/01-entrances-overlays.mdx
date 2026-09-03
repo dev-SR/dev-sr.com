@@ -1,0 +1,60 @@
+---
+title: 'Entrances & Overlays'
+description: 'Toast enter/exit, bottom sheet dismiss — symmetric paths and ease-out.'
+icon: 'Sparkles'
+---
+
+## Toast enter + exit
+
+Enter with `power2.out`; exit with `power2.in` (slightly faster response):
+
+<ComponentPreview replay>
+  <GsapToastExit />
+
+  <DocsFileTabs title="Toast exit">
+
+```tsx title="toast-exit.tsx"
+// enter
+gsap.from('.toast', { y: 24, autoAlpha: 0, duration: 0.35, ease: 'power2.out' });
+// exit
+gsap.to('.toast', { y: 24, autoAlpha: 0, duration: 0.3, ease: 'power2.in' });
+```
+
+```html title="toast-exit-markup.html"
+<div class="flex items-start gap-2">
+  <div class="gsap-toast rounded-lg border bg-card px-4 py-3">
+    Changes saved
+  </div>
+  <button>×</button>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Bottom sheet
+
+<ComponentPreview>
+  <GsapSheetDismiss />
+
+  <DocsFileTabs title="Sheet dismiss">
+
+```tsx title="sheet-dismiss.tsx"
+gsap.from('.sheet', { yPercent: 100, duration: 0.4, ease: 'power2.out' });
+gsap.to('.sheet', { yPercent: 100, duration: 0.35, ease: 'power2.in', onComplete: close });
+```
+
+```html title="sheet-dismiss-markup.html"
+<div class="relative h-full">
+  <div class="absolute inset-0 bg-black/30"></div>
+  <div class="gsap-sheet absolute bottom-0 left-0 right-0 rounded-t-xl border bg-card p-4">
+    <p>Share link</p>
+    <p>Copy or send to your team.</p>
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Dismissable surfaces should **exit the same edge** they entered — spatial consistency.

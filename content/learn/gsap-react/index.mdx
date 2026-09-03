@@ -1,0 +1,57 @@
+---
+title: 'GSAP in React'
+description: 'Production-ready animation with GSAP, useGSAP, timelines, ScrollTrigger, and plugins in Next.js.'
+icon: 'Sparkles'
+badge: 'New'
+---
+
+## What you will learn
+
+This course teaches GSAP in React from first tween to scroll-driven product motion. Every lesson pairs prose with **live previews** — click **Replay** on one-shot entrances, interact with click/drag demos, and scroll inside isolated stages so demos never fight this site's Lenis scroll.
+
+<Callout variant="tip" title="When not to animate">
+  High-frequency UI (command palettes, keyboard shortcuts) should not animate. GSAP shines on modals, toasts, scroll storytelling, layout transitions, and SVG — not every `:active` press.
+</Callout>
+
+## Install
+
+<InstallTabs>
+  <InstallTab value="cli" label="CLI">
+    <CommandBlock pnpm="pnpm add gsap @gsap/react" npm="npm install gsap @gsap/react" />
+  </InstallTab>
+  <InstallTab value="manual" label="Manual">
+    <Steps>
+      <Step>Add dependencies to your project</Step>
+      ```bash
+      pnpm add gsap @gsap/react
+      ```
+    </Steps>
+  </InstallTab>
+</InstallTabs>
+
+Register plugins once at module scope (never inside a component):
+
+```tsx title="lib/gsap.ts"
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(useGSAP, ScrollTrigger);
+```
+
+## Course outline
+
+| Chapter | Topics |
+| --- | --- |
+| **Getting started** | First tween, `autoAlpha`, when CSS is enough |
+| **Core** | Tweens, transforms, easing, stagger, control |
+| **React** | `useGSAP`, scope, `contextSafe`, SSR |
+| **Timelines** | Sequencing, labels, modal choreography |
+| **Scroll** | ScrollTrigger, pin, scrub, batch |
+| **UI patterns** | Toasts, sheets, lists, text |
+| **Plugins** | Flip, Draggable, SVG, Observer, Physics, Pixi |
+| **Production** | Utils, performance, craft |
+
+<GsapCoursePath />
+
+Use the sidebar to navigate. Numeric prefixes control sort order only.

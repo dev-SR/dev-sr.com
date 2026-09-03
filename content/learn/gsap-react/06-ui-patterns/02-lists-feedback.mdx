@@ -1,0 +1,78 @@
+---
+title: 'Lists & Feedback'
+description: 'List add, error shake, and when CSS press beats GSAP.'
+icon: 'MousePointer2'
+---
+
+## Add list item
+
+<ComponentPreview>
+  <GsapListAddRemove />
+
+  <DocsFileTabs title="List add">
+
+```tsx title="list-add.tsx"
+gsap.from('.list-item:last-child', {
+  height: 0,
+  autoAlpha: 0,
+  duration: 0.3,
+  ease: 'power2.out',
+});
+```
+
+```html title="list-add-markup.html"
+<div class="space-y-2">
+  <div class="gsap-list-item rounded-lg border bg-card px-3 py-2">Design review</div>
+  <div class="gsap-list-item rounded-lg border bg-card px-3 py-2">API spec</div>
+  <button>Add item</button>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Error shake (rare)
+
+Use sparingly — validation feedback, not decoration:
+
+<ComponentPreview>
+  <GsapErrorShake />
+
+  <DocsFileTabs title="Error shake">
+
+```tsx title="error-shake.tsx"
+gsap.fromTo('.field', { x: 0 }, { x: 8, duration: 0.08, repeat: 5, yoyo: true, ease: 'power1.inOut' });
+```
+
+```html title="error-shake-markup.html"
+<input
+  class="gsap-shake-field w-full rounded-md border px-3 py-2"
+  value="not-an-email"
+  placeholder="Invalid email"
+/>
+<button>Submit (error)</button>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## CSS press only
+
+<ComponentPreview>
+  <GsapCssPressOnly />
+
+  <DocsFileTabs title="Css press">
+
+```tsx title="css-press.tsx"
+/* 100–160ms ease-out — no GSAP */
+button:active { transform: scale(0.97); }
+```
+
+```html title="css-press-markup.html"
+<button class="demo-press-btn">Save changes</button>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+For layout reflow between filter states, see [Flip](/learn/gsap-react/plugins/flip-drag).

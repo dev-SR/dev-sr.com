@@ -1,0 +1,77 @@
+---
+title: 'useGSAP'
+description: 'Scope selectors, dependency arrays, and revertOnUpdate for prop-driven motion.'
+icon: 'Code2'
+---
+
+## Always pass `scope`
+
+Without a scope, `.box` matches **every** `.box` on the page.
+
+<ComponentPreview replay>
+  <GsapScopeIsolation />
+
+  <DocsFileTabs title="Scope isolation">
+
+```tsx title="scope-isolation.tsx"
+useGSAP(() => {
+  gsap.to('.box', { x: 40, duration: 0.5, ease: 'power2.out' });
+}, { scope: containerRef });
+```
+
+```html title="scope-isolation-markup.html"
+<!-- Each scope only animates its own .box -->
+<div><!-- Scope A -->
+  <div class="relative h-12 w-32">
+    <div class="box absolute left-1 top-1 size-10 rounded"></div>
+  </div>
+</div>
+<div><!-- Scope B -->
+  <div class="relative h-12 w-32">
+    <div class="box absolute left-1 top-1 size-10 rounded"></div>
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Two identical selectors — only descendants of each ref animate.
+
+## `revertOnUpdate`
+
+When a prop changes, revert the previous context and re-run:
+
+<ComponentPreview>
+  <GsapRevertOnUpdate />
+
+  <DocsFileTabs title="Revert on update">
+
+```tsx title="revert-on-update.tsx"
+useGSAP(
+  () => {
+    gsap.to('.gsap-target', { x: targetX, duration: 0.4, ease: 'power2.out' });
+  },
+  { scope, dependencies: [targetX], revertOnUpdate: true }
+);
+```
+
+```html title="revert-on-update-markup.html"
+<div class="relative h-14 rounded bg-muted/40">
+  <div class="gsap-target absolute left-2 top-2 size-10 rounded-lg"></div>
+</div>
+<input type="range" min="0" max="120" />
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Config reference
+
+```tsx
+useGSAP(() => { /* gsap code */ }, {
+  scope: containerRef,       // ref or element
+  dependencies: [value],     // re-run when these change
+  revertOnUpdate: true,      // revert context on dependency change
+});
+```

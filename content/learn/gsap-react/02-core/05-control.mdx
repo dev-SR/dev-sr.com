@@ -1,0 +1,94 @@
+---
+title: 'Control'
+description: 'Store tweens, play/pause/reverse, progress, and overwrite overlapping motion.'
+icon: 'Play'
+---
+
+## Store the tween
+
+All tween methods return a **Tween** instance:
+
+```tsx
+const tween = gsap.to('.box', { x: 100, duration: 1, paused: true });
+tween.play();
+tween.pause();
+tween.reverse();
+tween.progress(0.5);
+tween.kill();
+```
+
+## Transport controls
+
+<ComponentPreview>
+  <GsapTransportControls />
+
+  <DocsFileTabs title="Transport controls">
+
+```tsx title="transport-controls.tsx"
+tweenRef.current = gsap.to('.gsap-hero', { x: 120, rotation: 360, duration: 2, paused: true });
+// tweenRef.current?.play() | pause() | reverse() | progress(0.5)
+```
+
+```html title="transport-controls-markup.html"
+<div>
+  <div class="relative h-16 rounded bg-muted/40">
+    <div class="gsap-hero absolute left-2 top-2 size-12 rounded-lg"></div>
+  </div>
+  <button>Play</button>
+  <button>Pause</button>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Hover reverse (`contextSafe`)
+
+<ComponentPreview>
+  <GsapHoverReverse />
+
+  <DocsFileTabs title="Hover reverse">
+
+```tsx title="hover-reverse.tsx"
+const onEnter = contextSafe(() => {
+  gsap.to('.card', { y: -6, scale: 1.02, duration: 0.2, ease: 'power2.out' });
+});
+const onLeave = contextSafe(() => {
+  gsap.to('.card', { y: 0, scale: 1, duration: 0.2, ease: 'power2.out' });
+});
+```
+
+```html title="hover-reverse-markup.html"
+<div class="gsap-card-lift w-48 rounded-xl border bg-card p-4 shadow-sm">
+  <p>Hover me</p>
+  <p>Reverses on leave</p>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## `overwrite: "auto"`
+
+When users toggle quickly, auto-overwrite kills overlapping properties:
+
+<ComponentPreview>
+  <GsapOverwriteAuto />
+
+  <DocsFileTabs title="Overwrite auto">
+
+```tsx title="overwrite-auto.tsx"
+gsap.to('.box', { x: target, duration: 0.6, ease: 'power2.out', overwrite: 'auto' });
+```
+
+```html title="overwrite-auto-markup.html"
+<div>
+  <div class="relative h-12 rounded bg-muted/40">
+    <div class="gsap-toggle-box absolute left-2 top-2 size-8 rounded"></div>
+  </div>
+  <button>Toggle position</button>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>

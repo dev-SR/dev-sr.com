@@ -1,0 +1,20 @@
+---
+title: 'Production'
+description: 'gsap.utils, performance, and when not to animate.'
+icon: 'BookOpen'
+---
+
+## Ship motion that survives real users
+
+| Lesson | Focus |
+| --- | --- |
+| [Utils](/learn/gsap-react/production/utils) | clamp, mapRange, quickTo, distribute |
+| [Performance](/learn/gsap-react/production/performance) | GPU props, stagger, cleanup |
+| [Craft](/learn/gsap-react/production/craft) | Frequency table, anti-patterns |
+
+```tsx
+// Kill stale ScrollTriggers on route change (SPA)
+ScrollTrigger.getAll().forEach(t => t.kill());
+```
+
+In React, prefer **`useGSAP`** so context revert handles most cleanup.

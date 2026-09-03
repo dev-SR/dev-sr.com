@@ -1,0 +1,95 @@
+---
+title: 'Flip & Drag'
+description: 'FLIP layout transitions, Draggable cards, and Observer swipe galleries.'
+icon: 'MousePointer2'
+---
+
+## Flip grid ↔ list
+
+<ComponentPreview>
+  <GsapFlipGrid />
+
+  <DocsFileTabs title="Flip layout">
+
+```tsx title="flip-layout.tsx"
+import { Flip } from 'gsap/Flip';
+
+const state = Flip.getState('.item');
+setGrid(!grid); // DOM change
+requestAnimationFrame(() => {
+  Flip.from(state, { duration: 0.5, ease: 'power2.inOut', absolute: true });
+});
+```
+
+```html title="flip-layout-markup.html"
+<div class="grid grid-cols-3 gap-2">
+  <div class="gsap-flip-item rounded-lg border bg-card px-3 py-2">Alpha</div>
+  <div class="gsap-flip-item rounded-lg border bg-card px-3 py-2">Beta</div>
+  <div class="gsap-flip-item rounded-lg border bg-card px-3 py-2">Gamma</div>
+  <div class="gsap-flip-item rounded-lg border bg-card px-3 py-2">Delta</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Draggable + inertia
+
+<ComponentPreview>
+  <GsapDraggableCard />
+
+  <DocsFileTabs title="Draggable">
+
+```tsx title="draggable.tsx"
+import { Draggable } from 'gsap/Draggable';
+import { InertiaPlugin } from 'gsap/InertiaPlugin';
+gsap.registerPlugin(Draggable, InertiaPlugin);
+
+Draggable.create('.card', {
+  type: 'x,y',
+  bounds: container,
+  inertia: true,
+  edgeResistance: 0.65,
+});
+```
+
+```html title="draggable-markup.html"
+<div class="relative h-full rounded-lg border border-dashed">
+  <div class="gsap-drag-card absolute cursor-grab rounded-lg border bg-card p-3">
+    Drag me
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Observer swipe
+
+<ComponentPreview>
+  <GsapObserverSwipe />
+
+  <DocsFileTabs title="Observer swipe">
+
+```tsx title="observer-swipe.tsx"
+Observer.create({
+  target: area,
+  type: 'touch,pointer',
+  onLeft: () => nextSlide(),
+  onRight: () => prevSlide(),
+  tolerance: 20,
+});
+```
+
+```html title="observer-swipe-markup.html"
+<div class="relative touch-pan-y">
+  <div class="gsap-slide-track flex w-[300%]">
+    <div class="min-w-full">Intro</div>
+    <div class="min-w-full">Features</div>
+    <div class="min-w-full">Pricing</div>
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>

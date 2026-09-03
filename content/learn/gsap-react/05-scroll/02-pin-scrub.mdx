@@ -1,0 +1,70 @@
+---
+title: 'Pin & Scrub'
+description: 'Pin sections while scrolling and tie animation progress to scroll position.'
+icon: 'ScrollText'
+---
+
+## Pinned walkthrough
+
+Pin the panel; animate **children**, not the pinned node's own transform:
+
+<ComponentPreview flush previewClassName="min-h-[320px]">
+  <GsapScrollPin />
+
+  <DocsFileTabs title="Scroll pin">
+
+```tsx title="scroll-pin.tsx"
+scrollTrigger: {
+  trigger: panel,
+  scroller: stageRef.current,
+  start: 'top top',
+  end: '+=200',
+  pin: true,
+  pinSpacing: true,
+  scrub: 0.5,
+}
+```
+
+```html title="scroll-pin-markup.html"
+<section class="gsap-pin-panel h-[200px]">
+  <div class="gsap-pin-inner flex h-full items-center justify-center rounded-lg border bg-card">
+    <p>Analytics</p>
+    <p>Pinned while scrolling</p>
+  </div>
+</section>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## ScrollTo section
+
+<ComponentPreview flush previewClassName="min-h-[280px]">
+  <GsapScrollToSection />
+
+  <DocsFileTabs title="Scroll to">
+
+```tsx title="scroll-to.tsx"
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+gsap.registerPlugin(ScrollToPlugin);
+
+gsap.to(scroller, {
+  duration: 0.8,
+  scrollTo: { y: '#section-b', offsetY: 8 },
+  ease: 'power2.inOut',
+});
+```
+
+```html title="scroll-to-markup.html"
+<div class="sticky top-0 flex gap-2">
+  <button>Section A</button>
+  <button>Section B</button>
+</div>
+<div id="sec-a" class="rounded-lg border bg-card p-6">Section A</div>
+<div id="sec-b" class="rounded-lg border bg-card p-6">Section B</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Call **`ScrollTrigger.refresh()`** after layout changes (images, fonts, dynamic content). Viewport resize is debounced automatically.

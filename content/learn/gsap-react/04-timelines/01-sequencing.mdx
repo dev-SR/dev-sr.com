@@ -1,0 +1,96 @@
+---
+title: 'Sequencing'
+description: 'Modal choreography, onboarding beats, and splash-style letter reveals.'
+icon: 'Play'
+---
+
+## Modal open sequence
+
+Overlay → panel → staggered children with `"<"` and `"-="`:
+
+<ComponentPreview>
+  <GsapModalSequence />
+
+  <DocsFileTabs title="Modal timeline">
+
+```tsx title="modal-timeline.tsx"
+const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+tl.from('.overlay', { autoAlpha: 0, duration: 0.2 })
+  .from('.modal', { scale: 0.95, autoAlpha: 0, duration: 0.28 }, '<0.05')
+  .from('.modal-item', { y: 12, autoAlpha: 0, stagger: 0.06, duration: 0.22 }, '-=0.1');
+```
+
+```html title="modal-timeline-markup.html"
+<div class="absolute inset-0 flex items-center justify-center">
+  <div class="gsap-overlay absolute inset-0 bg-black/40"></div>
+  <div class="gsap-modal relative w-64 rounded-xl border bg-card p-4">
+    <p class="gsap-modal-item">Delete project?</p>
+    <p class="gsap-modal-item">This cannot be undone.</p>
+    <div class="gsap-modal-item flex gap-2">
+      <button>Cancel</button>
+      <button>Delete</button>
+    </div>
+  </div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Onboarding three-beat
+
+<ComponentPreview replay>
+  <GsapOnboardingBeat />
+
+  <DocsFileTabs title="Onboarding timeline">
+
+```tsx title="onboarding-timeline.tsx"
+tl.from('.step-1', { x: -20, autoAlpha: 0 })
+  .from('.step-2', { x: -20, autoAlpha: 0 }, '+=0.15')
+  .from('.step-3', { x: -20, autoAlpha: 0 }, '+=0.15');
+```
+
+```html title="onboarding-timeline-markup.html"
+<div class="space-y-3">
+  <div class="gsap-step-1 rounded-lg border bg-card px-3 py-2">Connect repository</div>
+  <div class="gsap-step-2 rounded-lg border bg-card px-3 py-2">Configure CI</div>
+  <div class="gsap-step-3 rounded-lg border bg-card px-3 py-2">Deploy preview</div>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+## Splash-style letters
+
+<ComponentPreview replay>
+  <GsapSplashLetters />
+
+  <DocsFileTabs title="Splash letters">
+
+```tsx title="splash-letters.tsx"
+gsap.from('.letter', {
+  y: 24,
+  autoAlpha: 0,
+  rotation: 8,
+  stagger: 0.04,
+  duration: 0.45,
+  ease: 'back.out(1.4)',
+});
+```
+
+```html title="splash-letters-markup.html"
+<div class="flex text-2xl font-bold">
+  <span class="gsap-letter inline-block">L</span>
+  <span class="gsap-letter inline-block">a</span>
+  <span class="gsap-letter inline-block">u</span>
+  <span class="gsap-letter inline-block">n</span>
+  <span class="gsap-letter inline-block">c</span>
+  <span class="gsap-letter inline-block">h</span>
+</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+
+Modals stay **centered** (`transform-origin: center`). Popovers use trigger origin — see [Transforms](/learn/gsap-react/core/transforms).

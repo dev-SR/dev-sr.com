@@ -1,0 +1,27 @@
+---
+title: 'Scroll'
+description: 'ScrollTrigger in React with nested scrollers — never the window inside Learn previews.'
+icon: 'ScrollText'
+---
+
+## Nested scroller rule
+
+This site uses Lenis + ScrollTrigger on the **page**. Learn demos use **`DemoStage`** as `scroller` so previews do not hijack document scroll.
+
+```tsx
+scrollTrigger: {
+  trigger: element,
+  scroller: stageRef.current, // not window
+  start: 'top 80%',
+}
+```
+
+| Lesson | Topics |
+| --- | --- |
+| [Triggers](/learn/gsap-react/scroll/triggers) | toggleActions, reveal |
+| [Pin & scrub](/learn/gsap-react/scroll/pin-scrub) | Progress bars, pinned walkthrough |
+| [Advanced](/learn/gsap-react/scroll/advanced) | batch, horizontal gallery, ScrollTo |
+
+<Callout variant="dont" title="scrub vs toggleActions">
+  Do not use `scrub` and `toggleActions` on the same ScrollTrigger — scrub wins.
+</Callout>

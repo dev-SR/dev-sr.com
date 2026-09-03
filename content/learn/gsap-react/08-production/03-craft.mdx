@@ -1,0 +1,50 @@
+---
+title: 'Craft'
+description: 'When not to animate, reduced motion, and anti-patterns to avoid in production.'
+icon: 'BookOpen'
+---
+
+## Frequency table
+
+| How often | Motion |
+| --- | --- |
+| 100+/day (keyboard, command palette) | **None** |
+| Tens/day (hover, list nav) | Minimal or CSS only |
+| Occasional (modal, toast, drawer) | Standard GSAP (under 300ms UI) |
+| Rare / first-time (onboarding, success) | Can add delight |
+
+<Callout variant="dont" title="Keyboard-initiated UI">
+  Command palettes and shortcuts repeat hundreds of times daily. Animation makes them feel slow — Raycast has no open animation for a reason.
+</Callout>
+
+## When CSS is enough
+
+- Button `:active` scale (100–160ms)
+- Simple color transitions
+- `@starting-style` for toast entry without JS
+
+## Reduced motion
+
+Use **`gsap.matchMedia()`** — gentler motion, not zero. Keep opacity/color; drop large travel.
+
+## Anti-pattern gallery
+
+| Anti-pattern | Fix |
+| --- | --- |
+| `scale(0)` entrance | Start `scale(0.95)` + `autoAlpha: 0` |
+| `ease-in` on dropdown | `power2.out` or custom ease-out |
+| `markers: true` in production | Dev only |
+| Unscoped `.box` selector | Always `scope` in useGSAP |
+| ScrollTrigger on child tween in timeline | Put on timeline or top-level tween |
+| Animating `width`/`left` for movement | Use `x`/`y`/`scale` |
+| GSDevTools in production bundle | Dev only |
+
+## Valid purposes
+
+Motion must answer **why**: feedback, spatial consistency, state indication, preventing a jarring change, explanation, or rare delight.
+
+"It looks cool" on a frequently seen surface is not enough.
+
+---
+
+You now have the full GSAP + React toolkit. Start with [Getting started](/learn/gsap-react/getting-started) or jump to the chapter you need in the sidebar.
