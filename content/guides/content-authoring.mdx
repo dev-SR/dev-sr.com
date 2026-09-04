@@ -1,0 +1,706 @@
+---
+title: 'Content authoring guide'
+date: '2026-09-04'
+excerpt: 'How to write blog posts and Learn lessons — every feature shows Source (literal markup) then Result (live render).'
+tags: ['meta', 'mdx', 'authoring', 'docs']
+---
+
+How to write posts and Learn materials for this site. Each feature below has **Source** (what you type) then **Result** (what readers see).
+
+Also see: [MDX test](/blog/examples/markdown-all) · [Code features](/blog/examples/advanced-code-examples) · [Shiki transformers](/blog/examples/advanced-rehype-pretty-code-shiki-examples)
+
+## How this page works
+
+To show MDX as text without executing it, wrap it in a fence with **more backticks** than any fence inside:
+
+- Outer: four backticks + `mdx` (or `md`)
+- Inner: normal three-backtick fences and/or JSX
+- Close with four backticks
+
+Do **not** escape fences with `\```` — that does not work.
+
+---
+
+## Where posts live
+
+Every `.md` / `.mdx` under `content/` (except `content/learn/`) becomes a blog post.
+
+| File | URL |
+| --- | --- |
+| `content/algorithms/sorting.mdx` | `/blog/algorithms/sorting` |
+| `content/guides/content-authoring.mdx` | `/blog/guides/content-authoring` |
+
+- Prefer `.mdx` when you need components (`Figure`, `CodeTabs`, `PathVisualizer`).
+- Kebab-case folders; numeric prefixes sort the tree only.
+- Learn courses live under `content/learn/` → `/learn/...` (skipped by the blog crawler).
+
+---
+
+## Frontmatter
+
+**Source**
+
+```yaml
+---
+title: 'Understanding Vectors in Linear Algebra'
+date: '2024-01-15'
+excerpt: 'Vectors, operations, and geometric intuition.'
+tags: ['math', 'linear-algebra', 'vectors']
+coverImage: '/v1/content/math/linear-algebra/cover.png'
+coverImageAlt: 'Two vectors added tip-to-tail'
+---
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `title` | yes | Hero, cards, tree, SEO |
+| `date` | yes | `YYYY-MM-DD` |
+| `excerpt` | recommended | Card / subtitle |
+| `tags` | recommended | Related posts |
+| `coverImage` / `coverImageAlt` | optional | Cards only show a cover when set |
+
+Layout already renders `title` as `<h1>` — start the body at `##`.
+
+---
+
+## Code blocks (automatic)
+
+Fenced code gets the shared card shell: filename or language badge, copy, collapse for long files. No wrapper component.
+
+### Language badge only
+
+**Source**
+
+````mdx
+```ts
+const n = 1
+```
+````
+
+**Result**
+
+```ts
+const n = 1
+```
+
+### Filename in the header
+
+**Source**
+
+````mdx
+```tsx title="Button.tsx"
+export function Button() {
+  return <button className="btn">Save</button>
+}
+```
+````
+
+**Result**
+
+```tsx title="Button.tsx"
+export function Button() {
+  return <button className="btn">Save</button>
+}
+```
+
+---
+
+## `CodeTabs` (multi-file)
+
+Wrap related fences. Each fence needs `title="filename"` for the tab label.
+
+**Source**
+
+````mdx
+<CodeTabs>
+
+```tsx title="Button.tsx"
+export function Button({ children }: { children: React.ReactNode }) {
+  return <button className="btn">{children}</button>
+}
+```
+
+```css title="Button.css"
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+}
+```
+
+</CodeTabs>
+````
+
+**Result**
+
+<CodeTabs>
+
+```tsx title="Button.tsx"
+export function Button({ children }: { children: React.ReactNode }) {
+  return <button className="btn">{children}</button>
+}
+```
+
+```css title="Button.css"
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+}
+```
+
+</CodeTabs>
+
+---
+
+## Diff & highlight transformers
+
+Comments like `// [!code ++]` style the line and are stripped from copy. More transformers: [Shiki examples](/blog/examples/advanced-rehype-pretty-code-shiki-examples).
+
+### Diff / error
+
+**Source**
+
+````mdx
+```ts
+console.log('hewwo') // [!code --]
+console.log('hello') // [!code ++]
+console.error('boom') // [!code error]
+```
+````
+
+**Result**
+
+```ts
+console.log('hewwo') // [!code --]
+console.log('hello') // [!code ++]
+console.error('boom') // [!code error]
+```
+
+### Meta line highlight
+
+**Source**
+
+````mdx
+```ts showLineNumbers {1-2}
+console.log('highlighted')
+console.log('also highlighted')
+console.log('plain')
+```
+````
+
+**Result**
+
+```ts showLineNumbers {1-2}
+console.log('highlighted')
+console.log('also highlighted')
+console.log('plain')
+```
+
+### Word highlight
+
+**Source**
+
+````mdx
+```ts /Hello/
+const message = 'Hello World'
+```
+````
+
+**Result**
+
+```ts /Hello/
+const message = 'Hello World'
+```
+
+---
+
+## `Figure` (zoomable images)
+
+Captioned image with size / align. Click opens a theme-aware lightbox (scroll to zoom, drag to pan, Esc to close). Set `zoom={false}` for decorative images.
+
+**Source**
+
+````mdx
+<Figure
+  src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=960&q=80"
+  alt="Code on a laptop screen"
+  caption="Fig 1. Click the image — scroll to zoom further"
+  width={960}
+  height={640}
+  size="md"
+/>
+````
+
+**Result**
+
+<Figure
+  src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=960&q=80"
+  alt="Code on a laptop screen"
+  caption="Fig 1. Click the image — scroll to zoom further"
+  width={960}
+  height={640}
+  size="md"
+/>
+
+Remote hosts must be listed in `next.config.ts` `images.remotePatterns` (Unsplash is already allowed). Local files go under `public/` and use root paths like `/v1/...`.
+
+---
+
+## Math (KaTeX)
+
+Keep `$...$` tight (`$x$`, not `$ x $`).
+
+**Source**
+
+````mdx
+Inline: the vector $\mathbf{x} = (x_1, x_2, \dots, x_n)$ lives in $\mathbb{R}^n$.
+
+$$
+\mathbf{x} + \mathbf{y} = (x_1 + y_1, \dots, x_n + y_n)
+$$
+````
+
+**Result**
+
+Inline: the vector $\mathbf{x} = (x_1, x_2, \dots, x_n)$ lives in $\mathbb{R}^n$.
+
+$$
+\mathbf{x} + \mathbf{y} = (x_1 + y_1, \dots, x_n + y_n)
+$$
+
+---
+
+## Standard Markdown
+
+GFM is on: tables, strikethrough, task lists, autolinks.
+
+**Source**
+
+````md
+> Left-bordered blockquote — fine for callouts on blog posts.
+
+- Unordered item
+1. Ordered item
+
+- [ ] Todo
+- [x] Done
+
+| Algorithm | Average |
+| --- | --- |
+| Merge Sort | O(n log n) |
+
+~~deprecated~~ · [Internal link](/blog/algorithms/sorting) · [External](https://example.com)
+````
+
+**Result**
+
+> Left-bordered blockquote — fine for callouts on blog posts.
+
+- Unordered item
+1. Ordered item
+
+- [ ] Todo
+- [x] Done
+
+| Algorithm | Average |
+| --- | --- |
+| Merge Sort | $O(n \log n)$ |
+
+~~deprecated~~ · [Internal link](/blog/algorithms/sorting) · [External](https://example.com)
+
+---
+
+## `PathVisualizer`
+
+Curriculum graph from YAML. Inline `script={\`...\`}` often arrives empty after MDX serialization — use a registered wrapper (like below) or the [playground](/tools/path-visualizer).
+
+**Source**
+
+````mdx
+<AuthoringPathDemo />
+````
+
+**Result**
+
+<AuthoringPathDemo />
+
+---
+
+## Checklist for a new post
+
+1. Create `content/<topic>/<slug>.mdx`.
+2. Fill `title`, `date`, `excerpt`, `tags` (+ cover only if you have a real image).
+3. Start body at `##`.
+4. Use `CodeTabs` for related files; transformers for diffs.
+5. Preview at `/blog/<topic>/<slug>`.
+
+### Do not
+
+- Import React components in the post.
+- Use deprecated `MultiFileCodeBlock`.
+- Repeat the frontmatter title as an H1.
+- Invent ignored frontmatter (`author`, `draft`, …).
+- Hotlink image hosts not in `next.config.ts`.
+
+---
+
+## Learn docs (`content/learn/`)
+
+Study materials live under `content/learn/` and publish at `/learn/...`. They are **not** blog posts — the blog crawler skips `content/learn/`. Browse courses from [/learn](/learn).
+
+| File | URL |
+| --- | --- |
+| `content/learn/aspire-dotnet/index.mdx` | `/learn/aspire-dotnet` |
+| `content/learn/aspire-dotnet/02-apphost/01-resources.mdx` | `/learn/aspire-dotnet/apphost/resources` |
+
+Numeric folder/file prefixes (`01-overview`) control sort order only; they are stripped from URLs.
+
+### Learn frontmatter
+
+**Source**
+
+```yaml
+---
+title: 'Declaring Resources'
+description: 'Add databases and service references in AppHost.'
+icon: 'Database'
+badge: 'New'
+---
+```
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `title` | yes | Page and sidebar label |
+| `description` | recommended | Subtitle under the title |
+| `icon` | optional | Lucide name: `BookOpen`, `Boxes`, `Code2`, `Database`, `Layers3`, `Network`, `Server`, `Sparkles` |
+| `badge` | optional | `New` / `Updated` pill in sidebar |
+
+No `date` or `coverImage`. Start body at `##`.
+
+### Learn-only MDX components
+
+Learn uses the same **`CodeBlock`** card shell as blog posts. Learn-specific wrappers:
+
+| Component | Use |
+| --- | --- |
+| `ComponentPreview` | Preview \| Code tabs. Props: `replay`, `flush`, `previewClassName`, `align`. Tab chrome sits **above** the body so code is not double-wrapped. |
+| `Callout` | `variant`: `note` \| `tip` \| `warning` \| `dont`; optional `title` |
+| `DocsFileTabs` | Multi-file code — prefer over blog `CodeTabs` on Learn |
+| `InstallTabs` + `InstallTab` | CLI \| Manual install sections |
+| `Guide` + `GuideStep` | Step-by-step tutorials |
+| `Steps` + `Step` | Compact numbered steps inside `InstallTabs` manual tab |
+| `CommandBlock` | pnpm/npm/yarn/bun commands |
+| `Mermaid` | ` ```mermaid ` fence or `chart` prop |
+| `FlowDiagram` | Architecture graphs (`script` YAML/JSON) |
+| `PathVisualizer` | Curriculum YAML graphs |
+
+Do **not** use blog-only names `CodeFrame`, `CodeTabs`, or `MultiFileCodeBlock` on Learn pages. Prefer `DocsFileTabs` over `CodeTabs`.
+
+`Button`, `Card`, `Badge`, `Input` are available inside `ComponentPreview`.
+
+---
+
+### `Callout`
+
+**Source**
+
+````mdx
+<Callout variant="note" title="Note">
+  Supporting detail without changing the lesson flow.
+</Callout>
+
+<Callout variant="tip" title="Prefer transforms">
+  Animate `x` / `y` / `scale` — not `left` / `width` — for 60fps UI motion.
+</Callout>
+
+<Callout variant="warning" title="Reduced motion">
+  Respect `prefers-reduced-motion` before autoplaying scroll demos.
+</Callout>
+
+<Callout variant="dont" title="Do not ease-in on dropdowns">
+  `ease-in` starts slow. On a 200ms menu it feels unresponsive.
+</Callout>
+````
+
+**Result**
+
+<Callout variant="note" title="Note">
+  Supporting detail without changing the lesson flow.
+</Callout>
+
+<Callout variant="tip" title="Prefer transforms">
+  Animate `x` / `y` / `scale` — not `left` / `width` — for 60fps UI motion.
+</Callout>
+
+<Callout variant="warning" title="Reduced motion">
+  Respect `prefers-reduced-motion` before autoplaying scroll demos.
+</Callout>
+
+<Callout variant="dont" title="Do not ease-in on dropdowns">
+  `ease-in` starts slow. On a 200ms menu it feels unresponsive.
+</Callout>
+
+---
+
+### `CommandBlock`
+
+**Source**
+
+````mdx
+<CommandBlock
+  pnpm="pnpm add gsap @gsap/react"
+  npm="npm install gsap @gsap/react"
+  yarn="yarn add gsap @gsap/react"
+  bun="bun add gsap @gsap/react"
+/>
+````
+
+**Result**
+
+<CommandBlock
+  pnpm="pnpm add gsap @gsap/react"
+  npm="npm install gsap @gsap/react"
+  yarn="yarn add gsap @gsap/react"
+  bun="bun add gsap @gsap/react"
+/>
+
+---
+
+### `InstallTabs` + `InstallTab` + `Steps`
+
+**Source**
+
+````mdx
+<InstallTabs>
+  <InstallTab value="cli" label="CLI">
+    <CommandBlock pnpm="pnpm add gsap" npm="npm install gsap" />
+  </InstallTab>
+  <InstallTab value="manual" label="Manual">
+    <Steps>
+      <Step>Install the package</Step>
+      ```bash
+      pnpm add gsap @gsap/react
+      ```
+    </Steps>
+  </InstallTab>
+</InstallTabs>
+````
+
+**Result**
+
+<InstallTabs>
+  <InstallTab value="cli" label="CLI">
+    <CommandBlock pnpm="pnpm add gsap" npm="npm install gsap" />
+  </InstallTab>
+  <InstallTab value="manual" label="Manual">
+    <Steps>
+      <Step>Install the package</Step>
+      ```bash
+      pnpm add gsap @gsap/react
+      ```
+    </Steps>
+  </InstallTab>
+</InstallTabs>
+
+---
+
+### `DocsFileTabs`
+
+**Source**
+
+````mdx
+<DocsFileTabs>
+
+```tsx title="toast-enter.tsx"
+gsap.from('.gsap-toast', { y: 24, autoAlpha: 0, duration: 0.35, ease: 'power2.out' });
+```
+
+```html title="toast-enter-markup.html"
+<div class="gsap-toast rounded-lg border bg-card px-4 py-3">Changes saved</div>
+```
+
+</DocsFileTabs>
+````
+
+**Result**
+
+<DocsFileTabs>
+
+```tsx title="toast-enter.tsx"
+gsap.from('.gsap-toast', { y: 24, autoAlpha: 0, duration: 0.35, ease: 'power2.out' });
+```
+
+```html title="toast-enter-markup.html"
+<div class="gsap-toast rounded-lg border bg-card px-4 py-3">Changes saved</div>
+```
+
+</DocsFileTabs>
+
+---
+
+### `ComponentPreview`
+
+Tab chrome is detached from the body: Preview gets the card; Code uses the code block’s own container.
+
+**Source**
+
+````mdx
+<ComponentPreview>
+  <Button>Save changes</Button>
+
+```tsx title="save-button.tsx"
+<Button>Save changes</Button>
+```
+
+</ComponentPreview>
+````
+
+**Result**
+
+<ComponentPreview>
+  <Button>Save changes</Button>
+
+```tsx title="save-button.tsx"
+<Button>Save changes</Button>
+```
+
+</ComponentPreview>
+
+One-shot motion (page load, stagger in) should set `replay` so readers can remount without a refresh. Interactive demos (click / drag) usually omit `replay`. Scroll/pin demos use `flush` and a tall `previewClassName`.
+
+**GSAP lessons:** always pair the TSX tab with an **HTML markup tab** inside `DocsFileTabs`. `ComponentPreview` routes `DocsFileTabs` to the Code tab automatically. Custom preview components are registered in `components/learn/gsap-demos/mdx-registry.tsx` — do not import them in the MDX file.
+
+**Source** (GSAP multi-file pattern)
+
+````mdx
+<ComponentPreview replay>
+  <GsapToastEnter />
+
+  <DocsFileTabs>
+
+```tsx title="toast-enter.tsx"
+export function GsapToastEnter() { /* … */ }
+```
+
+```html title="toast-enter-markup.html"
+<div class="gsap-toast">Changes saved</div>
+```
+
+  </DocsFileTabs>
+</ComponentPreview>
+````
+
+---
+
+### `Guide` + `GuideStep`
+
+- `Guide` optional props: `title`, `numbered` (default `false` — grey pills; `true` — numbered circles).
+- `GuideStep` requires `title`; children can be prose and fenced blocks.
+
+**Source**
+
+````mdx
+<Guide title="Install Tailwind CSS v4" numbered>
+  <GuideStep title="Create your project">
+
+```bash
+npx create-next-app@latest my-project --typescript --eslint
+cd my-project
+```
+
+  </GuideStep>
+
+  <GuideStep title="Add the CSS import">
+    Create `app/globals.css` and add:
+
+```css title="app/globals.css"
+@import "tailwindcss";
+```
+
+  </GuideStep>
+</Guide>
+````
+
+**Result**
+
+<Guide title="Install Tailwind CSS v4" numbered>
+  <GuideStep title="Create your project">
+
+```bash
+npx create-next-app@latest my-project --typescript --eslint
+cd my-project
+```
+
+  </GuideStep>
+
+  <GuideStep title="Add the CSS import">
+    Create `app/globals.css` and add:
+
+```css title="app/globals.css"
+@import "tailwindcss";
+```
+
+  </GuideStep>
+</Guide>
+
+---
+
+### Mermaid
+
+**Source**
+
+````mdx
+```mermaid
+flowchart LR
+  A[MDX] --> B[CodeBlock]
+  A --> C[ComponentPreview]
+  C --> D[Preview]
+  C --> E[Code / DocsFileTabs]
+```
+````
+
+**Result**
+
+```mermaid
+flowchart LR
+  A[MDX] --> B[CodeBlock]
+  A --> C[ComponentPreview]
+  C --> D[Preview]
+  C --> E[Code / DocsFileTabs]
+```
+
+---
+
+### `FlowDiagram`
+
+On Learn pages, pass YAML/JSON via `script={`...`}`. Inline template literals can arrive empty after MDX serialization on the blog — this page uses a registered wrapper for the live demo.
+
+**Source** (Learn markup)
+
+````mdx
+<FlowDiagram script={`nodes:
+  - id: preview
+    label: Preview
+  - id: code
+    label: Code tab
+  - id: tabs
+    label: DocsFileTabs
+edges:
+  - source: preview
+    target: code
+  - source: code
+    target: tabs`} />
+````
+
+**Source** (blog-safe wrapper)
+
+````mdx
+<AuthoringFlowDemo />
+````
+
+**Result**
+
+<AuthoringFlowDemo />
+
+Long files use normal fences with `title="path/file.cs"` — they auto-collapse with **Expand**. The header filename is click-to-copy.
