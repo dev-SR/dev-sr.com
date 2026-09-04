@@ -66,22 +66,19 @@ export function ComponentPreview({
     align === 'start' ? 'justify-start' : align === 'end' ? 'justify-end' : 'justify-center';
 
   return (
-    <div
-      className={cn(
-        'not-prose my-8 overflow-hidden rounded-xl border border-border bg-card/60 shadow-sm',
-        className
-      )}>
+    <div className={cn('not-prose my-8', className)}>
       <Tabs value={tab} onValueChange={(value) => setTab(value as 'preview' | 'code')}>
-        <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
-          <TabsList className="h-8 bg-transparent p-0">
+        {/* Tab chrome sits outside the preview/code bodies so code isn't double-wrapped */}
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <TabsList className="h-8 bg-muted/40 p-0.5">
             <TabsTrigger
               value="preview"
-              className="h-7 rounded px-3 text-xs data-[state=active]:bg-muted/60">
+              className="h-7 rounded-md px-3 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               Preview
             </TabsTrigger>
             <TabsTrigger
               value="code"
-              className="h-7 rounded px-3 text-xs data-[state=active]:bg-muted/60">
+              className="h-7 rounded-md px-3 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
               Code
             </TabsTrigger>
           </TabsList>
@@ -102,6 +99,7 @@ export function ComponentPreview({
           <div
             key={replay ? replayKey : undefined}
             className={cn(
+              'overflow-hidden rounded-xl border border-border bg-card/60 shadow-sm',
               'flex w-full',
               flush ? 'min-h-0 items-stretch p-0' : cn('min-h-44 items-center p-8', alignClass),
               previewClassName
@@ -109,8 +107,10 @@ export function ComponentPreview({
             <div className={cn('w-full', flush && 'min-h-0 flex-1')}>{previewNodes}</div>
           </div>
         </TabsContent>
+
         <TabsContent value="code" className="m-0">
-          <div className="[&_.code-block]:my-0">{codeNodes}</div>
+          {/* No outer card — FileTabs / CodeBlock own the container */}
+          <div className="[&_.code-block]:my-0 [&_.code-file-tabs]:my-0">{codeNodes}</div>
         </TabsContent>
       </Tabs>
     </div>
