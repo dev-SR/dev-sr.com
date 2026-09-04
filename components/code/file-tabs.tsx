@@ -27,7 +27,7 @@ interface FileTabsProps {
 }
 
 export function FileTabs({
-  title,
+  title: _title,
   children,
   className,
   showGroupCopy = true,
@@ -39,11 +39,10 @@ export function FileTabs({
   const activeItem = items.find((item) => item.id === activeTab) ?? items[0];
 
   if (items.length === 0) {
-    if (!title && !emptyMessage) return null;
+    if (!emptyMessage) return null;
     return (
       <CodeContainer className="code-file-tabs not-prose my-6 p-5 text-sm text-muted-foreground">
-        {title && <h4 className="mb-2 text-lg font-semibold text-foreground">{title}</h4>}
-        <p>{emptyMessage ?? 'No code blocks were provided.'}</p>
+        <p>{emptyMessage}</p>
       </CodeContainer>
     );
   }
@@ -53,7 +52,6 @@ export function FileTabs({
   if (items.length === 1) {
     return (
       <div className={cn('code-file-tabs not-prose my-6', className)}>
-        {title && <h4 className="mb-3 text-sm font-semibold text-foreground">{title}</h4>}
         {items[0].element}
       </div>
     );
@@ -62,12 +60,6 @@ export function FileTabs({
   return (
     <FileTabsProvider>
       <CodeContainer className={cn('code-file-tabs code-block not-prose my-6', className)}>
-        {title && (
-          <div className="border-b border-border/60 px-3 py-2">
-            <h4 className="truncate text-sm font-semibold text-foreground">{title}</h4>
-          </div>
-        )}
-
         <Tabs value={activeTab || items[0].id} onValueChange={setActiveTab}>
           <CodeContainerHeader className="gap-1 px-0 py-0 pr-3">
             <div className="flex min-w-0 flex-1 items-center overflow-hidden">

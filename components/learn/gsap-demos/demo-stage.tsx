@@ -23,7 +23,7 @@ export const DemoStage = forwardRef<HTMLDivElement, DemoStageProps>(function Dem
       ref={innerRef}
       id={id}
       className={cn(
-        'relative w-full rounded-lg border border-border/60 bg-muted/20',
+        'relative w-full',
         scroll ? 'overflow-y-auto overscroll-contain' : 'overflow-hidden',
         className
       )}
