@@ -1,7 +1,10 @@
+'use client';
+
 import Image from 'next/image';
 import type React from 'react';
 import { Children, isValidElement } from 'react';
 import { cn } from '@/lib/utils';
+import { ImageZoom } from './image-zoom';
 
 type FigureSize = 'sm' | 'md' | 'lg' | 'full';
 type FigureAlign = 'left' | 'center' | 'right';
@@ -17,6 +20,8 @@ export type FigureProps = {
   align?: FigureAlign;
   maxWidth?: number | string;
   priority?: boolean;
+  /** Click-to-zoom overlay. Default true. */
+  zoom?: boolean;
   className?: string;
 };
 
@@ -68,6 +73,41 @@ function findImageProps(children: React.ReactNode): { src?: string; alt?: string
   return result;
 }
 
+function FigureImage({
+  src,
+  alt,
+  width,
+  height,
+  sizes,
+  priority,
+  className,
+  zoom,
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  sizes: string;
+  priority: boolean;
+  className?: string;
+  zoom: boolean;
+}) {
+  const image = (
+    <Image
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      priority={priority}
+      sizes={sizes}
+      className={cn('h-auto w-full object-cover', className)}
+    />
+  );
+
+  if (!zoom) return image;
+  return <ImageZoom>{image}</ImageZoom>;
+}
+
 export function Figure({
   src,
   alt,
@@ -79,6 +119,7 @@ export function Figure({
   align = 'center',
   maxWidth,
   priority = false,
+  zoom = true,
   className,
 }: FigureProps) {
   const childImage = children ? findImageProps(children) : {};
@@ -101,7 +142,7 @@ export function Figure({
 
             const props = child.props as { src?: string; alt?: string; className?: string };
             return (
-              <Image
+              <FigureImage
                 key={props.src}
                 src={props.src ?? imageSrc}
                 alt={props.alt ?? imageAlt}
@@ -109,19 +150,20 @@ export function Figure({
                 height={imageHeight}
                 priority={priority}
                 sizes={figureSizesMap[size]}
-                className={cn('h-auto w-full object-cover', props.className)}
+                className={props.className}
+                zoom={zoom}
               />
             );
           })
         ) : (
-          <Image
+          <FigureImage
             src={imageSrc}
             alt={imageAlt}
             width={imageWidth}
             height={imageHeight}
             priority={priority}
             sizes={figureSizesMap[size]}
-            className="h-auto w-full object-cover"
+            zoom={zoom}
           />
         )}
       </div>

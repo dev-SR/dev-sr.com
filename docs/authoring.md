@@ -146,6 +146,9 @@ Captioned image with size and alignment. Prefer this over a raw `![alt](src)` wh
 | `align` | `'left'` \| `'center'` \| `'right'` | `'center'` | |
 | `maxWidth` | number \| string | — | Extra max-width override. |
 | `priority` | boolean | `false` | Set on the first large in-article image only. |
+| `zoom` | boolean | `true` | Click to open a theme-aware lightbox. Scroll to zoom further, drag to pan, Esc to close. Set `zoom={false}` to disable. |
+
+Images from Markdown (`![alt](src)`) and `<Figure>` open a zoom lightbox by default.
 
 ```mdx
 <Figure
@@ -155,6 +158,11 @@ Captioned image with size and alignment. Prefer this over a raw `![alt](src)` wh
   width={500}
   size="sm"
 />
+```
+
+```mdx
+<!-- Decorative / non-zoomable -->
+<Figure src="/diagram.png" alt="Diagram" zoom={false} />
 ```
 
 You can also wrap a Markdown image; `Figure` reads `src` / `alt` from the child:
