@@ -146,11 +146,6 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
 
   return (
     <div className="relative overflow-hidden">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--accent)_18%,transparent),transparent_65%)]"
-      />
-
       <div className="relative mx-auto mt-28 max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <section className="mb-12 max-w-3xl">
           <p className="mb-3 text-sm font-medium tracking-wide text-accent uppercase">Study</p>

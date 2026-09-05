@@ -3,6 +3,7 @@ import { BlogTreeNavigation } from '@/components/blog-tree';
 import { BlogTopicCard, PopularPostCard } from '@/components/ui/blog-index-cards';
 import { Calendar, TrendingUp, Star } from 'lucide-react';
 import Header from '@/components/Header';
+import { PageTopGlow } from '@/components/page-top-glow';
 import { BlogPostPreviewCard } from '@/components/blog-post-preview-card';
 
 export default async function BlogPage() {
@@ -34,7 +35,8 @@ export default async function BlogPage() {
     .slice(0, 6);
 
   return (
-    <div className="bg-background">
+    <div className="relative bg-background">
+      <PageTopGlow />
       <Header />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 mt-28">

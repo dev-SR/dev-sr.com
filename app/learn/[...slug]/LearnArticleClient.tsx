@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Menu } from 'lucide-react';
 import type { LearnNavNode, LearnNeighbor, LearnPage } from '@/lib/learn';
 import Header from '@/components/Header';
+import { PageTopGlow } from '@/components/page-top-glow';
 import { TableOfContents } from '@/components/table-of-contents';
 import { DocsSidebar } from '@/components/learn/docs-sidebar';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,8 @@ export function LearnArticleClient({
   next,
 }: LearnArticleClientProps) {
   return (
-    <>
+    <div className="relative bg-background">
+      <PageTopGlow />
       <Header />
       <div className="mx-auto mt-28 max-w-[90rem] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="mb-4 flex items-center justify-between lg:hidden">
@@ -142,6 +144,6 @@ export function LearnArticleClient({
           </aside>
         </div>
       </div>
-    </>
+    </div>
   );
 }

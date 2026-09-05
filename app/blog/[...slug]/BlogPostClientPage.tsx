@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
+import { PageTopGlow } from '@/components/page-top-glow';
 import { MdxContentSkeleton } from '@/components/loading-skeleton';
 import { ViewTransition } from 'react';
 
@@ -42,7 +43,8 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
   const nextPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
 
   return (
-    <>
+    <div className="relative bg-background">
+      <PageTopGlow />
       <Header />
       <section
         className={`relative isolate overflow-hidden border-b border-border ${
@@ -255,6 +257,6 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

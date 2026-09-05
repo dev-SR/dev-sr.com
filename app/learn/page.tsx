@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import { PageTopGlow } from '@/components/page-top-glow';
 import { LearnHub } from '@/components/learn/learn-hub';
 import { getLearnCatalog } from '@/lib/learn';
 
@@ -6,7 +7,8 @@ export default async function LearnPage() {
   const catalog = await getLearnCatalog();
 
   return (
-    <div className="bg-background">
+    <div className="relative bg-background">
+      <PageTopGlow />
       <Header />
       <LearnHub courses={catalog.courses} lessons={catalog.lessons} />
     </div>

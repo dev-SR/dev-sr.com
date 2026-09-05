@@ -31,6 +31,8 @@ export const Navbar = ({ children, className }: NavbarProps) => {
 
   useGSAP(
     () => {
+      // Memorable hang → dock on scroll (transform y). Sticky rest offset stays top-1
+      // (was top-4/top-5) — not scrubbed away.
       gsap.fromTo(
         container.current,
         {
@@ -62,7 +64,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
 
   return (
     <div
-      className={cn('sticky inset-x-0 top-4 z-40 w-full bg-transparent px-3 sm:px-5', className)}>
+      className={cn('sticky inset-x-0 top-1 z-40 w-full bg-transparent px-3 sm:px-5', className)}>
       <div className="mx-auto max-w-6xl">
         <div
           ref={container}
