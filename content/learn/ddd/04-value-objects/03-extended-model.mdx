@@ -1,0 +1,510 @@
+---
+title: 'Extended model'
+description: 'Canonical extended domain with Result, Money, RentalPeriod, and thin service.'
+---
+
+## Result
+
+```csharp title="Domain/Result.cs"
+namespace RentalDddDemo.Domain;
+
+public enum ResultErrorType
+{
+    Validation,
+    NotFound,
+    Conflict
+}
+
+public sealed class Result<T>
+{
+    private readonly T? _value;
+    private readonly string? _error;
+
+    private Result(
+        bool isSuccess,
+        T? value,
+        string? error,
+        ResultErrorType errorType
+    )
+    {
+        IsSuccess = isSuccess;
+        _value = value;
+        _error = error;
+        ErrorType = errorType;
+    }
+
+    public bool IsSuccess { get; }
+
+    public bool IsFailure => !IsSuccess;
+
+    public ResultErrorType ErrorType { get; }
+
+    public T Value => IsSuccess
+        ? _value!
+        : throw new InvalidOperationException("Cannot access the value of a failed result.");
+
+    public string Error => IsFailure
+        ? _error!
+        : throw new InvalidOperationException("Cannot access the error of a successful result.");
+
+    public static Result<T> Success(T value)
+    {
+        if (value is null)
+        {
+            throw new ArgumentNullException(nameof(value));
+        }
+
+        return new Result<T>(true, value, null, ResultErrorType.Validation);
+    }
+
+    public static Result<T> Failure(
+        string error,
+        ResultErrorType errorType = ResultErrorType.Validation
+    )
+    {
+        if (string.IsNullOrWhiteSpace(error))
+        {
+            throw new ArgumentException("Error cannot be null or empty.", nameof(error));
+        }
+
+        return new Result<T>(false, default, error, errorType);
+    }
+}
+```
+
+## Money
+
+```csharp title="Domain/Money.cs"
+namespace RentalDddDemo.Domain;
+
+public sealed record Money
+{
+    public decimal Amount { get; }
+
+    public string Currency { get; }
+
+    private Money(decimal amount, string currency)
+    {
+        if (amount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(amount), "Amount cannot be negative.");
+        }
+
+        if (string.IsNullOrWhiteSpace(currency))
+        {
+            throw new ArgumentException("Currency cannot be null or empty.", nameof(currency));
+        }
+
+        Amount = amount;
+        Currency = currency.ToUpperInvariant();
+    }
+
+    public static Money Usd(decimal amount)
+    {
+        return new Money(amount, "USD");
+    }
+
+    public static Result<Money> Create(decimal amount, string currency)
+    {
+        if (amount < 0)
+        {
+            return Result<Money>.Failure("Amount cannot be negative.");
+        }
+
+        if (string.IsNullOrWhiteSpace(currency))
+        {
+            return Result<Money>.Failure("Currency cannot be null or empty.");
+        }
+
+        return Result<Money>.Success(new Money(amount, currency));
+    }
+
+    public Money Multiply(int factor)
+    {
+        if (factor < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(factor), "Factor cannot be negative.");
+        }
+
+        return new Money(Amount * factor, Currency);
+    }
+
+    public override string ToString()
+    {
+        return $"{Amount:F2} {Currency}";
+    }
+}
+```
+
+## RentalPeriod
+
+```csharp title="Domain/RentalPeriod.cs"
+namespace RentalDddDemo.Domain;
+
+public sealed record RentalPeriod
+{
+    public DateOnly StartDate { get; }
+
+    public DateOnly EndDate { get; }
+
+    private RentalPeriod(DateOnly startDate, DateOnly endDate)
+    {
+        StartDate = startDate;
+        EndDate = endDate;
+    }
+
+    public static Result<RentalPeriod> Create(DateOnly startDate, DateOnly endDate)
+    {
+        if (endDate <= startDate)
+        {
+            return Result<RentalPeriod>.Failure("End date must be after start date.");
+        }
+
+        if (startDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            return Result<RentalPeriod>.Failure("Start date must be in the future.");
+        }
+
+        return Result<RentalPeriod>.Success(new RentalPeriod(startDate, endDate));
+    }
+
+    public int GetDurationDays()
+    {
+        return EndDate.DayNumber - StartDate.DayNumber;
+    }
+
+    public override string ToString()
+    {
+        return $"{StartDate:yyyy-MM-dd} to {EndDate:yyyy-MM-dd}";
+    }
+}
+```
+
+## Entities
+
+```csharp title="Domain/Customer.cs"
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
+using System.Linq;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Customer
+{
+    private static readonly ConcurrentDictionary<string, Customer> Customers = new();
+
+    private readonly List<Rental> _rentals = new();
+
+    static Customer()
+    {
+        var john = new Customer("customer-1", "John Doe");
+        Customers.TryAdd(john.Id, john);
+    }
+
+    private Customer(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Customer name cannot be null or empty.", nameof(name));
+        }
+
+        Id = id;
+        Name = name;
+    }
+
+    public string Id { get; }
+
+    public string Name { get; private set; }
+
+    public IReadOnlyCollection<Rental> Rentals => _rentals.AsReadOnly();
+
+    public static Result<Customer> FindById(string id)
+    {
+        return Customers.TryGetValue(id, out var customer)
+            ? Result<Customer>.Success(customer)
+            : Result<Customer>.Failure("Customer not found.", ResultErrorType.NotFound);
+    }
+
+    public static Result<Customer> Create(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Result<Customer>.Failure("Customer name cannot be null or empty.");
+        }
+
+        var customer = new Customer(Guid.NewGuid().ToString(), name);
+        Customers.TryAdd(customer.Id, customer);
+
+        return Result<Customer>.Success(customer);
+    }
+
+    public Result<Customer> UpdateContactInformation(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return Result<Customer>.Failure("Customer name cannot be null or empty.");
+        }
+
+        Name = newName;
+
+        return Result<Customer>.Success(this);
+    }
+
+    internal void AddRental(Rental rental)
+    {
+        if (rental is null)
+        {
+            throw new ArgumentNullException(nameof(rental));
+        }
+
+        if (_rentals.Any(existing => existing.Id == rental.Id))
+        {
+            return;
+        }
+
+        _rentals.Add(rental);
+    }
+}
+```
+
+```csharp title="Domain/Equipment.cs"
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Equipment
+{
+    private static readonly ConcurrentDictionary<string, Equipment> Items = new();
+
+    static Equipment()
+    {
+        var hammer = new Equipment("equipment-1", "Hammer");
+        Items.TryAdd(hammer.Id, hammer);
+    }
+
+    private Equipment(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Equipment name cannot be null or empty.", nameof(name));
+        }
+
+        Id = id;
+        Name = name;
+        IsAvailable = true;
+    }
+
+    public string Id { get; }
+
+    public string Name { get; private set; }
+
+    public bool IsAvailable { get; private set; }
+
+    public static Result<Equipment> FindById(string id)
+    {
+        return Items.TryGetValue(id, out var equipment)
+            ? Result<Equipment>.Success(equipment)
+            : Result<Equipment>.Failure("Equipment not found.", ResultErrorType.NotFound);
+    }
+
+    public static Result<Equipment> Create(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Result<Equipment>.Failure("Equipment name cannot be null or empty.");
+        }
+
+        var equipment = new Equipment(Guid.NewGuid().ToString(), name);
+        Items.TryAdd(equipment.Id, equipment);
+
+        return Result<Equipment>.Success(equipment);
+    }
+
+    public Result<Equipment> UpdateName(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return Result<Equipment>.Failure("Equipment name cannot be null or empty.");
+        }
+
+        Name = newName;
+
+        return Result<Equipment>.Success(this);
+    }
+
+    public Result<Equipment> Reserve()
+    {
+        if (!IsAvailable)
+        {
+            return Result<Equipment>.Failure(
+                "Equipment is not available.",
+                ResultErrorType.Conflict
+            );
+        }
+
+        IsAvailable = false;
+
+        return Result<Equipment>.Success(this);
+    }
+
+    public void Release()
+    {
+        IsAvailable = true;
+    }
+}
+```
+
+```csharp title="Domain/Rental.cs"
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Rental
+{
+    private static readonly ConcurrentDictionary<string, Rental> Rentals = new();
+
+    private static readonly Money CostPerDay = Money.Usd(10.00m);
+
+    private Rental(
+        Customer customer,
+        Equipment equipment,
+        RentalPeriod rentalPeriod
+    )
+    {
+        Customer = customer ?? throw new ArgumentNullException(nameof(customer));
+        Equipment = equipment ?? throw new ArgumentNullException(nameof(equipment));
+        RentalPeriod = rentalPeriod ?? throw new ArgumentNullException(nameof(rentalPeriod));
+
+        Id = Guid.NewGuid().ToString();
+        Fee = CalculateFee(rentalPeriod);
+    }
+
+    public string Id { get; }
+
+    public Customer Customer { get; }
+
+    public Equipment Equipment { get; }
+
+    public RentalPeriod RentalPeriod { get; }
+
+    public Money Fee { get; }
+
+    public static Result<Rental> FindById(string id)
+    {
+        return Rentals.TryGetValue(id, out var rental)
+            ? Result<Rental>.Success(rental)
+            : Result<Rental>.Failure("Rental not found.", ResultErrorType.NotFound);
+    }
+
+    public static Result<Rental> Create(
+        Customer customer,
+        Equipment equipment,
+        RentalPeriod rentalPeriod
+    )
+    {
+        if (customer is null)
+        {
+            return Result<Rental>.Failure("Customer cannot be null.");
+        }
+
+        if (equipment is null)
+        {
+            return Result<Rental>.Failure("Equipment cannot be null.");
+        }
+
+        if (rentalPeriod is null)
+        {
+            return Result<Rental>.Failure("Rental period cannot be null.");
+        }
+
+        var reserveResult = equipment.Reserve();
+
+        if (reserveResult.IsFailure)
+        {
+            return Result<Rental>.Failure(
+                reserveResult.Error,
+                reserveResult.ErrorType
+            );
+        }
+
+        var rental = new Rental(customer, equipment, rentalPeriod);
+
+        Rentals.TryAdd(rental.Id, rental);
+
+        customer.AddRental(rental);
+
+        return Result<Rental>.Success(rental);
+    }
+
+    private static Money CalculateFee(RentalPeriod rentalPeriod)
+    {
+        return CostPerDay.Multiply(rentalPeriod.GetDurationDays());
+    }
+
+    public override string ToString()
+    {
+        return $"Rental {Id}: " +
+               $"customer={Customer.Name}, " +
+               $"equipment={Equipment.Name}, " +
+               $"period={RentalPeriod}, " +
+               $"fee={Fee}";
+    }
+}
+```
+
+## Service
+
+```csharp title="Services/RentalService.cs"
+using RentalDddDemo.Domain;
+
+namespace RentalDddDemo.Services;
+
+public sealed class RentalService
+{
+    public Result<Rental> CreateRental(
+        string customerId,
+        string equipmentId,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        var customerResult = Customer.FindById(customerId);
+
+        if (customerResult.IsFailure)
+        {
+            return Result<Rental>.Failure(
+                customerResult.Error,
+                customerResult.ErrorType
+            );
+        }
+
+        var equipmentResult = Equipment.FindById(equipmentId);
+
+        if (equipmentResult.IsFailure)
+        {
+            return Result<Rental>.Failure(
+                equipmentResult.Error,
+                equipmentResult.ErrorType
+            );
+        }
+
+        var rentalPeriodResult = RentalPeriod.Create(startDate, endDate);
+
+        if (rentalPeriodResult.IsFailure)
+        {
+            return Result<Rental>.Failure(
+                rentalPeriodResult.Error,
+                rentalPeriodResult.ErrorType
+            );
+        }
+
+        return Rental.Create(
+            customerResult.Value,
+            equipmentResult.Value,
+            rentalPeriodResult.Value
+        );
+    }
+}
+```
+
+Orchestration becomes: resolve results → `Rental.Create` → map failure upward. No duplicated date/fee rules.

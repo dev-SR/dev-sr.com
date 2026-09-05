@@ -1,0 +1,30 @@
+---
+title: 'Scenario and goals'
+description: 'Equipment rental use cases and the language the model should speak.'
+---
+
+## The domain
+
+We model a small **equipment rental** slice:
+
+- Customers and equipment
+- Create a rental for a date range
+- Validate availability and dates
+- Calculate a fee
+- Reserve equipment and attach the rental to the customer
+
+## Speak the domain
+
+Prefer behavior that reads like the business:
+
+```csharp
+equipment.Reserve();
+```
+
+over leaking infrastructure into the sentence:
+
+```csharp
+equipment.Available = false;
+```
+
+DDD is not “add more layers.” It is **make the code reflect the domain** so rules live with the concepts they protect.

@@ -1,0 +1,26 @@
+---
+title: 'Domain-Driven Design'
+description: 'Refactor an anemic rental model into a rich domain — then add value objects and Result errors — with .NET Minimal API.'
+icon: 'Layers3'
+badge: 'New'
+---
+
+## What you will learn
+
+Model an **equipment rental** domain in .NET. Start from an anemic (CRUD/service-heavy) design, push rules into entities, then introduce value objects and `Result` for domain errors.
+
+## Course outline
+
+| Chapter | Focus |
+| --- | --- |
+| [Foundations](/learn/ddd/foundations) | Scenario, rich vs anemic, why anemic hurts |
+| [Anemic baseline](/learn/ddd/anemic-baseline) | Working Minimal API with dumb entities |
+| [Rich domain](/learn/ddd/rich-domain) | Move logic, invariants, behavior methods |
+| [Value objects](/learn/ddd/value-objects) | Protected collections, `Money`, `RentalPeriod`, `Result` |
+| [Design notes](/learn/ddd/design-notes) | When DDD pays off — and when it does not |
+
+Domain language we use throughout: **Customer**, **Equipment**, `Reserve` / `Release`, **Rental**, fee, availability, rental period.
+
+<Callout variant="note" title="In-memory only">
+  Static dictionaries seed demo data. Prefer repositories + a database in production.
+</Callout>

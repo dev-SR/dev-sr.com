@@ -1,0 +1,28 @@
+---
+title: 'When and how'
+description: 'Practical limits of rich models and this learning sample.'
+---
+
+## Use DDD when
+
+- Rules are **core to the business** (pricing, reservations, eligibility)
+- Multiple features touch the same invariants
+- The team shares a ubiquitous language with domain experts
+
+## Skip heavy DDD when
+
+- Pure CRUD / admin screens
+- Throwaway prototypes
+- No contested business rules
+
+## This sample vs production
+
+| Demo | Production |
+| --- | --- |
+| Static `ConcurrentDictionary` | Repositories + persistence |
+| Exceptions or `Result` mixed by chapter | Pick one error strategy and stick to it |
+| Single bounded context | Explicit boundaries / integration events as you grow |
+
+## Final takeaway
+
+Anemic models hide rules in services. Rich models put **behavior next to data**, then value objects and `Result` remove primitive obsession and exception-driven control flow. Start where the pain is — do not “DDD-wash” the whole codebase.
