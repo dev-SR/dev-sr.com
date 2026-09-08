@@ -70,12 +70,8 @@ export function LearnArticleClient({
         </div>
 
         <div className="grid items-start gap-8 lg:grid-cols-[18rem_minmax(0,1fr)_22rem]">
-          <div className="hidden lg:block">
-            {courseNav && (
-              <div className="sticky top-28">
-                <DocsSidebar course={courseNav} />
-              </div>
-            )}
+          <div className="sticky top-28 hidden lg:block">
+            {courseNav && <DocsSidebar course={courseNav} />}
           </div>
 
           <article className="min-w-0">
@@ -137,10 +133,8 @@ export function LearnArticleClient({
             </div>
           </article>
 
-          <aside className="hidden lg:block">
-            <div className="sticky top-28">
-              <TableOfContents className="mb-0" />
-            </div>
+          <aside className="sticky top-28 hidden lg:block">
+            <TableOfContents className="mb-0" />
           </aside>
         </div>
       </div>
