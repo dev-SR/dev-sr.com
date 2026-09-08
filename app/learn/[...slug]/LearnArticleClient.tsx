@@ -44,7 +44,7 @@ export function LearnArticleClient({
     <div className="relative bg-background">
       <PageTopGlow />
       <Header />
-      <div className="mx-auto mt-28 max-w-[90rem] px-4 pb-16 sm:px-6 lg:px-8">
+      <div className="mx-auto mt-28 max-w-420 px-4 pb-16 sm:px-6 lg:px-8">
         <div className="mb-4 flex items-center justify-between lg:hidden">
           <Link href="/learn" className="text-sm text-muted-foreground hover:text-foreground">
             All courses
@@ -69,7 +69,7 @@ export function LearnArticleClient({
           )}
         </div>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[16rem_minmax(0,1fr)_12rem] xl:grid-cols-[17rem_minmax(0,1fr)_13rem]">
+        <div className="grid items-start gap-8 lg:grid-cols-[18rem_minmax(0,1fr)_22rem]">
           <div className="hidden lg:block">
             {courseNav && (
               <div className="sticky top-28">

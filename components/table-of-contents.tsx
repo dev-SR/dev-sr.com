@@ -218,7 +218,7 @@ function TocItemButton({
         'w-full rounded-md text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35',
         variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-2 py-1.5 text-sm',
         isActive
-          ? 'border-l-2 border-accent bg-muted pl-[calc(0.5rem-2px)] font-medium text-foreground'
+          ? 'border-l-2 border-accent bg-muted pl-1.5 font-medium text-foreground'
           : isAncestor
             ? 'font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground'
             : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
@@ -291,7 +291,7 @@ function TocPanel({
   className?: string;
   collapsible?: boolean;
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const ancestorIds = useMemo(() => collectAncestorIds(tree, activeId), [tree, activeId]);
   const activeIndex = findActiveIndex(tocItems, activeId);
@@ -351,7 +351,7 @@ function TocPanel({
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
-              className="mb-1 h-auto w-full justify-between rounded-md px-2 py-1.5 text-left hover:bg-white/[0.025]">
+              className="mb-1 h-auto w-full justify-between rounded-md px-2 py-1.5 text-left hover:bg-white/2.5">
               <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground/85">
                 <List className="size-4 text-muted-foreground" />
                 <span className="truncate">On this page</span>
