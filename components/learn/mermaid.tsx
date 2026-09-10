@@ -8,6 +8,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
+  type WheelEvent as ReactWheelEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -38,6 +39,7 @@ type ViewMode = 'preview' | 'code';
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 10;
 const ZOOM_STEP = 0.25;
+const WHEEL_SENSITIVITY = 0.0018;
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(value * 100) / 100));
@@ -174,6 +176,7 @@ function MermaidPreviewPane({
   errorMessage,
   zoom,
   offset,
+  onZoomChange,
   onOffsetChange,
   maximized,
 }: {
@@ -182,12 +185,18 @@ function MermaidPreviewPane({
   errorMessage: string;
   zoom: number;
   offset: { x: number; y: number };
-  onOffsetChange: (offset: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
+  onZoomChange: (zoom: number | ((prev: number) => number)) => void;
+  onOffsetChange: (
+    offset:
+      | { x: number; y: number }
+      | ((prev: { x: number; y: number }) => { x: number; y: number })
+  ) => void;
   maximized: boolean;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
   const lastPointer = useRef({ x: 0, y: 0 });
+  const stageRef = useRef<HTMLDivElement>(null);
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -217,8 +226,41 @@ function MermaidPreviewPane({
     }
   }, []);
 
+  const onWheel = useCallback(
+    (event: ReactWheelEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const stage = stageRef.current;
+      if (!stage) return;
+
+      const rect = stage.getBoundingClientRect();
+      const cursorX = event.clientX - rect.left - rect.width / 2;
+      const cursorY = event.clientY - rect.top - rect.height / 2;
+      const factor = 1 - event.deltaY * WHEEL_SENSITIVITY;
+
+      onZoomChange((prevZoom) => {
+        const nextZoom = clampZoom(prevZoom * factor);
+        if (nextZoom === prevZoom) return prevZoom;
+
+        const ratio = nextZoom / prevZoom;
+        onOffsetChange((prevOffset) => {
+          if (nextZoom === 1) return { x: 0, y: 0 };
+          return {
+            x: cursorX - (cursorX - prevOffset.x) * ratio,
+            y: cursorY - (cursorY - prevOffset.y) * ratio,
+          };
+        });
+
+        return nextZoom;
+      });
+    },
+    [onZoomChange, onOffsetChange]
+  );
+
   return (
     <div
+      ref={stageRef}
       className={cn(
         'relative touch-none overflow-hidden overscroll-contain bg-card/30 select-none',
         maximized ? 'min-h-0 flex-1' : 'max-h-[min(70vh,36rem)] min-h-100',
@@ -230,7 +272,8 @@ function MermaidPreviewPane({
       onPointerDown={status === 'ready' ? onPointerDown : undefined}
       onPointerMove={status === 'ready' ? onPointerMove : undefined}
       onPointerUp={status === 'ready' ? onPointerUp : undefined}
-      onPointerCancel={status === 'ready' ? onPointerUp : undefined}>
+      onPointerCancel={status === 'ready' ? onPointerUp : undefined}
+      onWheel={status === 'ready' ? onWheel : undefined}>
       {status === 'loading' && (
         <p className="py-10 text-center text-sm text-muted-foreground">Rendering diagram…</p>
       )}
@@ -397,6 +440,7 @@ export function Mermaid({ chart, className }: MermaidProps) {
       errorMessage={errorMessage}
       zoom={zoom}
       offset={offset}
+      onZoomChange={setZoom}
       onOffsetChange={setOffset}
       maximized={maximized}
     />
