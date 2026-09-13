@@ -7,66 +7,26 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAllPosts } from '@/lib/mdx';
+import { homeStrengths, profile, projects, publications } from '@/lib/profile';
 import {
   ArrowRight,
-  BookOpen,
-  Braces,
+  Binary,
+  BrainCircuit,
   Code2,
-  Layers3,
-  MousePointer2,
-  PenLine,
-  Sparkles,
-  Waves,
+  Database,
+  Network,
+  Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ViewTransition } from 'react';
 
-const projectHighlights = [
-  {
-    title: 'Learn Docs',
-    description:
-      'Long-form study tracks for Aspire, Minimal APIs, and architecture — with expandable code, previews, Mermaid, and flow diagrams.',
-    href: '/learn',
-    icon: Layers3,
-    tags: ['Aspire', '.NET', 'Docs'],
-  },
-  {
-    title: 'Interactive MDX Knowledge Base',
-    description:
-      'A structured writing system for algorithms, math, React patterns, syntax-highlighted code, and reusable learning notes.',
-    href: '/blog',
-    icon: BookOpen,
-    tags: ['MDX', 'Shiki', 'KaTeX'],
-  },
-  {
-    title: 'Path Visualizer Lab',
-    description:
-      'A hands-on tool for exploring parsing and route/path behavior with immediate visual feedback.',
-    href: '/tools/path-visualizer',
-    icon: MousePointer2,
-    tags: ['Next.js', 'Visualization', 'Tools'],
-  },
-  {
-    title: 'Portfolio Motion System',
-    description:
-      'Native route transitions, scroll-driven reveals, responsive nav behavior, and lightweight interactive polish.',
-    href: '/portfolio',
-    icon: Sparkles,
-    tags: ['View Transitions', 'CSS', 'GSAP'],
-  },
-];
+const strengthIcons = [BrainCircuit, Binary, Network, Workflow] as const;
 
-const strengths = [
-  { label: 'Frontend architecture', icon: Layers3 },
-  { label: 'Technical writing', icon: PenLine },
-  { label: 'Interactive tools', icon: Braces },
-  { label: 'Motion systems', icon: Waves },
-];
+const projectIcons = [BrainCircuit, Database, Code2] as const;
 
 export default async function App() {
   const posts = await getAllPosts();
   const recentPosts = posts.slice(0, 3);
-  const topicCount = new Set(posts.flatMap((post) => post.tags ?? [])).size;
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,17 +45,15 @@ export default async function App() {
                 <Badge
                   variant="outline"
                   className="mb-6 border-[#F08F87]/35 bg-[#F08F87]/10 text-[#F08F87]">
-                  Next.js portfolio, blog, and experiments
+                  {profile.roleLine}
                 </Badge>
 
-                <h1 className="max-w-4xl text-5xl font-bold leading-tight tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-                  Building sharp web experiences with motion, writing, and useful tools.
+                <h1 className="max-w-4xl text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-4xl">
+                  {profile.headline}
                 </h1>
 
                 <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-                  I use this space to collect production-minded frontend work, interactive
-                  experiments, and technical notes across React, algorithms, math, and modern web
-                  platform APIs.
+                  {profile.bio}
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -126,29 +84,35 @@ export default async function App() {
                         currently exploring
                       </p>
                       <h2 className="mt-3 text-2xl font-semibold text-foreground">
-                        Native view transitions, MDX systems, and smooth interaction design.
+                        Applied ML, RAG systems, and production backends.
                       </h2>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       <div className="hero-metric">
+                        <span>{projects.length}</span>
+                        <p>projects</p>
+                      </div>
+                      <div className="hero-metric">
+                        <span>{publications.length}</span>
+                        <p>pubs</p>
+                      </div>
+                      <div className="hero-metric">
                         <span>{posts.length}</span>
                         <p>posts</p>
-                      </div>
-                      <div className="hero-metric">
-                        <span>{topicCount || 1}</span>
-                        <p>topics</p>
-                      </div>
-                      <div className="hero-metric">
-                        <span>3</span>
-                        <p>labs</p>
                       </div>
                     </div>
                     <div className="rounded-lg border border-white/10 bg-black/20 p-4 font-mono text-sm text-muted-foreground">
                       <p>
                         <span className="text-[#F08F87]">const</span> focus = [
-                        <span className="text-[#ACC5D3]">&apos;Next.js&apos;</span>,
-                        <span className="text-[#ACC5D3]"> &apos;MDX&apos;</span>,
-                        <span className="text-[#ACC5D3]"> &apos;Animation&apos;</span>]
+                        {profile.focus.map((item, index) => (
+                          <span key={item}>
+                            {index > 0 ? ',' : ''}
+                            <span className="text-[#ACC5D3]">
+                              {index === 0 ? ' ' : ' '}&apos;{item}&apos;
+                            </span>
+                          </span>
+                        ))}
+                        ]
                       </p>
                     </div>
                   </div>
@@ -159,14 +123,14 @@ export default async function App() {
 
           <section className="px-4 py-12 sm:px-6 lg:px-8">
             <div className="reveal-stagger mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {strengths.map((item) => {
-                const Icon = item.icon;
+              {homeStrengths.map((label, index) => {
+                const Icon = strengthIcons[index] ?? BrainCircuit;
                 return (
                   <div
-                    key={item.label}
+                    key={label}
                     className="reveal-on-scroll rounded-lg border border-white/10 bg-card/45 p-5 backdrop-blur">
                     <Icon className="mb-4 h-5 w-5 text-[#ACC5D3]" />
-                    <p className="text-sm font-medium text-foreground">{item.label}</p>
+                    <p className="text-sm font-medium text-foreground">{label}</p>
                   </div>
                 );
               })}
@@ -181,11 +145,11 @@ export default async function App() {
                     portfolio signals
                   </p>
                   <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">
-                    Useful projects with visible intent.
+                    Selected work from the resume.
                   </h2>
                 </div>
                 <Button asChild variant="outline" className="bg-background/40">
-                  <Link href="/portfolio" transitionTypes={['nav-forward']}>
+                  <Link href="/portfolio#projects" transitionTypes={['nav-forward']}>
                     All Work
                     <ArrowRight className="h-4 w-4" />
                   </Link>
@@ -193,18 +157,18 @@ export default async function App() {
               </div>
 
               <div className="reveal-stagger grid gap-5 lg:grid-cols-3">
-                {projectHighlights.map((project, index) => {
-                  const Icon = project.icon;
+                {projects.map((project, index) => {
+                  const Icon = projectIcons[index] ?? Code2;
                   return (
-                    <ViewTransition key={project.title} name={`project-${index}`} share="morph">
+                    <ViewTransition key={project.id} name={`project-${index}`} share="morph">
                       <Card className="reveal-on-scroll group h-full overflow-hidden border-white/10 bg-card/55 transition-all duration-300 hover:-translate-y-1 hover:border-[#ACC5D3]/35 hover:shadow-2xl">
                         <CardHeader>
                           <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-[#ACC5D3]/10 text-[#ACC5D3]">
                             <Icon className="h-5 w-5" />
                           </div>
                           <CardTitle className="text-xl transition-colors group-hover:text-[#ACC5D3]">
-                            <Link href={project.href} transitionTypes={['nav-forward']}>
-                              {project.title}
+                            <Link href={project.href} target="_blank" rel="noopener noreferrer">
+                              {project.shortTitle}
                             </Link>
                           </CardTitle>
                           <CardDescription className="leading-6">
@@ -213,7 +177,7 @@ export default async function App() {
                         </CardHeader>
                         <CardContent>
                           <div className="flex flex-wrap gap-2">
-                            {project.tags.map((tag) => (
+                            {project.technologies.slice(0, 4).map((tag) => (
                               <Badge key={tag} variant="secondary" className="text-xs">
                                 {tag}
                               </Badge>
@@ -259,10 +223,10 @@ export default async function App() {
             <div className="reveal-on-scroll mx-auto flex max-w-6xl flex-col gap-6 rounded-lg border border-white/10 bg-[#101720]/80 p-6 backdrop-blur md:flex-row md:items-center md:justify-between">
               <div>
                 <Code2 className="mb-4 h-6 w-6 text-[#F08F87]" />
-                <h2 className="text-2xl font-bold text-foreground">Want the practical tour?</h2>
+                <h2 className="text-2xl font-bold text-foreground">Looking for project context?</h2>
                 <p className="mt-2 max-w-2xl text-muted-foreground">
-                  Explore the portfolio for project context, or open the blog for the thinking and
-                  implementation notes behind the work.
+                  See experience, skills, and GitHub-linked work on the portfolio — or reach out
+                  about ML and software roles.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
@@ -272,8 +236,8 @@ export default async function App() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="bg-transparent">
-                  <Link href="/blog" transitionTypes={['nav-forward']}>
-                    Writing
+                  <Link href="/portfolio#contact" transitionTypes={['nav-forward']}>
+                    Contact
                   </Link>
                 </Button>
               </div>
