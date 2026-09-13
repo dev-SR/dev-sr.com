@@ -1,0 +1,1737 @@
+---
+title: 'Rich Domain Model'
+description: 'The benefits of rich domain models.'
+---
+
+
+
+## Before Refactoring
+
+The anemic system looked like this:
+
+```text
+Controller / Endpoint
+    |
+    v
+RentalService
+    |
+    |--> validates customer
+    |--> validates equipment
+    |--> validates dates
+    |--> calculates fee
+    |--> creates rental
+    |--> updates customer
+    |--> updates equipment
+```
+
+The service knew everything.
+
+The entities knew nothing.
+
+---
+
+## After Moving Logic into the Domain
+
+The system becomes:
+
+```text
+Controller / Endpoint
+    |
+    v
+RentalService
+    |
+    |--> finds customer
+    |--> finds equipment
+    |--> asks Rental.Create(...)
+            |
+            |--> validates rental invariants
+            |--> reserves equipment
+            |--> calculates fee
+            |--> stores rental
+            |--> adds rental to customer
+```
+
+The service now coordinates.
+
+The domain now owns the business rules.
+
+
+
+
+## Refactoring Step 1: Move Business Logic into the Domain
+
+The first refactoring goal is to move logic out of the service and into the domain entities.
+
+We want the entities to start taking responsibility for themselves.
+
+In the tutorial, this is done by moving:
+
+- in-memory collections,
+- lookup methods,
+- creation logic,
+- fee calculation
+
+into the domain classes.
+
+
+## Refactoring Step 2: Enforce Invariants
+
+An invariant is a rule that must always be true for a domain object to remain valid.
+
+Examples:
+
+- A customer name cannot be empty.
+- Equipment must have a name.
+- A rental must have a customer.
+- A rental must have equipment.
+- A rental end date must be after the start date.
+- A rental cannot start in the past.
+- Equipment must be available before it is reserved.
+
+If the domain does not enforce these rules, the domain cannot guarantee its own integrity.
+
+---
+
+### Object Construction Invariants
+
+Some rules must be true the moment an object is created.
+
+For example:
+
+```csharp
+private Customer(string id, string name)
+{
+    if (string.IsNullOrWhiteSpace(name))
+    {
+        throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+    }
+
+    Id = id;
+    Name = name;
+}
+```
+
+Now it is impossible to create a customer without a valid name.
+
+That is a much stronger design.
+
+---
+
+### Workflow Invariants
+
+Some rules apply during a business operation.
+
+For example:
+
+> Equipment must be available before a rental can be created.
+
+This is not just about constructing an `Equipment` object.
+
+It is about the rental creation workflow.
+
+So this rule belongs in the reservation behavior:
+
+```csharp
+public void Reserve()
+{
+    if (!IsAvailable)
+    {
+        throw new InvalidOperationException("Equipment is not available.");
+    }
+
+    IsAvailable = false;
+}
+```
+
+Now the `Equipment` entity protects its own availability state.
+
+---
+
+## Refactoring Step 3: Replace Setters with Behavior Methods
+
+Setters are technical concepts.
+
+Business experts do not usually say:
+
+> Set available to false.
+
+They say:
+
+> Reserve the equipment.
+
+So instead of:
+
+```csharp
+equipment.Available = false;
+```
+
+we write:
+
+```csharp
+equipment.Reserve();
+```
+
+This is one of the most important ideas in rich domain modeling.
+
+Behavior methods express business intent.
+
+Setters only express data mutation.
+
+---
+
+### Remove Dangerous Setters
+
+In the anemic version, we had:
+
+```csharp
+public string Id { get; set; }
+public string Name { get; set; }
+public List<Rental> Rentals { get; set; }
+```
+
+This is dangerous.
+
+Anyone can replace the entire rental list.
+
+Anyone can change the ID.
+
+That is usually not allowed in a real business system.
+
+A better version is:
+
+```csharp
+public string Id { get; }
+public string Name { get; private set; }
+public IReadOnlyCollection<Rental> Rentals => _rentals.AsReadOnly();
+```
+
+Now the domain controls mutation.
+
+---
+
+### Use Read-Only Collections
+
+Instead of exposing:
+
+```csharp
+public List<Rental> Rentals { get; set; }
+```
+
+we expose:
+
+```csharp
+public IReadOnlyCollection<Rental> Rentals => _rentals.AsReadOnly();
+```
+
+This prevents outside code from directly modifying the collection.
+
+To add a rental, the domain provides a controlled method:
+
+```csharp
+internal void AddRental(Rental rental)
+{
+    _rentals.Add(rental);
+}
+```
+
+---
+
+### C# Note About Package-Private Behavior
+
+Java has package-private access.
+
+C# does not have an exact equivalent.
+
+In this example, we use:
+
+- `private set`,
+- `internal`,
+- behavior methods,
+- read-only collections.
+
+If you want stricter separation, place the domain in a separate assembly and expose only the intended public domain behavior.
+
+---
+
+## Final Project Structure
+
+Create the following folder structure:
+
+```text
+RentalDddDemo/
+  Domain/
+    Customer.cs
+    Equipment.cs
+    Rental.cs
+  Services/
+    RentalService.cs
+  Program.cs
+  RentalDddDemo.csproj
+```
+
+---
+
+### Domain/Customer.cs
+
+```csharp
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Customer
+{
+    private static readonly ConcurrentDictionary<string, Customer> Customers = new();
+    private readonly List<Rental> _rentals = new();
+
+    static Customer()
+    {
+        var john = new Customer("customer-1", "John Doe");
+        Customers.TryAdd(john.Id, john);
+    }
+
+    private Customer(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+        }
+
+        Id = id;
+        Name = name;
+    }
+
+    public string Id { get; }
+
+    public string Name { get; private set; }
+
+    public IReadOnlyCollection<Rental> Rentals => _rentals.AsReadOnly();
+
+    public static Customer? FindById(string id)
+    {
+        return Customers.TryGetValue(id, out var customer) ? customer : null;
+    }
+
+    public void UpdateContactInformation(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(newName));
+        }
+
+        Name = newName;
+    }
+
+    internal void AddRental(Rental rental)
+    {
+        if (rental is null)
+        {
+            throw new ArgumentNullException(nameof(rental));
+        }
+
+        if (_rentals.Any(existing => existing.Id == rental.Id))
+        {
+            return;
+        }
+
+        _rentals.Add(rental);
+    }
+}
+```
+
+---
+
+#### What Improved in Customer?
+
+**The ID cannot be changed**
+
+```csharp
+public string Id { get; }
+```
+
+Identity is assigned once.
+
+This is usually correct for business entities.
+
+---
+
+**The name cannot be changed directly**
+
+```csharp
+public string Name { get; private set; }
+```
+
+Outside code cannot simply assign a new name.
+
+It must use:
+
+```csharp
+customer.UpdateContactInformation("Jane Doe");
+```
+
+That is more meaningful.
+
+---
+
+**The rental collection is protected**
+
+```csharp
+public IReadOnlyCollection<Rental> Rentals => _rentals.AsReadOnly();
+```
+
+Outside code cannot replace the list.
+
+It also cannot directly add rentals unless it uses the controlled internal method.
+
+---
+
+### The customer enforces its own invariant
+
+```csharp
+if (string.IsNullOrWhiteSpace(name))
+{
+    throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+}
+```
+
+A customer with no name cannot exist.
+
+---
+
+## 13.3 Domain/Equipment.cs
+
+```csharp
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Equipment
+{
+    private static readonly ConcurrentDictionary<string, Equipment> Items = new();
+
+    static Equipment()
+    {
+        var hammer = new Equipment("equipment-1", "Hammer");
+        Items.TryAdd(hammer.Id, hammer);
+    }
+
+    private Equipment(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+        }
+
+        Id = id;
+        Name = name;
+        IsAvailable = true;
+    }
+
+    public string Id { get; }
+
+    public string Name { get; private set; }
+
+    public bool IsAvailable { get; private set; }
+
+    public static Equipment? FindById(string id)
+    {
+        return Items.TryGetValue(id, out var equipment) ? equipment : null;
+    }
+
+    public void UpdateName(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(newName));
+        }
+
+        Name = newName;
+    }
+
+    public void Reserve()
+    {
+        if (!IsAvailable)
+        {
+            throw new InvalidOperationException("Equipment is not available.");
+        }
+
+        IsAvailable = false;
+    }
+
+    public void Release()
+    {
+        IsAvailable = true;
+    }
+}
+```
+
+---
+
+## 13.4 What Improved in Equipment?
+
+### Availability is protected
+
+Before:
+
+```csharp
+equipment.Available = false;
+```
+
+After:
+
+```csharp
+equipment.Reserve();
+```
+
+The domain now controls the state transition.
+
+---
+
+### Equipment knows how to reserve itself
+
+```csharp
+public void Reserve()
+{
+    if (!IsAvailable)
+    {
+        throw new InvalidOperationException("Equipment is not available.");
+    }
+
+    IsAvailable = false;
+}
+```
+
+The rule is now inside the entity.
+
+This prevents future services from forgetting the rule.
+
+---
+
+### Equipment knows how to release itself
+
+```csharp
+public void Release()
+{
+    IsAvailable = true;
+}
+```
+
+This gives the domain a complete business vocabulary.
+
+---
+
+## 13.5 Domain/Rental.cs
+
+```csharp
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Rental
+{
+    private static readonly ConcurrentDictionary<string, Rental> Rentals = new();
+    private static readonly decimal CostPerDay = 25.00m;
+
+    private Rental(
+        Customer customer,
+        Equipment equipment,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        if (customer is null)
+        {
+            throw new ArgumentNullException(nameof(customer));
+        }
+
+        if (equipment is null)
+        {
+            throw new ArgumentNullException(nameof(equipment));
+        }
+
+        EnsureValidDateRange(startDate, endDate);
+
+        Id = Guid.NewGuid().ToString();
+        Customer = customer;
+        Equipment = equipment;
+        StartDate = startDate;
+        EndDate = endDate;
+        Fee = CalculateFee(startDate, endDate);
+    }
+
+    public string Id { get; }
+
+    public Customer Customer { get; }
+
+    public Equipment Equipment { get; }
+
+    public DateOnly StartDate { get; }
+
+    public DateOnly EndDate { get; }
+
+    public decimal Fee { get; }
+
+    public static Rental? FindById(string id)
+    {
+        return Rentals.TryGetValue(id, out var rental) ? rental : null;
+    }
+
+    public static Rental Create(
+        Customer customer,
+        Equipment equipment,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        if (customer is null)
+        {
+            throw new ArgumentNullException(nameof(customer));
+        }
+
+        if (equipment is null)
+        {
+            throw new ArgumentNullException(nameof(equipment));
+        }
+
+        EnsureValidDateRange(startDate, endDate);
+
+        equipment.Reserve();
+
+        var rental = new Rental(customer, equipment, startDate, endDate);
+
+        Rentals.TryAdd(rental.Id, rental);
+
+        customer.AddRental(rental);
+
+        return rental;
+    }
+
+    private static void EnsureValidDateRange(DateOnly startDate, DateOnly endDate)
+    {
+        if (endDate <= startDate)
+        {
+            throw new ArgumentException("End date must be after start date.");
+        }
+
+        if (startDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            throw new ArgumentException("Start date must be in the future.");
+        }
+    }
+
+    private static decimal CalculateFee(DateOnly startDate, DateOnly endDate)
+    {
+        var days = endDate.DayNumber - startDate.DayNumber;
+        return days * CostPerDay;
+    }
+
+    public override string ToString()
+    {
+        return $"Rental {Id}: " +
+               $"customer={Customer.Name}, " +
+               $"equipment={Equipment.Name}, " +
+               $"start={StartDate:yyyy-MM-dd}, " +
+               $"end={EndDate:yyyy-MM-dd}, " +
+               $"fee={Fee:C}";
+    }
+}
+```
+
+---
+
+## 13.6 What Improved in Rental?
+
+### Rental creation is now a domain operation
+
+Before:
+
+```csharp
+var rental = new Rental
+{
+    Id = Guid.NewGuid().ToString(),
+    CustomerId = customer.Id,
+    EquipmentId = equipment.Id,
+    StartDate = startDate,
+    EndDate = endDate,
+    Fee = fee
+};
+```
+
+After:
+
+```csharp
+var rental = Rental.Create(customer, equipment, startDate, endDate);
+```
+
+The domain now owns the creation process.
+
+---
+
+### The rental enforces its own invariants
+
+The constructor validates:
+
+```csharp
+if (customer is null)
+{
+    throw new ArgumentNullException(nameof(customer));
+}
+
+if (equipment is null)
+{
+    throw new ArgumentNullException(nameof(equipment));
+}
+
+EnsureValidDateRange(startDate, endDate);
+```
+
+A rental cannot be constructed without the required parts.
+
+---
+
+### Fee calculation is hidden inside the domain
+
+```csharp
+private static decimal CalculateFee(DateOnly startDate, DateOnly endDate)
+{
+    var days = endDate.DayNumber - startDate.DayNumber;
+    return days * CostPerDay;
+}
+```
+
+The service does not need to know the pricing formula.
+
+---
+
+### The rental coordinates related domain changes
+
+When a rental is created:
+
+```csharp
+equipment.Reserve();
+
+var rental = new Rental(customer, equipment, startDate, endDate);
+
+Rentals.TryAdd(rental.Id, rental);
+
+customer.AddRental(rental);
+```
+
+This keeps related business operations together.
+
+---
+
+## 13.7 Services/RentalService.cs
+
+```csharp
+using RentalDddDemo.Domain;
+
+namespace RentalDddDemo.Services;
+
+public sealed class RentalService
+{
+    public Rental CreateRental(
+        string customerId,
+        string equipmentId,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        var customer = Customer.FindById(customerId)
+            ?? throw new KeyNotFoundException("Customer was not found.");
+
+        var equipment = Equipment.FindById(equipmentId)
+            ?? throw new KeyNotFoundException("Equipment was not found.");
+
+        return Rental.Create(customer, equipment, startDate, endDate);
+    }
+}
+```
+
+---
+
+## 13.8 What Improved in the Service?
+
+Compare the old service with the new service.
+
+The old service did everything.
+
+The new service only coordinates.
+
+It:
+
+1. Finds the customer.
+2. Finds the equipment.
+3. Asks the domain to create the rental.
+
+That is the correct role of this kind of service.
+
+The service is no longer the owner of all business rules.
+
+---
+
+# 14. Final Program.cs
+
+This file hosts the Minimal API.
+
+It exposes endpoints for creating and retrieving rentals.
+
+```csharp
+using RentalDddDemo.Domain;
+using RentalDddDemo.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<RentalService>();
+
+var app = builder.Build();
+
+app.MapPost("/rentals", (CreateRentalRequest request, RentalService service) =>
+{
+    try
+    {
+        var rental = service.CreateRental(
+            request.CustomerId,
+            request.EquipmentId,
+            request.StartDate,
+            request.EndDate
+        );
+
+        return Results.Created($"/rentals/{rental.Id}", rental.ToResponse());
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/rentals/{id}", (string id) =>
+{
+    var rental = Rental.FindById(id);
+
+    return rental is null
+        ? Results.NotFound()
+        : Results.Ok(rental.ToResponse());
+});
+
+app.Run();
+
+public record CreateRentalRequest(
+    string CustomerId,
+    string EquipmentId,
+    DateOnly StartDate,
+    DateOnly EndDate
+);
+
+public record RentalResponse(
+    string Id,
+    string CustomerId,
+    string CustomerName,
+    string EquipmentId,
+    string EquipmentName,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    decimal Fee
+);
+
+public static class RentalMappingExtensions
+{
+    public static RentalResponse ToResponse(this Rental rental)
+    {
+        return new RentalResponse(
+            rental.Id,
+            rental.Customer.Id,
+            rental.Customer.Name,
+            rental.Equipment.Id,
+            rental.Equipment.Name,
+            rental.StartDate,
+            rental.EndDate,
+            rental.Fee
+        );
+    }
+}
+```
+
+---
+
+# 15. How to Run the Final Example
+
+From the project folder:
+
+```bash
+dotnet run
+```
+
+Use the port shown in the terminal.
+
+Example:
+
+```text
+http://localhost:5000
+```
+
+---
+
+## 15.1 Create a Rental
+
+Example request:
+
+```bash
+curl -X POST http://localhost:5000/rentals \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": "customer-1",
+    "equipmentId": "equipment-1",
+    "startDate": "2026-08-01",
+    "endDate": "2026-08-04"
+  }'
+```
+
+Make sure the start date is in the future.
+
+---
+
+## 15.2 Expected Response
+
+You should receive something similar to:
+
+```json
+{
+  "id": "some-guid",
+  "customerId": "customer-1",
+  "customerName": "John Doe",
+  "equipmentId": "equipment-1",
+  "equipmentName": "Hammer",
+  "startDate": "2026-08-01",
+  "endDate": "2026-08-04",
+  "fee": 75.00
+}
+```
+
+The exact `id` will be different each time.
+
+---
+
+## 15.3 Retrieve the Rental
+
+Use the `id` returned from the previous call:
+
+```bash
+curl http://localhost:5000/rentals/your-rental-id
+```
+
+---
+
+# 16. Testing the Business Rules
+
+The rich domain model now protects itself.
+
+---
+
+## 16.1 Customer Not Found
+
+Request:
+
+```json
+{
+  "customerId": "missing-customer",
+  "equipmentId": "equipment-1",
+  "startDate": "2026-08-01",
+  "endDate": "2026-08-04"
+}
+```
+
+Expected result:
+
+```http
+404 Not Found
+```
+
+---
+
+## 16.2 Equipment Not Found
+
+Request:
+
+```json
+{
+  "customerId": "customer-1",
+  "equipmentId": "missing-equipment",
+  "startDate": "2026-08-01",
+  "endDate": "2026-08-04"
+}
+```
+
+Expected result:
+
+```http
+404 Not Found
+```
+
+---
+
+## 16.3 Invalid Date Range
+
+Request:
+
+```json
+{
+  "customerId": "customer-1",
+  "equipmentId": "equipment-1",
+  "startDate": "2026-08-04",
+  "endDate": "2026-08-01"
+}
+```
+
+Expected result:
+
+```http
+400 Bad Request
+```
+
+The domain refuses to create a rental where the end date is before the start date.
+
+---
+
+## 16.4 Start Date in the Past
+
+Request:
+
+```json
+{
+  "customerId": "customer-1",
+  "equipmentId": "equipment-1",
+  "startDate": "2020-01-01",
+  "endDate": "2020-01-05"
+}
+```
+
+Expected result:
+
+```http
+400 Bad Request
+```
+
+The domain refuses to create a rental starting in the past.
+
+---
+
+## 16.5 Equipment Already Reserved
+
+If you create the same equipment rental twice, the second attempt should fail.
+
+First request succeeds.
+
+Second request:
+
+```json
+{
+  "customerId": "customer-1",
+  "equipmentId": "equipment-1",
+  "startDate": "2026-09-01",
+  "endDate": "2026-09-03"
+}
+```
+
+Expected result:
+
+```http
+409 Conflict
+```
+
+The equipment entity protects its availability invariant.
+
+---
+
+# 17. Step-by-Step Summary of the Refactoring
+
+Let’s review the transformation.
+
+---
+
+
+
+---
+
+# 18. How Each Anemic Problem Was Solved
+
+Let’s connect the final design back to the original problems.
+
+---
+
+## Problem 1: Entities Had No Behavior
+
+Before:
+
+```csharp
+public class Rental
+{
+    public string Id { get; set; }
+    public string CustomerId { get; set; }
+    public string EquipmentId { get; set; }
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public decimal Fee { get; set; }
+}
+```
+
+After:
+
+```csharp
+public static Rental Create(
+    Customer customer,
+    Equipment equipment,
+    DateOnly startDate,
+    DateOnly endDate
+)
+```
+
+Now `Rental` has meaningful behavior.
+
+---
+
+## Problem 2: Service Contained All Business Logic
+
+Before, the service validated and calculated everything.
+
+After, the service only coordinates:
+
+```csharp
+public Rental CreateRental(
+    string customerId,
+    string equipmentId,
+    DateOnly startDate,
+    DateOnly endDate
+)
+{
+    var customer = Customer.FindById(customerId)
+        ?? throw new KeyNotFoundException("Customer was not found.");
+
+    var equipment = Equipment.FindById(equipmentId)
+        ?? throw new KeyNotFoundException("Equipment was not found.");
+
+    return Rental.Create(customer, equipment, startDate, endDate);
+}
+```
+
+---
+
+## Problem 3: Invalid States Were Possible
+
+Before:
+
+```csharp
+equipment.Available = false;
+```
+
+After:
+
+```csharp
+equipment.Reserve();
+```
+
+The entity decides whether reservation is allowed.
+
+---
+
+## Problem 4: No Invariants Were Enforced
+
+Before, a rental could be created with invalid dates.
+
+After:
+
+```csharp
+private static void EnsureValidDateRange(DateOnly startDate, DateOnly endDate)
+{
+    if (endDate <= startDate)
+    {
+        throw new ArgumentException("End date must be after start date.");
+    }
+
+    if (startDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+    {
+        throw new ArgumentException("Start date must be in the future.");
+    }
+}
+```
+
+The domain enforces its rules.
+
+---
+
+## Problem 5: Setters Exposed Too Much
+
+Before:
+
+```csharp
+public string Name { get; set; }
+```
+
+After:
+
+```csharp
+public string Name { get; private set; }
+```
+
+And mutation happens through a meaningful method:
+
+```csharp
+public void UpdateContactInformation(string newName)
+```
+
+---
+
+## Problem 6: Collections Were Exposed Directly
+
+Before:
+
+```csharp
+public List<Rental> Rentals { get; set; }
+```
+
+After:
+
+```csharp
+public IReadOnlyCollection<Rental> Rentals => _rentals.AsReadOnly();
+```
+
+The domain protects its internal collection.
+
+---
+
+# 19. Important Design Notes
+
+The final code is better, but there are still a few important things to understand.
+
+---
+
+## 19.1 Static In-Memory Collections Are for Learning Only
+
+The tutorial uses simple in-memory collections.
+
+This example does the same using `ConcurrentDictionary`.
+
+In a real application, you would usually introduce repositories.
+
+For example:
+
+```csharp
+public interface ICustomerRepository
+{
+    Customer? FindById(string id);
+    void Add(Customer customer);
+}
+```
+
+But for learning DDD behavior, in-memory examples are useful because they keep the focus on the domain model.
+
+---
+
+## 19.2 DDD Does Not Remove Complexity
+
+DDD does not make complexity disappear.
+
+It redistributes complexity.
+
+The service becomes simpler.
+
+The domain becomes richer.
+
+The architecture becomes slightly more layered.
+
+The benefit is that business rules are easier to find, understand, test, and protect.
+
+---
+
+## 19.3 Do Not Use DDD Everywhere
+
+DDD is powerful, but it is not always necessary.
+
+For very small CRUD systems, DDD may add unnecessary structure.
+
+Use it when:
+
+- business rules are complex,
+- multiple services share domain logic,
+- domain behavior changes often,
+- the domain has important invariants,
+- the code needs to speak the language of the business.
+
+---
+
+## 19.4 Behavior Matters More Than Syntax
+
+The tutorial makes an important point.
+
+In object-oriented languages like C# or Java, behavior is often placed on entities.
+
+In functional languages, behavior may live in functions that operate on data structures.
+
+The main goal is not to force a specific syntax.
+
+The main goal is to create a clear domain-specific language.
+
+In C#, methods on entities are natural:
+
+```csharp
+equipment.Reserve();
+```
+
+But the deeper idea is that the business rule should be easy to find and hard to violate.
+
+---
+
+# 20. The Final Domain Vocabulary
+
+After refactoring, the code contains real domain language.
+
+Examples:
+
+```csharp
+Customer.FindById(customerId);
+Equipment.FindById(equipmentId);
+Rental.Create(customer, equipment, startDate, endDate);
+equipment.Reserve();
+equipment.Release();
+customer.UpdateContactInformation("Jane Doe");
+customer.AddRental(rental);
+```
+
+This is much closer to the business than raw setters and service scripts.
+
+---
+
+# 21. Final Mental Model
+
+An anemic domain model looks like this:
+
+```text
+Service knows everything.
+Entities store data.
+Rules live outside the model.
+Invalid states are possible.
+Change is painful.
+```
+
+A rich domain model looks like this:
+
+```text
+Entities know their rules.
+Entities protect their state.
+Services coordinate use cases.
+Business language is visible.
+Change is safer.
+```
+
+That is the core lesson.
+
+---
+
+# 22. Complete Final Code Recap
+
+If you want the shortest possible recap of the final code files:
+
+## Domain/Customer.cs
+
+```csharp
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Customer
+{
+    private static readonly ConcurrentDictionary<string, Customer> Customers = new();
+    private readonly List<Rental> _rentals = new();
+
+    static Customer()
+    {
+        var john = new Customer("customer-1", "John Doe");
+        Customers.TryAdd(john.Id, john);
+    }
+
+    private Customer(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+        }
+
+        Id = id;
+        Name = name;
+    }
+
+    public string Id { get; }
+    public string Name { get; private set; }
+    public IReadOnlyCollection<Rental> Rentals => _rentals.AsReadOnly();
+
+    public static Customer? FindById(string id)
+    {
+        return Customers.TryGetValue(id, out var customer) ? customer : null;
+    }
+
+    public void UpdateContactInformation(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(newName));
+        }
+
+        Name = newName;
+    }
+
+    internal void AddRental(Rental rental)
+    {
+        if (rental is null)
+        {
+            throw new ArgumentNullException(nameof(rental));
+        }
+
+        if (_rentals.Any(existing => existing.Id == rental.Id))
+        {
+            return;
+        }
+
+        _rentals.Add(rental);
+    }
+}
+```
+
+## Domain/Equipment.cs
+
+```csharp
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Equipment
+{
+    private static readonly ConcurrentDictionary<string, Equipment> Items = new();
+
+    static Equipment()
+    {
+        var hammer = new Equipment("equipment-1", "Hammer");
+        Items.TryAdd(hammer.Id, hammer);
+    }
+
+    private Equipment(string id, string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+        }
+
+        Id = id;
+        Name = name;
+        IsAvailable = true;
+    }
+
+    public string Id { get; }
+    public string Name { get; private set; }
+    public bool IsAvailable { get; private set; }
+
+    public static Equipment? FindById(string id)
+    {
+        return Items.TryGetValue(id, out var equipment) ? equipment : null;
+    }
+
+    public void UpdateName(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            throw new ArgumentException("Name cannot be null or empty.", nameof(newName));
+        }
+
+        Name = newName;
+    }
+
+    public void Reserve()
+    {
+        if (!IsAvailable)
+        {
+            throw new InvalidOperationException("Equipment is not available.");
+        }
+
+        IsAvailable = false;
+    }
+
+    public void Release()
+    {
+        IsAvailable = true;
+    }
+}
+```
+
+## Domain/Rental.cs
+
+```csharp
+using System.Collections.Concurrent;
+
+namespace RentalDddDemo.Domain;
+
+public sealed class Rental
+{
+    private static readonly ConcurrentDictionary<string, Rental> Rentals = new();
+    private static readonly decimal CostPerDay = 25.00m;
+
+    private Rental(
+        Customer customer,
+        Equipment equipment,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        if (customer is null)
+        {
+            throw new ArgumentNullException(nameof(customer));
+        }
+
+        if (equipment is null)
+        {
+            throw new ArgumentNullException(nameof(equipment));
+        }
+
+        EnsureValidDateRange(startDate, endDate);
+
+        Id = Guid.NewGuid().ToString();
+        Customer = customer;
+        Equipment = equipment;
+        StartDate = startDate;
+        EndDate = endDate;
+        Fee = CalculateFee(startDate, endDate);
+    }
+
+    public string Id { get; }
+    public Customer Customer { get; }
+    public Equipment Equipment { get; }
+    public DateOnly StartDate { get; }
+    public DateOnly EndDate { get; }
+    public decimal Fee { get; }
+
+    public static Rental? FindById(string id)
+    {
+        return Rentals.TryGetValue(id, out var rental) ? rental : null;
+    }
+
+    public static Rental Create(
+        Customer customer,
+        Equipment equipment,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        if (customer is null)
+        {
+            throw new ArgumentNullException(nameof(customer));
+        }
+
+        if (equipment is null)
+        {
+            throw new ArgumentNullException(nameof(equipment));
+        }
+
+        EnsureValidDateRange(startDate, endDate);
+
+        equipment.Reserve();
+
+        var rental = new Rental(customer, equipment, startDate, endDate);
+
+        Rentals.TryAdd(rental.Id, rental);
+
+        customer.AddRental(rental);
+
+        return rental;
+    }
+
+    private static void EnsureValidDateRange(DateOnly startDate, DateOnly endDate)
+    {
+        if (endDate <= startDate)
+        {
+            throw new ArgumentException("End date must be after start date.");
+        }
+
+        if (startDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            throw new ArgumentException("Start date must be in the future.");
+        }
+    }
+
+    private static decimal CalculateFee(DateOnly startDate, DateOnly endDate)
+    {
+        var days = endDate.DayNumber - startDate.DayNumber;
+        return days * CostPerDay;
+    }
+
+    public override string ToString()
+    {
+        return $"Rental {Id}: " +
+               $"customer={Customer.Name}, " +
+               $"equipment={Equipment.Name}, " +
+               $"start={StartDate:yyyy-MM-dd}, " +
+               $"end={EndDate:yyyy-MM-dd}, " +
+               $"fee={Fee:C}";
+    }
+}
+```
+
+## Services/RentalService.cs
+
+```csharp
+using RentalDddDemo.Domain;
+
+namespace RentalDddDemo.Services;
+
+public sealed class RentalService
+{
+    public Rental CreateRental(
+        string customerId,
+        string equipmentId,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        var customer = Customer.FindById(customerId)
+            ?? throw new KeyNotFoundException("Customer was not found.");
+
+        var equipment = Equipment.FindById(equipmentId)
+            ?? throw new KeyNotFoundException("Equipment was not found.");
+
+        return Rental.Create(customer, equipment, startDate, endDate);
+    }
+}
+```
+
+## Program.cs
+
+```csharp
+using RentalDddDemo.Domain;
+using RentalDddDemo.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<RentalService>();
+
+var app = builder.Build();
+
+app.MapPost("/rentals", (CreateRentalRequest request, RentalService service) =>
+{
+    try
+    {
+        var rental = service.CreateRental(
+            request.CustomerId,
+            request.EquipmentId,
+            request.StartDate,
+            request.EndDate
+        );
+
+        return Results.Created($"/rentals/{rental.Id}", rental.ToResponse());
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/rentals/{id}", (string id) =>
+{
+    var rental = Rental.FindById(id);
+
+    return rental is null
+        ? Results.NotFound()
+        : Results.Ok(rental.ToResponse());
+});
+
+app.Run();
+
+public record CreateRentalRequest(
+    string CustomerId,
+    string EquipmentId,
+    DateOnly StartDate,
+    DateOnly EndDate
+);
+
+public record RentalResponse(
+    string Id,
+    string CustomerId,
+    string CustomerName,
+    string EquipmentId,
+    string EquipmentName,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    decimal Fee
+);
+
+public static class RentalMappingExtensions
+{
+    public static RentalResponse ToResponse(this Rental rental)
+    {
+        return new RentalResponse(
+            rental.Id,
+            rental.Customer.Id,
+            rental.Customer.Name,
+            rental.Equipment.Id,
+            rental.Equipment.Name,
+            rental.StartDate,
+            rental.EndDate,
+            rental.Fee
+        );
+    }
+}
+```
+
+---
+
+# 23. Final Takeaway
+
+An anemic domain model gives you the appearance of a domain model without the benefits.
+
+You get:
+
+- classes named after domain concepts,
+- but no real behavior,
+- no real protection,
+- no real invariants,
+- and services that carry all the intelligence.
+
+A rich domain model moves the responsibility back into the domain.
+
+You get:
+
+- entities that protect their state,
+- behavior that expresses business intent,
+- invariants that keep the model valid,
+- thinner services,
+- and code that is easier to understand and maintain.
+
+That is the heart of the lesson.
+## What goes wrong
+
+1. **Dumb entities** — no language for “reserve,” only `Available = false`
+2. **Logic in services** — every feature opens the same god class
+3. **Scattered rules** — date checks here, fee math there, availability elsewhere
+4. **Invalid states** — `new Rental { EndDate = start.AddDays(-1) }` compiles
+5. **No invariants** — construction never validates
+6. **Leaky abstraction** — callers must know field choreography
+7. **Weak ubiquitous language** — code talks in DTO field names
+8. **Harder tests** — must mock the whole service graph to assert one rule
+9. **Expensive change** — one rule touch ripples across services and controllers
+
+Refactoring plan (next chapters):
+
+1. Move logic into entities
+2. Enforce invariants at construction and in workflows
+3. Replace setters with behavior

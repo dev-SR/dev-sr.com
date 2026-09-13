@@ -1,0 +1,636 @@
+---
+title: 'Anemic Domain Model'
+description: 'The problems of anemic domain models.'
+---
+
+
+## Rental Service Scenario
+
+We are modeling a small part of a rental service.
+
+The system needs to:
+
+- Store customers.
+- Store equipment.
+- Create a rental agreement.
+- Validate that the equipment is available.
+- Validate rental dates.
+- Calculate the rental fee.
+- Mark equipment as reserved.
+- Associate the rental with the customer.
+
+At first, all of this logic is placed inside a service class.
+
+That gives us a classic **Anemic Domain Model**.
+
+---
+
+## What Is an Anemic Domain Model?
+
+An **Anemic Domain Model** is a domain model where the classes look like entities, but they only contain data.
+
+They usually have:
+
+- Public properties
+- Getters and setters
+- Little or no behavior
+- No meaningful methods
+- No real encapsulation
+- No protection of business rules
+
+The business logic lives somewhere else, usually inside services.
+
+A class may look like a domain entity:
+
+```csharp
+public class Rental
+{
+    public string Id { get; set; }
+    public string CustomerId { get; set; }
+    public string EquipmentId { get; set; }
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public decimal Fee { get; set; }
+}
+```
+
+But it behaves like a simple data container.
+
+It does not know:
+
+- How it should be created
+- Whether it is valid
+- How its fee should be calculated
+- What rules it must follow
+
+The real logic is in a service.
+
+---
+
+## Starting Point: The Anemic Domain Model
+
+This version works, but the design is weak.
+
+The entities are empty.
+
+The service does everything.
+
+---
+
+### Full Anemic .NET Minimal API Example
+
+Create a new .NET web project:
+
+```bash
+dotnet new web -n RentalDddDemo
+cd RentalDddDemo
+```
+
+Replace `Program.cs` with the following code.
+
+```csharp
+using System.Collections.Concurrent;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<RentalService>();
+
+var app = builder.Build();
+
+app.MapPost("/rentals", (CreateRentalRequest request, RentalService service) =>
+{
+    try
+    {
+        var rental = service.CreateRental(
+            request.CustomerId,
+            request.EquipmentId,
+            request.StartDate,
+            request.EndDate
+        );
+
+        return Results.Ok(rental);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+});
+
+app.Run();
+
+public record CreateRentalRequest(
+    string CustomerId,
+    string EquipmentId,
+    DateOnly StartDate,
+    DateOnly EndDate
+);
+
+public class Customer
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public List<Rental> Rentals { get; set; } = new();
+}
+
+public class Equipment
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool Available { get; set; } = true;
+}
+
+public class Rental
+{
+    public string Id { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
+    public string EquipmentId { get; set; } = string.Empty;
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public decimal Fee { get; set; }
+}
+
+public class RentalService
+{
+    private readonly ConcurrentDictionary<string, Customer> _customers = new();
+    private readonly ConcurrentDictionary<string, Equipment> _equipment = new();
+    private readonly ConcurrentDictionary<string, Rental> _rentals = new();
+
+    public RentalService()
+    {
+        var customer = new Customer
+        {
+            Id = "customer-1",
+            Name = "John Doe"
+        };
+
+        var equipment = new Equipment
+        {
+            Id = "equipment-1",
+            Name = "Hammer",
+            Available = true
+        };
+
+        _customers[customer.Id] = customer;
+        _equipment[equipment.Id] = equipment;
+    }
+
+    public Rental CreateRental(
+        string customerId,
+        string equipmentId,
+        DateOnly startDate,
+        DateOnly endDate
+    )
+    {
+        if (!_customers.TryGetValue(customerId, out var customer))
+        {
+            throw new KeyNotFoundException("Customer was not found.");
+        }
+
+        if (!_equipment.TryGetValue(equipmentId, out var equipment))
+        {
+            throw new KeyNotFoundException("Equipment was not found.");
+        }
+
+        if (!equipment.Available)
+        {
+            throw new InvalidOperationException("Equipment is not available.");
+        }
+
+        if (endDate <= startDate)
+        {
+            throw new ArgumentException("End date must be after start date.");
+        }
+
+        if (startDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            throw new ArgumentException("Start date must be in the future.");
+        }
+
+        var days = endDate.DayNumber - startDate.DayNumber;
+        var fee = days * 25.00m;
+
+        var rental = new Rental
+        {
+            Id = Guid.NewGuid().ToString(),
+            CustomerId = customer.Id,
+            EquipmentId = equipment.Id,
+            StartDate = startDate,
+            EndDate = endDate,
+            Fee = fee
+        };
+
+        _rentals[rental.Id] = rental;
+        customer.Rentals.Add(rental);
+        equipment.Available = false;
+
+        return rental;
+    }
+}
+```
+
+---
+
+**Example request**
+
+```http
+POST /rentals
+Content-Type: application/json
+
+{
+  "customerId": "customer-1",
+  "equipmentId": "equipment-1",
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-05"
+}
+```
+
+The API returns a rental with a calculated fee.
+
+The code works.
+
+But from a domain-design perspective, there are several problems.
+
+---
+
+## Identifying the Problems of the Anemic Domain Model
+
+### 1. The Entities Are Empty
+
+Look at the entities:
+
+```csharp
+public class Customer
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public List<Rental> Rentals { get; set; } = new();
+}
+
+public class Equipment
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool Available { get; set; } = true;
+}
+
+public class Rental
+{
+    public string Id { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
+    public string EquipmentId { get; set; } = string.Empty;
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public decimal Fee { get; set; }
+}
+```
+
+Look at `Customer`, `Equipment`, and `Rental`. They expose every field with public setters and define **no methods**. A `Rental` conceptually represents a business agreement, yet it cannot validate itself, price itself, or even construct itself safely. It is indistinguishable from a database row.
+
+---
+
+### 2. The Service Contains All the Business Logic
+
+All the meaningful behavior is inside `RentalService.CreateRental`.
+
+The service checks:
+
+```csharp
+if (!_customers.TryGetValue(customerId, out var customer))
+{
+    throw new KeyNotFoundException("Customer was not found.");
+}
+```
+
+It checks equipment availability:
+
+```csharp
+if (!equipment.Available)
+{
+    throw new InvalidOperationException("Equipment is not available.");
+}
+```
+
+It validates dates:
+
+```csharp
+if (endDate <= startDate)
+{
+    throw new ArgumentException("End date must be after start date.");
+}
+
+if (startDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+{
+    throw new ArgumentException("Start date must be in the future.");
+}
+```
+
+It calculates the fee:
+
+```csharp
+var days = endDate.DayNumber - startDate.DayNumber;
+var fee = days * 25.00m;
+```
+
+It creates the rental:
+
+```csharp
+var rental = new Rental
+{
+    Id = Guid.NewGuid().ToString(),
+    CustomerId = customer.Id,
+    EquipmentId = equipment.Id,
+    StartDate = startDate,
+    EndDate = endDate,
+    Fee = fee
+};
+```
+
+It updates the customer:
+
+```csharp
+customer.Rentals.Add(rental);
+```
+
+It reserves the equipment:
+
+```csharp
+equipment.Available = false;
+```
+
+The service knows too much.
+
+It is doing validation, pricing, state changes, and coordination.
+
+This is a classic **transaction script** style.
+
+---
+
+### 3. Invalid States Are Easy to Create
+
+Because the entities expose public setters, any code can mutate them incorrectly.
+
+For example:
+
+```csharp
+rental.StartDate = rental.EndDate;
+rental.EndDate = rental.StartDate.AddDays(-10);
+```
+
+Now the rental ends before it starts.
+
+Or:
+
+```csharp
+equipment.Available = false;
+```
+
+Now the equipment is unavailable, even though no rental was created.
+
+Or:
+
+```csharp
+customer.Name = "";
+```
+
+Now the customer has an empty name.
+
+The domain objects do not protect themselves.
+
+They rely on external code to behave correctly.
+
+---
+
+### 4. The Domain Does Not Enforce Invariants
+
+An invariant is a rule that must always be true for an object to be considered valid.
+
+For this rental domain, possible invariants include:
+
+- A rental must have a customer.
+- A rental must have equipment.
+- The end date must be after the start date.
+- The start date cannot be in the past.
+- Equipment must be available before it can be rented.
+- A customer name should not be empty.
+
+In the anemic model, these rules are enforced inside the service:
+
+```csharp
+if (!equipment.Available)
+{
+    throw new InvalidOperationException("Equipment is not available.");
+}
+
+if (endDate <= startDate)
+{
+    throw new ArgumentException("End date must be after start date.");
+}
+
+if (startDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+{
+    throw new ArgumentException("Start date must be in the future.");
+}
+```
+
+The entities themselves do not enforce these rules.
+
+That means a `Rental`, `Customer`, or `Equipment` object can become invalid at any time.
+
+---
+
+### 5. The Abstraction Leaks
+
+The outside world can directly manipulate internal domain state.
+
+For example:
+
+```csharp
+customer.Rentals.Add(rental);
+equipment.Available = false;
+rental.Fee = 100;
+```
+
+The caller is doing the work that the domain should be doing.
+
+The domain does not decide:
+
+- When a rental can be added
+- How equipment becomes unavailable
+- How a fee is assigned
+
+This makes the system fragile.
+
+Any caller can forget a rule or apply it incorrectly.
+
+---
+
+### 6. The Code Does Not Speak the Language of the Business
+
+Compare these two styles.
+
+Anemic style:
+
+```csharp
+customer.Rentals.Add(rental);
+equipment.Available = false;
+rental.Fee = days * 25.00m;
+```
+
+Rich domain style:
+
+```csharp
+customer.AddRental(rental);
+equipment.Reserve();
+Rental.Create(customer, equipment, startDate, endDate);
+```
+
+The second version reads closer to the business.
+
+It expresses intent.
+
+The anemic version only manipulates fields.
+
+---
+
+### 7. Business Rules Can Become Duplicated
+
+Suppose the system grows.
+
+You may add:
+
+- Online rentals
+- In-store rentals
+- Phone rentals
+- Admin rentals
+- Automated scheduled rentals
+- Different rental flows for different equipment types
+
+Each new flow may need the same rules:
+
+- Equipment must be available.
+- End date must be after start date.
+- Start date must be valid.
+- Fee must be calculated.
+- Customer must exist.
+- Equipment must be reserved.
+
+If these rules live only inside one service, another service may copy them.
+
+Over time, the same business rule appears in multiple places.
+
+That increases the chance of bugs.
+
+For example, one service may check:
+
+```csharp
+if (endDate <= startDate)
+```
+
+Another service may forget.
+
+Or one service may calculate the fee as:
+
+```csharp
+days * 25.00m
+```
+
+While another service uses a different price but forgets to apply a discount.
+
+---
+
+### 8. Testing Becomes Harder
+
+When behavior lives in entities or value objects, tests can be simple.
+
+For example:
+
+```csharp
+var rental = Rental.Create(customer, equipment, startDate, endDate);
+
+Assert.Equal(expectedFee, rental.Fee);
+```
+
+But in the anemic version, the logic is inside the service.
+
+The service is responsible for:
+
+- Lookup
+- Validation
+- Creation
+- Fee calculation
+- State mutation
+
+As the system grows, testing this service may require more setup and more mocks.
+
+---
+
+### 9. Change Becomes Expensive
+
+Suppose the business changes the pricing rule.
+
+Maybe the fee should now depend on equipment type:
+
+```csharp
+var fee = equipment.DailyRate * days;
+```
+
+Or maybe weekend days cost more.
+
+Or maybe there is a minimum rental charge.
+
+In the anemic version, that logic is buried inside the service:
+
+```csharp
+var days = endDate.DayNumber - startDate.DayNumber;
+var fee = days * 25.00m;
+```
+
+If multiple services or endpoints need pricing, you may need to update many places.
+
+In a richer model, the pricing rule could live in one place, such as:
+
+- The `Rental` entity
+- A `RentalPricing` service
+- A `Money` or `Price` value object
+- An `EquipmentPricing` policy
+
+That makes the rule easier to find, test, and change.
+
+---
+
+### Summary of Problems in the Anemic Version
+
+| Problem | Evidence in the Code | Consequence |
+|---|---|---|
+| Entities are empty | `Customer`, `Equipment`, and `Rental` only have properties | They do not represent real business behavior |
+| Logic lives in services | `RentalService.CreateRental` does everything | The service becomes a transaction script |
+| Invalid states are possible | Public setters allow bad mutations | Objects can become inconsistent |
+| Invariants are not enforced by the domain | Rules are checked in the service | Entities cannot guarantee their own validity |
+| Abstraction leaks | Callers directly modify `Rentals`, `Available`, and `Fee` | Internal state can be misused |
+| Poor domain language | `equipment.Available = false` | Code does not express business intent |
+| Duplication risk | Rules are not centralized | Future services may repeat or forget rules |
+| Harder testing | Behavior is coupled to service orchestration | Tests need more setup |
+| Expensive changes | Pricing and validation are scattered | Business changes require many edits |
+
+---
+
+### Main Takeaway
+
+The anemic version works, but the domain model is weak.
+
+The entities are just data holders.
+
+The service contains all the intelligence.
+
+That makes the system harder to protect, harder to understand, harder to test, and harder to evolve.
+
+A richer domain model would move behavior back into the domain objects and let them protect their own rules.
+

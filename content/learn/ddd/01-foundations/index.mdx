@@ -4,10 +4,42 @@ description: 'What DDD aims for, rich vs anemic models, and the rental scenario.
 icon: 'BookOpen'
 ---
 
-## Chapter overview
 
-| Lesson | Topics |
-| --- | --- |
-| [Scenario and goals](/learn/ddd/foundations/scenario-and-goals) | Rental use cases; business vocabulary |
-| [Rich vs anemic](/learn/ddd/foundations/rich-vs-anemic) | Behavior in the domain vs services |
-| [Anemic problems](/learn/ddd/foundations/anemic-problems) | Scattered rules, invalid states, god services |
+## Problem with an Anemic Domain Model
+
+An anemic domain model occurs when domain objects contain mostly data and little or no behavior. Business rules are placed outside the model, usually in services or controllers.
+
+This leads to several problems:
+
+- Entities become passive data containers.
+- Business logic is separated from the data it acts on.
+- Objects do not protect their own validity.
+- Invalid states can be created easily.
+- Invariants are enforced externally, if they are enforced at all.
+- Business rules become scattered across services.
+- Duplication increases as the system grows.
+- The code becomes harder to maintain and evolve.
+- Services become bloated with responsibilities.
+- The domain language is weak or missing.
+- Testing becomes harder because behavior is not naturally located in the model.
+
+The main issue is that the model does not represent the business. It only stores data.
+
+---
+
+## Need for Domain-Driven Design
+
+Domain-Driven Design is needed when the business logic is complex enough that it must be explicitly modeled.
+
+DDD helps by:
+
+- Placing behavior together with the data it belongs to.
+- Making business rules explicit in the domain model.
+- Protecting invariants inside entities, value objects, and aggregates.
+- Reducing scattered and duplicated logic.
+- Improving communication between technical and business teams.
+- Creating a model that reflects real business concepts.
+- Making complex systems easier to understand, test, and change.
+- Keeping application services focused on coordination instead of business rules.
+
+In short, DDD is needed when the domain is too important to be hidden inside procedural code. The model should express the business, enforce its rules, and remain maintainable as complexity grows.
