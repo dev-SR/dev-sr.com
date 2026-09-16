@@ -140,8 +140,8 @@ export function ImageZoom({ children, className, backdropClassName }: ImageZoomP
       <button
         type="button"
         className={cn(
-          'relative block w-full cursor-zoom-in border-0 bg-transparent p-0 text-left',
-          className
+          'relative block max-w-full cursor-zoom-in border-0 bg-transparent p-0 text-left',
+          className ?? 'w-full'
         )}
         onClick={() => setOpen(true)}
         aria-label="Expand image">

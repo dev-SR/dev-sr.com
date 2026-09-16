@@ -14,14 +14,15 @@ export type FigureProps = {
   alt?: string;
   caption?: React.ReactNode;
   children?: React.ReactNode;
+  /** Prefer `width="400"` in MDX — `width={400}` is stripped by next-mdx-remote. */
   width?: number | string;
   height?: number | string;
   size?: FigureSize;
   align?: FigureAlign;
   maxWidth?: number | string;
-  priority?: boolean;
-  /** Click-to-zoom overlay. Default true. */
-  zoom?: boolean;
+  priority?: boolean | string;
+  /** Click-to-zoom overlay. Default true. Prefer `zoom="false"` in MDX. */
+  zoom?: boolean | string;
   className?: string;
 };
 
@@ -54,6 +55,16 @@ function coerceDimension(value: number | string | undefined, fallback: number): 
   return fallback;
 }
 
+function coerceBoolean(value: boolean | string | undefined, fallback: boolean): boolean {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true' || normalized === '') return true;
+    if (normalized === 'false') return false;
+  }
+  return fallback;
+}
+
 function findImageProps(children: React.ReactNode): { src?: string; alt?: string } {
   let result: { src?: string; alt?: string } = {};
 
@@ -82,6 +93,7 @@ function FigureImage({
   priority,
   className,
   zoom,
+  exact,
 }: {
   src: string;
   alt: string;
@@ -91,6 +103,7 @@ function FigureImage({
   priority: boolean;
   className?: string;
   zoom: boolean;
+  exact: boolean;
 }) {
   const image = (
     <Image
@@ -100,12 +113,18 @@ function FigureImage({
       height={height}
       priority={priority}
       sizes={sizes}
-      className={cn('h-auto w-full object-cover', className)}
+      className={cn(
+        exact ? 'h-auto max-w-full object-contain' : 'h-auto w-full object-cover',
+        className
+      )}
+      style={exact ? { width, height: 'auto', maxWidth: '100%' } : undefined}
     />
   );
 
   if (!zoom) return image;
-  return <ImageZoom>{image}</ImageZoom>;
+  return (
+    <ImageZoom className={exact ? 'w-fit max-w-full' : 'w-full'}>{image}</ImageZoom>
+  );
 }
 
 export function Figure({
@@ -113,9 +132,9 @@ export function Figure({
   alt,
   caption,
   children,
-  width = 960,
-  height = 600,
-  size = 'md',
+  width,
+  height,
+  size,
   align = 'center',
   maxWidth,
   priority = false,
@@ -127,13 +146,28 @@ export function Figure({
   const imageAlt = alt ?? childImage.alt ?? 'Image';
   const imageWidth = coerceDimension(width, 960);
   const imageHeight = coerceDimension(height, 600);
-  const style = maxWidth
-    ? { maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth }
-    : undefined;
+  // Exact pixel box only when width is set and size/maxWidth are not.
+  // Prefer width="400" in MDX — next-mdx-remote strips width={400} expressions.
+  const exact = width !== undefined && size == null && maxWidth == null;
+  const resolvedSize: FigureSize = size ?? 'md';
+  const enableZoom = coerceBoolean(zoom as boolean | string | undefined, true);
+  const isPriority = coerceBoolean(priority as boolean | string | undefined, false);
+
+  const style: React.CSSProperties | undefined = exact
+    ? { width: imageWidth, maxWidth: '100%' }
+    : maxWidth
+      ? { maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth }
+      : undefined;
 
   return (
     <figure
-      className={cn('my-10 w-full', figureSizeClass[size], figureAlignClass[align], className)}
+      className={cn(
+        'my-10',
+        exact ? 'w-fit max-w-full' : 'w-full',
+        !exact && figureSizeClass[resolvedSize],
+        figureAlignClass[align],
+        className
+      )}
       style={style}>
       <div className="overflow-hidden rounded-lg border border-white/10 bg-card/40 shadow-xl shadow-black/20">
         {children ? (
@@ -148,10 +182,11 @@ export function Figure({
                 alt={props.alt ?? imageAlt}
                 width={imageWidth}
                 height={imageHeight}
-                priority={priority}
-                sizes={figureSizesMap[size]}
+                priority={isPriority}
+                sizes={exact ? `${imageWidth}px` : figureSizesMap[resolvedSize]}
                 className={props.className}
-                zoom={zoom}
+                zoom={enableZoom}
+                exact={exact}
               />
             );
           })
@@ -161,9 +196,10 @@ export function Figure({
             alt={imageAlt}
             width={imageWidth}
             height={imageHeight}
-            priority={priority}
-            sizes={figureSizesMap[size]}
-            zoom={zoom}
+            priority={isPriority}
+            sizes={exact ? `${imageWidth}px` : figureSizesMap[resolvedSize]}
+            zoom={enableZoom}
+            exact={exact}
           />
         )}
       </div>
@@ -186,6 +222,7 @@ export function MdxImage({ src, alt, ...props }: React.ComponentPropsWithoutRef<
       alt={altText}
       width={800}
       height={500}
+      size="md"
       {...(props as Partial<FigureProps>)}
     />
   );

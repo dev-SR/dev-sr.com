@@ -217,7 +217,9 @@ const message = 'Hello World'
 
 ## `Figure` (zoomable images)
 
-Captioned image with size / align. Click opens a theme-aware lightbox (scroll to zoom, drag to pan, Esc to close). Set `zoom={false}` for decorative images.
+Captioned image with size / align. Click opens a theme-aware lightbox (scroll to zoom, drag to pan, Esc to close). Set `zoom="false"` for decorative images.
+
+**Important:** with `next-mdx-remote`, JSX expression props like `width={960}` are stripped at serialize time. Use **string** attributes: `width="960"`, `height="640"`, `zoom="false"`.
 
 **Source**
 
@@ -226,8 +228,8 @@ Captioned image with size / align. Click opens a theme-aware lightbox (scroll to
   src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=960&q=80"
   alt="Code on a laptop screen"
   caption="Fig 1. Click the image — scroll to zoom further"
-  width={960}
-  height={640}
+  width="960"
+  height="640"
   size="md"
 />
 ````
@@ -238,8 +240,8 @@ Captioned image with size / align. Click opens a theme-aware lightbox (scroll to
   src="https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=960&q=80"
   alt="Code on a laptop screen"
   caption="Fig 1. Click the image — scroll to zoom further"
-  width={960}
-  height={640}
+  width="960"
+  height="640"
   size="md"
 />
 
