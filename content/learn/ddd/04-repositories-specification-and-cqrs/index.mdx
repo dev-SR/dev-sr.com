@@ -1,0 +1,345 @@
+---
+title: Repositories, Specification and CQRS
+description: Learn about repositories, specification and CQRS in DDD
+---
+
+#  Working with Repositories
+
+
+## The Role of the Repository
+
+In Domain-Driven Design, random data access code scattered throughout your system makes it incredibly difficult to maintain the integrity of your models. To solve this, we use the **Repository Pattern**.
+
+> *"A repository represents all objects of a certain type as a conceptual set... like a collection with more elaborate querying capability."* — **Eric Evans**
+
+A core tenet of DDD is **Persistence Ignorance**. Your business objects (the domain model) should have absolutely no logic related to how data is stored, retrieved, or what database engine is being used. The domain model focuses purely on business rules, while the repository handles the object lifecycle.
+
+
+## Designing Repositories for DDD
+
+Repositories provide a common abstraction for persistence, promote separation of concerns, and vastly improve testability. However, to use them correctly in DDD, you must follow a few golden rules.
+
+### The Golden Rule: Aggregate Roots Only
+
+**Never create a repository for a child entity.** Repositories should only be responsible for **Aggregate Roots**. 
+*   If `Patient` is a child entity of the `Client` aggregate root, you should only have a `ClientRepository`. 
+*   To get a `Patient`, you retrieve the `Client` and navigate through its properties. This ensures the aggregate's consistency boundaries are strictly enforced.
+
+### Protecting Aggregates with Marker Interfaces
+
+When using Generic Repositories (e.g., `IRepository<T>`), you can accidentally create a repository for a child entity. To prevent this, use a marker interface to constrain the generic type:
+
+```csharp
+// Marker interface
+public interface IAggregateRoot { }
+
+// Constrain the repository to ONLY accept Aggregate Roots
+public class Repository<T> : IRepository<T> where T : class, IAggregateRoot
+{
+    // Implementation...
+}
+
+// Correct: Client is an Aggregate Root
+public class Client : IAggregateRoot { ... } 
+
+// Compiler Error: Patient is NOT an Aggregate Root
+public class Patient { ... } 
+```
+
+---
+
+## 3. Avoiding Repository Blunders
+
+While client code can remain ignorant of the repository's implementation, developers cannot be. Poorly designed repositories lead to severe performance and architectural issues.
+
+### The N+1 Query Problem
+
+A classic blunder is fetching a list of parent entities, and then looping through them to fetch their children one by one. This results in 1 query for the parents, and *N* queries for the children.
+*   **Solution:** Use database profilers to catch these early, and utilize eager loading (e.g., `.Include()` in EF Core) within your repository's custom query methods to fetch related data in a single trip.
+
+---
+
+## The Query Dilemma: How Should Repositories Return Data?
+
+There is a massive debate in the .NET community regarding repositories and ORMs like EF Core. *"There are two kinds of design patterns: the ones people complain about, and the ones nobody uses."* 
+
+Here is a breakdown of the common approaches to querying data:
+
+| Approach | Pros | Cons |
+| :--- | :--- | :--- |
+| **Returning `IQueryable<T>`** | Highly flexible; minimal repository code. | **Leaks persistence logic** into UI/Services. Violates Single Responsibility. Confusion over deferred execution (queries blow up at runtime, not compile time). |
+| **Accepting Predicates** (`Expression<Func<T,bool>>`) | Restricts returned data; reusable base methods. | Query logic is still spread out everywhere. Lacks encapsulation. |
+| **Custom Query Methods** (`GetByState()`) | Encapsulates logic; clear intent; easy to test. | **Interface Bloat.** The repository interface becomes massive and violates the Interface Segregation Principle. |
+
+---
+
+## The Specification Pattern
+
+The query dilemma above leaves a thin **generic** `IRepository<T>` in an awkward spot: either callers invent query logic everywhere, or the generic API grows optional lambdas and flags. The **Specification Pattern** keeps the repository generic and moves named query intent into the domain.
+
+> *"Create explicit predicate-like Value Objects for specialized purposes. A Specification is a predicate that determines if an object satisfies some criteria."* — **Eric Evans**
+
+### The problem: generic repo + ad-hoc queries
+
+You already constrain persistence to aggregate roots:
+
+```csharp
+public interface IRepository<T> where T : class, IAggregateRoot
+{
+    Task<T?> GetByIdAsync(Guid id);
+    Task AddAsync(T entity);
+    Task UpdateAsync(T entity);
+    // …then what about “interesting” queries?
+}
+```
+
+Without specifications, each use case reinvented the same multi-part query — filters, graph shape, and ordering — slightly differently:
+
+```csharp
+// Checkout API — “open orders for customer, with lines + payments, unpaid first”
+var orders = await _db.Orders
+    .Where(o => o.CustomerId == customerId
+        && o.Status != OrderStatus.Cancelled
+        && o.Status != OrderStatus.Completed
+        && o.PlacedAt >= DateTimeOffset.UtcNow.AddDays(-90))
+    .Include(o => o.Lines)
+    .Include(o => o.Payments)
+    .OrderBy(o => o.Payments.All(p => p.IsSettled))
+    .ThenByDescending(o => o.PlacedAt)
+    .ToListAsync();
+
+// Support dashboard — same business idea, copied… and broken
+var orders = await _db.Orders
+    .Where(o => o.CustomerId == customerId
+        && o.Status != OrderStatus.Cancelled
+        // ❌ forgot Completed exclusion — domain rule drifted
+        && o.PlacedAt >= DateTimeOffset.UtcNow.AddDays(-90))
+    .Include(o => o.Lines)
+    // ❌ forgot Payments — later code hits N+1 on o.Payments
+    .OrderByDescending(o => o.PlacedAt)
+    .ToListAsync();
+
+foreach (var order in orders)
+{
+    // Extra round-trips because Payments was never included
+    var balance = order.Payments.Sum(p => p.Amount);
+}
+```
+
+That **duplicates domain knowledge** (what counts as an “open” order, which children belong on the aggregate, how to sort) and **damages performance** when includes are forgotten (N+1) or when every caller opens `IQueryable` and composes differently.
+
+Pushing more methods onto a fat type-specific repo is the other trap. Prefer keeping **`IRepository<T>` thin** and encoding queries as objects instead.
+
+### Intermediate steps (helpful, not enough)
+
+#### Plain C# expressions
+
+```csharp
+public interface IRepository<T> where T : class, IAggregateRoot
+{
+    Task<List<T>> ListAsync(Expression<Func<T, bool>> predicate);
+}
+
+Expression<Func<Order, bool>> openOrders = o =>
+    o.CustomerId == customerId
+    && o.Status != OrderStatus.Cancelled
+    && o.Status != OrderStatus.Completed
+    && o.PlacedAt >= DateTimeOffset.UtcNow.AddDays(-90);
+
+var orders = await _repository.ListAsync(openOrders);
+// Still missing: Include(Lines), Include(Payments), unpaid-first ordering
+```
+
+- Helps reduce some duplication of **predicates**
+- **Does not encapsulate** intent (no name), includes, or ordering — callers still decide how to materialize the graph (and still forget `Payments`)
+
+#### Generic wrappers that only hold an expression
+
+```csharp
+public class Spec<T>
+{
+    public Expression<Func<T, bool>> Criteria { get; init; }
+}
+
+await _repository.ListAsync(new Spec<Order>
+{
+    Criteria = o =>
+        o.CustomerId == customerId
+        && o.Status != OrderStatus.Cancelled
+        && o.Status != OrderStatus.Completed
+        && o.PlacedAt >= DateTimeOffset.UtcNow.AddDays(-90)
+});
+// Still no Includes / OrderBy — N+1 and sort drift remain
+```
+
+- Still thin: no eager loading, no ubiquitous-language name, weak reuse of “how we load this aggregate”
+- Domain knowledge stays scattered across call sites
+
+We need a **named, strongly typed** object that carries *criteria and query shape*, passed into the same generic repository.
+
+### Strongly typed specifications
+
+A specification is a small immutable class in the domain (or application) layer. The repository stays generic:
+
+```csharp
+public interface IRepository<T> where T : class, IAggregateRoot
+{
+    Task<T?> GetBySpecAsync(ISpecification<T> spec);
+    Task<List<T>> ListAsync(ISpecification<T> spec);
+}
+
+public class OpenOrdersForCustomerSpec : Specification<Order>
+{
+    public OpenOrdersForCustomerSpec(Guid customerId, DateTimeOffset since)
+    {
+        Query
+            .Where(o => o.CustomerId == customerId
+                && o.Status != OrderStatus.Cancelled
+                && o.Status != OrderStatus.Completed
+                && o.PlacedAt >= since)
+            .Include(o => o.Lines)
+            .Include(o => o.Payments)
+            .OrderBy(o => o.Payments.All(p => p.IsSettled))
+            .ThenByDescending(o => o.PlacedAt);
+    }
+}
+
+// Checkout and Support both use the same named query
+var orders = await _repository.ListAsync(
+    new OpenOrdersForCustomerSpec(customerId, DateTimeOffset.UtcNow.AddDays(-90)));
+```
+
+**What this buys you:**
+
+- Specs **contain domain knowledge** (“open orders for customer” in the ubiquitous language)
+- **Proper encapsulation** — filters, includes, and ordering live in one place
+- **Efficient database queries** — the repository translates the spec once; no forgotten `Payments` include
+- The generic `IRepository<T>` stays small: `GetBySpecAsync` / `ListAsync`
+
+Libraries such as `Ardalis.Specification` provide a practical `Specification<T>` base; the pattern matters more than the package.
+
+### General guidelines
+
+| Guideline | Why |
+|-----------|-----|
+| Prefer **named concrete specs** over letting the UI build open-ended `ISpecification` trees | Ad-hoc predicates leak query design into controllers and defeat encapsulation |
+| Make specs **as specific as possible** | `OpenOrdersForCustomerSpec` beats `FlexibleOrderQuerySpec` with ten optional flags |
+| Make specs **immutable** | Pass `customerId` / `since` in the constructor; no public setters that mutate after creation |
+
+### Combining specifications
+
+Specs can compose with **And**, **Or**, and **Not**. An **Identity** specification (always true) is the neutral element when you need a starting point for composition.
+
+```csharp
+public class OpenOrdersSpec : Specification<Order>
+{
+    public OpenOrdersSpec(DateTimeOffset since) =>
+        Query.Where(o => o.Status != OrderStatus.Cancelled
+            && o.Status != OrderStatus.Completed
+            && o.PlacedAt >= since);
+}
+
+public class OrdersWithUnsettledPaymentsSpec : Specification<Order>
+{
+    public OrdersWithUnsettledPaymentsSpec() =>
+        Query.Where(o => o.Payments.Any(p => !p.IsSettled));
+}
+
+// Conceptual composition (API varies by library)
+var spec = new OpenOrdersSpec(DateTimeOffset.UtcNow.AddDays(-90))
+    .And(new OrdersWithUnsettledPaymentsSpec());
+
+var orders = await _repository.ListAsync(spec);
+```
+
+Use composition for real domain intersections (“open **and** has unsettled payment”), not for dumping every UI checkbox into one mega-spec.
+
+### When not to use the Specification pattern
+
+- Heavy reporting / admin grids → prefer the **CQRS** query side (DTOs, SQL, caching) later in this chapter
+- Trivial `GetById` with no related load — a simple repository method is enough
+- When a dedicated application query object is clearer than forcing every read through domain specs
+
+### Combining specifications with regular filtration
+
+Keep **domain criteria** inside the specification. Apply **UI concerns** (paging, user-chosen sort) at the application edge:
+
+```csharp
+var spec = new OpenOrdersForCustomerSpec(customerId, DateTimeOffset.UtcNow.AddDays(-90));
+var page = await _repository.ListAsync(spec, skip: pageIndex * pageSize, take: pageSize);
+```
+
+Or wrap “base domain spec + page request” in the application layer so the Spec stays about *what an open order means*, not *which page* the support grid is on. Do not push raw `IQueryable` out of the repository for the UI to filter.
+
+### Final example: loading a Schedule aggregate
+
+Lesson 03 needed “schedule by id **with** appointments” so `AddNewAppointment` can enforce overlaps. That query is a specification — still against the **generic** repository:
+
+```csharp
+public class ScheduleByIdWithAppointmentsSpec : Specification<Schedule>
+{
+    public ScheduleByIdWithAppointmentsSpec(Guid scheduleId)
+    {
+        Query.Where(s => s.Id == scheduleId)
+             .Include(s => s.Appointments);
+    }
+}
+
+// No IScheduleRepository — same IRepository<Schedule>
+var schedule = await _repository.GetBySpecAsync(
+    new ScheduleByIdWithAppointmentsSpec(scheduleId));
+
+schedule.AddNewAppointment(appointment);
+await _repository.UpdateAsync(schedule);
+```
+
+One named class owns the domain knowledge (“this schedule, with its appointments”). Call sites stop re-copying `Include`, and the aggregate loads in a shape that can enforce invariants.
+
+---
+
+## CQRS with MediatR & Asynchronous Synchronization
+
+<Figure 
+    src="/learn/ddd/repositories-specification-and-cqrs/Gemini_Generated_Image_346u3l346u3l346u.jpeg" 
+    caption="CQRS Diagram"
+    alt="CQRS Diagram"
+    width="600"
+/>
+
+As applications scale, reading and writing data often require distinct paths and models. CQRS separates these concerns into two isolated pipelines using MediatR for in-memory dispatching:
+
+* **Command Path (Write Operations):**
+* **Entry Point:** Controllers or API Endpoints receive user input and forward a `Command : IRequest<TResponse>` using `ISender`.
+* **Processing:** The request routes to a `CommandHandler : IRequestHandler<Command, TResponse>`, which mutates domain state in a transactional database (e.g., MySQL).
+* **Event Dispatch:** To notify other system components, the handler raises a local domain event via `IPublisher.Publish(...)` carrying an `INotification`.
+* **Async Offloading:** A `RabbitMQ Publisher` catches this notification and pushes a message to a RabbitMQ Queue for background processing.
+
+
+* **Query Path (Read Operations & Projections):**
+* **Event Consumption:** A background consumer (`RabbitMQ Receiver`) listens to the queue, processes the payload, and triggers an `INotificationHandler<TNotification>`.
+* **Read Model Projection:** The handler updates a high-performance read store optimized for fast queries (e.g., Elasticsearch).
+* **Query Execution:** UI read requests dispatch a `Query : IRequest<TResponse>` via `ISender`, which a `QueryHandler : IRequestHandler<Query, TResponse>` resolves directly against the read-optimized store, bypassing the write domain entirely.
+
+
+
+This decoupled structure prevents heavy read operations from degrading transaction performance while maintaining eventually consistent read models across services.
+
+---
+
+Let me know if you would like to refine or expand any specific part of this flow!
+---
+
+## Chapter Summary & Key Terms
+
+*   **Repository:** A class that encapsulates the data persistence and lifecycle management for an **Aggregate Root**. Prefer a thin generic `IRepository<T>` constrained to `IAggregateRoot`.
+*   **Persistence Ignorance:** The principle that domain objects should be completely unaware of how or where their data is stored.
+*   **Specification Pattern:** Named, immutable objects that encapsulate domain query knowledge (criteria and often includes), passed into a generic repository for encapsulation and efficient, consistent database queries. Compose with And/Or/Not; keep UI paging outside the domain Spec.
+*   **N+1 Query Error:** A performance anti-pattern where fetching a collection of parent objects triggers an additional database query for every single child object.
+*   **CQRS (Command Query Responsibility Segregation):** The practice of separating read (Query) and write (Command) operations into distinct models or repositories — useful when specs alone are the wrong tool for heavy reporting reads.
+
+### Final Thoughts
+Repositories are a fundamental building block for providing query access to domain objects while shielding the domain from database complexities. By restricting repositories to Aggregate Roots, avoiding `IQueryable` leaks, and using strongly typed Specifications against a generic repository, you can keep your domain model rich, clean, and focused on business behavior.
+
+***
+
+**Next Up:** *Adding in Domain Events and Anti-Corruption Layers*

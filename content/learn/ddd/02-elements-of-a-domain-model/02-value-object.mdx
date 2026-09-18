@@ -1,9 +1,9 @@
 ---
-title: 'Value Objects & Domain Services'
+title: 'Value Objects'
 description: 'Value Objects are used to measure, quantify, or describe things in the domain.'
 ---
 
-## Elements of a Domain Model – Value Objects & Domain Services
+## Elements of a Domain Model – Value Objects
 
 *Based on the teachings of Steve Smith (@ardalis) and Julie Lerman (@julielerman), featuring insights from Eric Evans and Vaughn Vernon.*
 
@@ -116,36 +116,6 @@ Moving primitive properties and generic logic out of Entities and into Value Obj
 2.  **Orchestration:** The Entity is freed from low-level data manipulation and becomes a high-level orchestrator.
 3.  **Precise Ubiquitous Language:** Extracting primitives into named VOs creates a richer, more concise domain language.
 
----
+***
 
-## 5. Understanding Domain Services
-
-Sometimes, a business operation doesn't naturally belong to any single Entity or Value Object. Forcing it into an Entity leads to bloated, confused models. This is where **Domain Services** come in.
-
-### Features of a Domain Service
-*   **Stateless:** They do not hold state themselves.
-*   **Orchestrators:** They coordinate processes across multiple Entities, VOs, and Repositories.
-*   **Domain-Centric:** Their interfaces are defined strictly in terms of the domain model (not UI or infrastructure concerns).
-*   **Side Effects:** Unlike VOs, Domain Services *can* have side effects (e.g., saving to a database via a repository, publishing a domain event).
-
-### When to use a Domain Service?
-
-Use them for operations like *Transferring funds between two accounts* or *Processing a complex order*. 
-
-```mermaid
-flowchart LR
-    DS[Domain Service: TransferFunds] -->|Withdraw| Acc1[Account Entity 1]
-    DS -->|Deposit| Acc2[Account Entity 2]
-    DS -->|Calculate| VO[Money Value Object]
-    
-    Acc1 --> Result((Success/Fail))
-    Acc2 --> Result
-```
-
-> **Warning:** Watch out for overuse! If you put all your logic into Domain Services, you will accidentally create an **Anemic Domain Model**. Only use a Domain Service when the behavior truly doesn't belong inside an Entity or VO.
-
-### Domain Services vs. Other Services
-*   **Domain Services:** Orchestrate domain workflow (e.g., `OrderProcessingService`). Lives in the Domain Layer.
-*   **Application Services:** Handle UI/App concerns (e.g., message parsing, session management). Lives in the Application Layer.
-*   **Infrastructure Services:** Handle external tech concerns (e.g., `EmailSender`, `FileLogger`). Lives in the Infrastructure Layer.
-
+**Next:** [Domain Services](/learn/ddd/02-elements-of-a-domain-model/03-domainservice) — when logic does not belong on one entity.

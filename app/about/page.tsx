@@ -1,11 +1,20 @@
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getAllPosts } from '@/lib/mdx';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { JsonLd } from '@/components/seo/json-ld';
+import { constructMetadata, getAboutPageSchema } from '@/lib/seo';
 import { Download, Briefcase, GraduationCap, Heart } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
+
+export const metadata: Metadata = constructMetadata({
+  title: 'About Sharukh Rahman',
+  description:
+    'About Sharukh Rahman — MSc Data Science student at Óbuda University, former .NET software engineer, building ML systems and engineering notes.',
+  path: '/about',
+});
 
 const experience = [
   {
@@ -71,6 +80,7 @@ const interests = [
 export default async function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
+      <JsonLd data={getAboutPageSchema()} />
       <Header />
 
       {/* Hero Section */}

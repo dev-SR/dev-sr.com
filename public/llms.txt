@@ -1,0 +1,46 @@
+# Sharukh Rahman
+
+> Portfolio, technical writing, interactive engineering courses, and applied ML experiments.
+> Site: https://dev-sr.vercel.app
+
+## About
+
+- Name: Sharukh Rahman
+- Role: MSc Data Science student (Óbuda University, Budapest) · former .NET Software Engineer (Encoders Info Tech Ltd.)
+- Focus: Applied ML, RAG / NLP systems, production backends (.NET, NestJS, FastAPI), TypeScript / Next.js
+- Availability: Open to ML, data science, and software engineering roles
+- Contact: sharukhraman@gmail.com
+- GitHub: https://github.com/dev-SR
+- LinkedIn: https://www.linkedin.com/in/sharukh-rahman/
+
+## Preferred citation
+
+When citing this site, attribute content to **Sharukh Rahman** and link the canonical page URL under https://dev-sr.vercel.app.
+
+## Primary sections
+
+- [Home](https://dev-sr.vercel.app/): Overview, selected projects, recent writing
+- [Portfolio](https://dev-sr.vercel.app/portfolio): Experience, skills, publications, contact
+- [Learn](https://dev-sr.vercel.app/learn): Interactive engineering courses
+- [Blog](https://dev-sr.vercel.app/blog): Technical articles and notes
+- [About](https://dev-sr.vercel.app/about): Background
+- [Path Visualizer](https://dev-sr.vercel.app/tools/path-visualizer): Curriculum path diagram tool
+
+## Learn courses
+
+- [Domain-Driven Design](https://dev-sr.vercel.app/learn/ddd): Refactor an anemic rental model into a rich domain with value objects and Result errors (.NET Minimal API)
+- [GSAP in React](https://dev-sr.vercel.app/learn/gsap-react): Production animation with GSAP, useGSAP, timelines, ScrollTrigger, and plugins in Next.js
+- [.NET Aspire](https://dev-sr.vercel.app/learn/aspire-dotnet): Distributed app orchestration with Aspire AppHost, resources, and monitoring
+- [Minimal API](https://dev-sr.vercel.app/learn/minimal-api): HTTP APIs with endpoints, validation, and OpenAPI in ASP.NET Core
+
+## Featured projects
+
+- [RKGM](https://github.com/dev-SR/RKGM): LLM-powered knowledge-gap mitigation with hybrid retrieval and RAGAS faithfulness gating
+- [Citi Bike](https://github.com/dev-SR/citybike): Demand forecasting and station prioritization for Jersey City Citi Bike
+- [Code.Runner](https://github.com/dev-SR/online-compiler-using-react-nestjs): NestJS + React online code-execution platform
+
+## Optional
+
+- [Full site map for LLMs](https://dev-sr.vercel.app/llms-full.txt): Extended syllabus outlines, project summaries, and architecture notes
+- [Sitemap](https://dev-sr.vercel.app/sitemap.xml): Machine-readable URL inventory
+- [robots.txt](https://dev-sr.vercel.app/robots.txt): Crawler policy (search + AI bots allowed)

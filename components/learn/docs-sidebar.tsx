@@ -176,13 +176,14 @@ interface DocsSidebarProps {
 }
 
 export function DocsSidebar({ course, className, rootLabel = 'Course' }: DocsSidebarProps) {
-  const sections = course.children ?? [];
+  const sections = useMemo(() => getVisibleChildren(course), [course]);
   const allAccordionSlugs = useMemo(() => collectAccordionSlugs(sections), [sections]);
+  const accordionKey = allAccordionSlugs.join('\0');
   const [expandedSlugs, setExpandedSlugs] = useState<string[]>(allAccordionSlugs);
 
   useEffect(() => {
-    setExpandedSlugs(allAccordionSlugs);
-  }, [allAccordionSlugs]);
+    setExpandedSlugs(accordionKey ? accordionKey.split('\0') : []);
+  }, [accordionKey]);
 
   return (
     <aside className={cn('flex flex-col', className)}>

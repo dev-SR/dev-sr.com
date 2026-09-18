@@ -5,11 +5,21 @@ import { firaCode, greycliff, inter } from '@/lib/fonts';
 import { ThemeProvider } from '@/components/theme-provider';
 import SmoothScrollProvider from '@/components/smooth-scroll-provider';
 import SiteSplash from '@/components/site-splash';
+import { JsonLd } from '@/components/seo/json-ld';
+import {
+  constructMetadata,
+  getOrganizationSchema,
+  getPersonSchema,
+  getWebSiteSchema,
+  siteConfig,
+} from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'Sharukh Rahman | Portfolio and Technical Blog',
-  description:
-    'Portfolio, technical writing, interactive notes, and engineering experiments by Sharukh Rahman.',
+  ...constructMetadata(),
+  title: {
+    default: siteConfig.title,
+    template: `%s | ${siteConfig.name}`,
+  },
 };
 
 export default function RootLayout({
@@ -34,6 +44,7 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css"
           rel="stylesheet"
         />
+        <JsonLd data={[getPersonSchema(), getWebSiteSchema(), getOrganizationSchema()]} />
       </head>
       <body className="antialiased">
         <SmoothScrollProvider>

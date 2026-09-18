@@ -49,7 +49,62 @@ The aggregate root serves as the guardian of the aggregate's integrity. It is re
 2. **Controlling access** — External objects interact only with the root
 3. **Maintaining consistency** — Ensuring the aggregate remains valid after every operation
 
+### Shared base types: `Entity` and `AggregateRoot`
 
+Every domain object with identity inherits a shared **Entity** base (`Guid` id). Only roots implement **`IAggregateRoot`** (usually via an **`AggregateRoot`** base). Repositories load and save roots; child entities are reached only by navigating from their root.
+
+```csharp title="SharedKernel/Domain/Entity.cs"
+/// <summary>
+/// Base type for every entity. Identity (Id) defines equality over time;
+/// attributes may change without changing which entity it is.
+/// </summary>
+public abstract class Entity
+{
+    public Guid Id { get; protected set; }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not Entity other)
+            return false;
+
+        if (ReferenceEquals(this, other))
+            return true;
+
+        if (Id == Guid.Empty || other.Id == Guid.Empty)
+            return false;
+
+        return Id == other.Id;
+    }
+
+    public override int GetHashCode() => Id.GetHashCode();
+}
+```
+
+```csharp title="SharedKernel/Domain/AggregateRoot.cs"
+/// <summary>
+/// Marker interface. Repositories are constrained to
+/// "where T : class, IAggregateRoot" — only roots are loaded or saved directly.
+/// </summary>
+public interface IAggregateRoot;
+
+/// <summary>
+/// Aggregate root = entity + the unit of consistency. Child entities inherit
+/// <see cref="Entity"/> only; they are not roots and must not be persisted alone.
+/// (Domain-event plumbing is added later — see Domain and Integration Events.)
+/// </summary>
+public abstract class AggregateRoot : Entity, IAggregateRoot
+{
+}
+```
+
+**How examples in this chapter use them:**
+
+| Type | Base | Role |
+|------|------|------|
+| `Client`, `Patient`, `Appointment` (child) | `Entity` | Identity + state inside or across boundaries |
+| `Order`, `Schedule` | `AggregateRoot` | Root — entry point and invariant guardian |
+
+---
 
 ## Invariants in Aggregates
 
@@ -127,16 +182,16 @@ One-way associations cut interdependence: each type stays readable on its own.
 
 
 ```csharp
-public class Client : Entity<int>
+public class Client : Entity
 {
     public string FullName { get; set; }
     public List<Patient> Patients { get; set; }
 }
 
-public class Patient : Entity<int>
+public class Patient : Entity
 {
     public string AnimalType { get; set; }
-    public int ClientId { get; set; }  // Reference by ID, not navigation
+    public Guid ClientId { get; set; }  // Reference by ID, not navigation
     public string Gender { get; set; }
     public string Name { get; set; }
 }
@@ -243,7 +298,7 @@ Examples:
 
 ```csharp
 // Purchase Order — works: root owns all lines
-public class Order : Entity<int>
+public class Order : AggregateRoot
 {
     public List<OrderLine> Lines { get; private set; } = new();
     public int MaxItems { get; private set; }
@@ -272,7 +327,7 @@ public sealed class DateRange
 }
 
 // Appointment as aggregate root — fails the overlap invariant
-public class Appointment : Entity<Guid>
+public class Appointment : AggregateRoot
 {
     public DateTimeRange DateTimeRange { get; private set; }
 
@@ -325,9 +380,9 @@ graph TD
 
 ```csharp
 // Schedule = aggregate root. Appointment = entity inside the boundary.
-public class Schedule : Entity<Guid>, IAggregateRoot
+public class Schedule : AggregateRoot
 {
-    public int ClinicId { get; private set; }
+    public Guid ClinicId { get; private set; }
     public DateTimeOffsetRange DateRange { get; private set; }
 
     private readonly List<Appointment> _appointments = new();
@@ -368,12 +423,12 @@ public class Schedule : Entity<Guid>, IAggregateRoot
     }
 }
 
-public class Appointment : Entity<Guid>
+public class Appointment : Entity
 {
     public Guid ScheduleId { get; private set; }
-    public int PatientId { get; private set; }
-    public int DoctorId { get; private set; }
-    public int RoomId { get; private set; }
+    public Guid PatientId { get; private set; }
+    public Guid DoctorId { get; private set; }
+    public Guid RoomId { get; private set; }
     public DateTimeOffsetRange TimeRange { get; private set; }
     public bool IsPotentiallyConflicting { get; set; }
 

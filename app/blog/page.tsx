@@ -5,6 +5,16 @@ import { Calendar, TrendingUp, Star } from 'lucide-react';
 import Header from '@/components/Header';
 import { PageTopGlow } from '@/components/page-top-glow';
 import { BlogPostPreviewCard } from '@/components/blog-post-preview-card';
+import { JsonLd } from '@/components/seo/json-ld';
+import { constructMetadata, getCollectionPageSchema } from '@/lib/seo';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = constructMetadata({
+  title: 'Technical Blog & Engineering Notes',
+  description:
+    'Explore technical articles, mathematical concepts, and development insights through interactive MDX content by Sharukh Rahman.',
+  path: '/blog',
+});
 
 export default async function BlogPage() {
   const posts = await getAllPosts();
@@ -36,6 +46,14 @@ export default async function BlogPage() {
 
   return (
     <div className="relative bg-background">
+      <JsonLd
+        data={getCollectionPageSchema({
+          title: 'Technical Blog & Engineering Notes',
+          description:
+            'Explore technical articles, mathematical concepts, and development insights through interactive MDX content by Sharukh Rahman.',
+          path: '/blog',
+        })}
+      />
       <PageTopGlow />
       <Header />
 

@@ -16,6 +16,7 @@ import { Step, Steps } from './steps';
 import { Guide, GuideStep } from './guide';
 import { Mermaid } from './mermaid';
 import { FlowDiagram } from './flow-diagram';
+import { CodeTabs, MultiFileCodeBlock } from '@/components/mdx/code-tabs';
 import { gsapDemoComponents } from './gsap-demos/mdx-registry';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
@@ -42,6 +43,8 @@ export const learnMdxClientComponents = {
   Steps,
   Guide,
   GuideStep,
+  CodeTabs,
+  MultiFileCodeBlock,
   Mermaid,
   FlowDiagram,
   PathVisualizer,

@@ -1,7 +1,6 @@
 # Content authoring guide
 
-**Public (web):** [/blog/guides/content-authoring](/blog/guides/content-authoring)  
-**Source of truth for the published guide:** [`content/guides/content-authoring.mdx`](../content/guides/content-authoring.mdx)
+[`content/guides/content-authoring.mdx`](../content/guides/content-authoring.mdx)
 
 Edit the MDX file when the guide changes. This `docs/` stub exists so local/agent docs still have a clear entry point.
 

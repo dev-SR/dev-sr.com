@@ -6,8 +6,10 @@ import ParallaxWaves from '@/components/showcase/ParallaxWaveBackground';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { JsonLd } from '@/components/seo/json-ld';
 import { getAllPosts } from '@/lib/mdx';
 import { homeStrengths, profile, projects, publications } from '@/lib/profile';
+import { constructMetadata, getPersonSchema } from '@/lib/seo';
 import {
   ArrowRight,
   Binary,
@@ -17,6 +19,7 @@ import {
   Network,
   Workflow,
 } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ViewTransition } from 'react';
 
@@ -24,12 +27,17 @@ const strengthIcons = [BrainCircuit, Binary, Network, Workflow] as const;
 
 const projectIcons = [BrainCircuit, Database, Code2] as const;
 
+export const metadata: Metadata = constructMetadata({
+  path: '/',
+});
+
 export default async function App() {
   const posts = await getAllPosts();
   const recentPosts = posts.slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background">
+      <JsonLd data={getPersonSchema()} />
       <Header />
       <ParallaxWaves />
 

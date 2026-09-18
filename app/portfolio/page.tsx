@@ -14,7 +14,9 @@ import {
   Server,
 } from 'lucide-react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import Header from '@/components/Header';
+import { JsonLd } from '@/components/seo/json-ld';
 import { FaGithub, FaLinkedin } from 'react-icons/fa';
 import {
   certifications,
@@ -25,6 +27,15 @@ import {
   publications,
   skillGroups,
 } from '@/lib/profile';
+import { constructMetadata, getProfilePageSchema } from '@/lib/seo';
+
+export const metadata: Metadata = constructMetadata({
+  title: 'Portfolio & Systems',
+  description:
+    'Experience, skills, publications, and GitHub-linked projects from Sharukh Rahman — applied ML, RAG systems, and production .NET backends.',
+  path: '/portfolio',
+  type: 'profile',
+});
 
 const skillIcons = {
   Programming: Code,
@@ -39,6 +50,7 @@ export default async function PortfolioPage() {
 
   return (
     <div className="bg-background">
+      <JsonLd data={getProfilePageSchema()} />
       <Header />
 
       <section className="relative px-4 py-20 sm:px-6 lg:px-8">

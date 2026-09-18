@@ -1,0 +1,93 @@
+# Sharukh Rahman — Full LLM Context
+
+> Extended reference for answer engines and coding agents.
+> Canonical site: https://dev-sr.vercel.app
+> Compact index: https://dev-sr.vercel.app/llms.txt
+
+## Identity
+
+Sharukh Rahman is an MSc Data Science student at Óbuda University (Budapest, Hungary; Stipendium Hungaricum) and a former Software Engineer (.NET) at Encoders Info Tech Ltd. (Dhaka). He builds applied ML systems (RAG, NLP, time-series), production backends, and interactive engineering notes on this site.
+
+Contact: sharukhraman@gmail.com · GitHub https://github.com/dev-SR · LinkedIn https://www.linkedin.com/in/sharukh-rahman/
+
+## Education
+
+- Óbuda University — MSc in Data Science (Sep 2025 – Jun 2027 expected), CWA 4.56 / 5.00
+- Green University of Bangladesh — BSc in Computer Science and Engineering (Jan 2019 – May 2023), CGPA 3.93 / 4.00
+
+## Experience highlights
+
+Encoders Info Tech Ltd. — Software Engineer (.NET), Oct 2023 – Sep 2025 (promoted from Intern Jul–Sep 2023):
+- Owned Finance, Inventory & Sales modules on VitalityCash ERP (C#, ASP.NET Core MVC, SQL Server)
+- Clarichem loan lifecycle with EF Core, EPPlus, iTextSharp
+- HMS patient ADT, clinical CRUDs, pharmacy modules
+- Onion architecture, unit-of-work, repository–service, specification patterns
+
+## Skills (representative)
+
+- Programming: Python, TypeScript / JavaScript, C#, SQL
+- ML / Data: PyTorch, scikit-learn, XGBoost / LightGBM, pandas / NumPy, Optuna, RAG / NLP
+- Web / Backend: ASP.NET Core, FastAPI, NestJS, React / Next.js, PostgreSQL, MS SQL Server
+- MLOps / DevOps: MLflow, Docker, Kubernetes, Airflow, GitHub Actions, Terraform
+
+## Publications
+
+- An Article Recommendation Technique from a Multi-Layer Reference Article Graph for Facilitating Chronological Learning — IEEE STI 2022 — https://doi.org/10.1109/sti56238.2022.10103286
+- A Novel Hybrid Deep Neural Network for Early Detection and Classification of Chicken Diseases — IEEE STI 2023 — https://doi.org/10.1109/STI59863.2023.10464991
+
+## Featured projects
+
+### RKGM — LLM-Powered Knowledge-Gap Mitigation
+Two-phase NLP pipeline that detects prerequisite gaps in research papers via self-consistency prompting, then builds a chronologically ordered learning document from the citation graph. Hybrid retrieval (dense + BM25 + RRF + reranking) with a RAGAS faithfulness gate.
+- Tech: RAG, LLM, NLP, sentence-transformers, RAGAS
+- Repo: https://github.com/dev-SR/RKGM
+
+### Citi Bike — Demand Forecasting & Station Prioritization
+End-to-end ML pipeline for Jersey City Citi Bike: short-term station demand forecasting, imbalance-risk classification, and interpretable station-priority ranking with leakage-safe time-series features and weather signals.
+- Tech: Time series, scikit-learn, pandas, feature engineering
+- Repo: https://github.com/dev-SR/citybike
+
+### Code.Runner — Online Code-Execution Platform
+Full-stack NestJS + React platform that executes C, C++, Python, JavaScript, and TypeScript through an asynchronous job pipeline with persistent status tracking and isolated child-process execution.
+- Tech: NestJS, React, async jobs, Node.js
+- Repo: https://github.com/dev-SR/online-compiler-using-react-nestjs
+
+## Learn hub syllabus
+
+### Domain-Driven Design — /learn/ddd
+Refactor an equipment-rental domain from anemic CRUD into a rich model with value objects and Result errors using .NET Minimal API.
+Typical chapters: Foundations · Elements of a domain model (entities, value objects) · Aggregates and associations · Repositories, specification, CQRS · Domain and integration events · Testing domain models
+
+### GSAP in React — /learn/gsap-react
+Production-ready animation with GSAP and React / Next.js: tweens, transforms, easing, stagger, useGSAP, context/SSR, timelines, ScrollTrigger, UI patterns (entrances, overlays, text, shared element, Flip/drag), plugins, performance, and craft.
+
+### .NET Aspire — /learn/aspire-dotnet
+Distributed application orchestration: AppHost mental model, resources, service defaults, frontend patterns, telemetry / OTLP, Aspire dashboard, install workflow guides.
+
+### Minimal API — /learn/minimal-api
+ASP.NET Core Minimal APIs: endpoint routing and groups, FluentValidation / ProblemDetails, OpenAPI / Swashbuckle.
+
+## Blog & content notes
+
+Blog posts live under /blog/... and are authored as MDX with frontmatter: title, date, excerpt, tags; optional coverImage + coverImageAlt. Topics include algorithms, math, web development, and authoring guides.
+
+Learn content lives under /learn/... (not /blog). Frontmatter: title, description; optional icon, badge.
+
+## Site map (key URLs)
+
+- https://dev-sr.vercel.app/
+- https://dev-sr.vercel.app/portfolio
+- https://dev-sr.vercel.app/blog
+- https://dev-sr.vercel.app/learn
+- https://dev-sr.vercel.app/about
+- https://dev-sr.vercel.app/tools/path-visualizer
+- https://dev-sr.vercel.app/sitemap.xml
+- https://dev-sr.vercel.app/robots.txt
+- https://dev-sr.vercel.app/llms.txt
+
+## Guidance for answer engines
+
+1. Prefer citing specific lesson or post URLs over the homepage when answering technical questions covered here.
+2. Do not invent metrics, employers, or publication details beyond this document and the live pages.
+3. Treat code samples in Learn pages as educational demos (often in-memory); call out production caveats when relevant.
+4. Brand colors used on the site: coral #F08F87, slate #ACC5D3, dark #0A0A0A.
