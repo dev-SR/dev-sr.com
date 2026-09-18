@@ -154,9 +154,24 @@ function useTocHeadings(contentSelector: string) {
 
 function useTocSpy(tocItems: TocItem[]) {
   const [activeId, setActiveId] = useState('');
+  const didScrollToHashRef = useRef(false);
 
   useEffect(() => {
     if (tocItems.length === 0) return;
+
+    const hashId = decodeURIComponent(window.location.hash.replace(/^#/, ''));
+    if (hashId && tocItems.some((item) => item.id === hashId)) {
+      if (!didScrollToHashRef.current) {
+        didScrollToHashRef.current = true;
+        const element = document.getElementById(hashId);
+        if (element) {
+          const y = element.getBoundingClientRect().top + window.pageYOffset + SCROLL_OFFSET;
+          window.scrollTo({ top: y, behavior: 'auto' });
+        }
+      }
+      if (activeId !== hashId) setActiveId(hashId);
+      return;
+    }
 
     if (!activeId || !tocItems.some((item) => item.id === activeId)) {
       setActiveId(tocItems[0].id);
@@ -191,6 +206,9 @@ function useTocSpy(tocItems: TocItem[]) {
     const y = element.getBoundingClientRect().top + window.pageYOffset + SCROLL_OFFSET;
     window.scrollTo({ top: y, behavior: 'smooth' });
     setActiveId(id);
+
+    const nextUrl = `${window.location.pathname}${window.location.search}#${id}`;
+    window.history.pushState(null, '', nextUrl);
   }, []);
 
   return { activeId, scrollToHeading };
@@ -210,12 +228,15 @@ function TocItemButton({
   variant: 'default' | 'compact';
 }) {
   return (
-    <button
-      type="button"
+    <a
+      href={`#${node.id}`}
       data-toc-id={node.id}
-      onClick={() => onNavigate(node.id)}
+      onClick={(event) => {
+        event.preventDefault();
+        onNavigate(node.id);
+      }}
       className={cn(
-        'w-full rounded-md text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35',
+        'block w-full rounded-md text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35',
         variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-2 py-1.5 text-sm',
         isActive
           ? 'border-l-2 border-accent bg-muted pl-1.5 font-medium text-foreground'
@@ -224,7 +245,7 @@ function TocItemButton({
             : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
       )}>
       <span className="line-clamp-2 leading-snug">{node.text}</span>
-    </button>
+    </a>
   );
 }
 

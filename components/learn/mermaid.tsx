@@ -139,17 +139,17 @@ function MermaidHeaderActions({
     <div className="flex shrink-0 items-center gap-0.5">
       {mode === 'preview' && (
         <>
+          {showZoomReset && (
+            <ActionButton label="Reset zoom" onClick={onZoomReset}>
+              <RotateCcw className="size-3.5" />
+            </ActionButton>
+          )}
           <ActionButton label="Zoom in" onClick={onZoomIn} disabled={zoom >= MAX_ZOOM}>
             <ZoomIn className="size-3.5" />
           </ActionButton>
           <ActionButton label="Zoom out" onClick={onZoomOut} disabled={zoom <= MIN_ZOOM}>
             <ZoomOut className="size-3.5" />
           </ActionButton>
-          {showZoomReset && (
-            <ActionButton label="Reset zoom" onClick={onZoomReset}>
-              <RotateCcw className="size-3.5" />
-            </ActionButton>
-          )}
           <ActionButton
             label={maximized ? 'Exit fullscreen' : 'Maximize'}
             onClick={onToggleMaximize}>

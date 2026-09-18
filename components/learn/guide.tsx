@@ -1,33 +1,69 @@
 'use client';
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, type ElementType } from 'react';
 import type React from 'react';
 import { cn } from '@/lib/utils';
 
+export type GuideHeadingLevel = 2 | 3 | 4;
+
 type GuideContextValue = {
   numbered: boolean;
+  headingLevel: GuideHeadingLevel;
+  stepHeadingLevel: GuideHeadingLevel;
 };
 
-const GuideContext = createContext<GuideContextValue>({ numbered: false });
+const GuideContext = createContext<GuideContextValue>({
+  numbered: false,
+  headingLevel: 3,
+  stepHeadingLevel: 3,
+});
+
+function GuideHeading({
+  level,
+  className,
+  children,
+}: {
+  level: GuideHeadingLevel;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const Tag = `h${level}` as ElementType;
+  return <Tag className={className}>{children}</Tag>;
+}
 
 export function Guide({
   title,
   numbered = false,
+  headingLevel = 3,
+  stepHeadingLevel,
   className,
   children,
 }: {
   title?: string;
   numbered?: boolean;
+  /** Heading level for the Guide `title` (default `3` → `h3`). */
+  headingLevel?: GuideHeadingLevel;
+  /** Heading level for GuideStep titles. Defaults to `headingLevel` (same level). */
+  stepHeadingLevel?: GuideHeadingLevel;
   className?: string;
   children: React.ReactNode;
 }) {
+  const resolvedStepLevel = stepHeadingLevel ?? headingLevel;
+
   return (
-    <GuideContext.Provider value={{ numbered }}>
-      <div className={cn('not-prose my-10', className)} data-toc-exclude>
+    <GuideContext.Provider
+      value={{
+        numbered,
+        headingLevel,
+        stepHeadingLevel: resolvedStepLevel,
+      }}>
+      <div className={cn('not-prose my-10', className)}>
         {title && (
-          <h3 className="mb-6 scroll-m-28 text-lg font-semibold tracking-tight text-foreground">
+          <GuideHeading
+            level={headingLevel}
+            className="mb-6 scroll-m-28 text-lg font-semibold tracking-tight text-foreground">
             {title}
-          </h3>
+          </GuideHeading>
         )}
         <div
           className={cn(
@@ -43,14 +79,18 @@ export function Guide({
 
 export function GuideStep({
   title,
+  headingLevel,
   className,
   children,
 }: {
   title: string;
+  /** Override the Guide's `stepHeadingLevel` for this step. */
+  headingLevel?: GuideHeadingLevel;
   className?: string;
   children: React.ReactNode;
 }) {
-  const { numbered } = useContext(GuideContext);
+  const { numbered, stepHeadingLevel } = useContext(GuideContext);
+  const level = headingLevel ?? stepHeadingLevel;
 
   return (
     <div className={cn(numbered && 'guide-step-numbered', className)}>
@@ -61,9 +101,11 @@ export function GuideStep({
             className="absolute top-0 -left-[var(--guide-line-offset)] z-20 block h-full w-[6px] rounded-tr-full rounded-br-full bg-muted"
           />
         )}
-        <h3 className="scroll-m-28 text-xl font-semibold tracking-tight text-foreground">
+        <GuideHeading
+          level={level}
+          className="scroll-m-28 text-xl font-semibold tracking-tight text-foreground">
           {title}
-        </h3>
+        </GuideHeading>
       </div>
       {children && (
         <div className="mt-4 flex flex-col gap-4 [&_.code-block]:my-0 [&>:first-child]:mt-0">
