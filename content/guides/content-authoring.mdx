@@ -300,7 +300,7 @@ GFM is on: tables, strikethrough, task lists, autolinks.
 | --- | --- |
 | Merge Sort | O(n log n) |
 
-~~deprecated~~ · [Internal link](/blog/algorithms/sorting) · [External](https://example.com)
+~~deprecated~~ · [Internal link](/blog/algorithms/sorting) · [External](https://example.com) · [Same-page heading](#standard-markdown)
 ````
 
 **Result**
@@ -317,7 +317,7 @@ GFM is on: tables, strikethrough, task lists, autolinks.
 | --- | --- |
 | Merge Sort | $O(n \log n)$ |
 
-~~deprecated~~ · [Internal link](/blog/algorithms/sorting) · [External](https://example.com)
+~~deprecated~~ · [Internal link](/blog/algorithms/sorting) · [External](https://example.com) · [Same-page heading](#standard-markdown)
 
 ---
 
@@ -605,13 +605,14 @@ export function GsapToastEnter() { /* … */ }
 
 ### `Guide` + `GuideStep`
 
-- `Guide` optional props: `title`, `numbered` (default `false` — grey pills; `true` — numbered circles).
-- `GuideStep` requires `title`; children can be prose and fenced blocks.
+- `Guide` optional props: `title`, `numbered` (default `false` — grey pills; `true` — numbered circles), `headingLevel` (`2` | `3` | `4`, default `3`), `stepHeadingLevel` (defaults to `headingLevel`).
+- `GuideStep` requires `title`; optional `headingLevel` overrides the Guide's step level. Children can be prose and fenced blocks.
+- Guide headings appear in the page TOC (`TableOfContents`). Prefer `headingLevel={2}` + `stepHeadingLevel={3}` when the Guide is a major section.
 
 **Source**
 
 ````mdx
-<Guide title="Install Tailwind CSS v4" numbered>
+<Guide title="Install Tailwind CSS v4" numbered headingLevel={2} stepHeadingLevel={3}>
   <GuideStep title="Create your project">
 
 ```bash
@@ -634,7 +635,7 @@ cd my-project
 
 **Result**
 
-<Guide title="Install Tailwind CSS v4" numbered>
+<Guide title="Install Tailwind CSS v4" numbered headingLevel={2} stepHeadingLevel={3}>
   <GuideStep title="Create your project">
 
 ```bash

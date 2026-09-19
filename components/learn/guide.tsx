@@ -18,17 +18,32 @@ const GuideContext = createContext<GuideContextValue>({
   stepHeadingLevel: 3,
 });
 
+function slugifyHeading(text: string): string {
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'heading'
+  );
+}
+
 function GuideHeading({
   level,
+  id,
   className,
   children,
 }: {
   level: GuideHeadingLevel;
+  id?: string;
   className?: string;
   children: React.ReactNode;
 }) {
   const Tag = `h${level}` as ElementType;
-  return <Tag className={className}>{children}</Tag>;
+  return (
+    <Tag id={id} className={className}>
+      {children}
+    </Tag>
+  );
 }
 
 export function Guide({
@@ -61,6 +76,7 @@ export function Guide({
         {title && (
           <GuideHeading
             level={headingLevel}
+            id={slugifyHeading(title)}
             className="mb-6 scroll-m-28 text-lg font-semibold tracking-tight text-foreground">
             {title}
           </GuideHeading>
@@ -103,6 +119,7 @@ export function GuideStep({
         )}
         <GuideHeading
           level={level}
+          id={slugifyHeading(title)}
           className="scroll-m-28 text-xl font-semibold tracking-tight text-foreground">
           {title}
         </GuideHeading>

@@ -1,7 +1,6 @@
-import Link from 'next/link';
 import type React from 'react';
-import { ExternalLink } from 'lucide-react';
 import { Figure, MdxImage, Paragraph } from './figure';
+import { MdxLink } from './mdx-link';
 
 export const mdxServerComponents = {
   h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
@@ -97,18 +96,15 @@ export const mdxServerComponents = {
       {children}
     </td>
   ),
-  a: ({ children, href, ...props }: React.ComponentPropsWithoutRef<'a'>) => {
-    const isExternal = typeof href === 'string' && /^https?:\/\//.test(href);
-    return (
-      <Link
-        href={href ?? '#'}
-        className="inline-flex items-center gap-1 text-[#ACC5D3] underline decoration-[#ACC5D3]/35 underline-offset-4 transition-colors hover:text-[#F08F87] hover:decoration-[#F08F87]/60"
-        {...(props as Omit<React.ComponentProps<typeof Link>, 'href'>)}>
-        {children}
-        {isExternal && <ExternalLink className="size-3" />}
-      </Link>
-    );
-  },
+  a: ({ children, href, ...props }: React.ComponentPropsWithoutRef<'a'>) => (
+    <MdxLink
+      href={href}
+      className="inline-flex items-center gap-1 text-[#ACC5D3] underline decoration-[#ACC5D3]/35 underline-offset-4 transition-colors hover:text-[#F08F87] hover:decoration-[#F08F87]/60"
+      showExternalIcon
+      {...props}>
+      {children}
+    </MdxLink>
+  ),
   img: MdxImage,
   Figure,
 };

@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import type React from 'react';
-import { ExternalLink } from 'lucide-react';
 import { Figure, MdxImage, Paragraph } from '@/components/mdx/figure';
+import { MdxLink } from '@/components/mdx/mdx-link';
 
 export const learnMdxServerComponents = {
   h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
@@ -79,18 +78,15 @@ export const learnMdxServerComponents = {
       {children}
     </td>
   ),
-  a: ({ children, href, ...props }: React.ComponentPropsWithoutRef<'a'>) => {
-    const isExternal = typeof href === 'string' && /^https?:\/\//.test(href);
-    return (
-      <Link
-        href={href ?? '#'}
-        className="font-medium text-accent underline decoration-accent/30 underline-offset-4 transition-colors hover:text-foreground"
-        {...(props as Omit<React.ComponentProps<typeof Link>, 'href'>)}>
-        {children}
-        {isExternal && <ExternalLink className="ml-1 inline size-3" />}
-      </Link>
-    );
-  },
+  a: ({ children, href, ...props }: React.ComponentPropsWithoutRef<'a'>) => (
+    <MdxLink
+      href={href}
+      className="font-medium text-accent underline decoration-accent/30 underline-offset-4 transition-colors hover:text-foreground"
+      showExternalIcon
+      {...props}>
+      {children}
+    </MdxLink>
+  ),
   img: MdxImage,
   Figure,
 };

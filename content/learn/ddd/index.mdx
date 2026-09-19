@@ -11,13 +11,17 @@ Model an **equipment rental** domain in .NET. Start from an anemic (CRUD/service
 
 ## Course outline
 
+Numbered folders under `content/learn/ddd/` drive the live nav (Foundations → Elements → Aggregates → Repositories/CQRS → Domain & Integration Events → Testing → Consistency Boundaries).
+
 | Chapter | Focus |
 | --- | --- |
-| [Foundations](/learn/ddd/foundations) | Scenario, rich vs anemic, why anemic hurts |
-| [Anemic baseline](/learn/ddd/anemic-baseline) | Working Minimal API with dumb entities |
-| [Rich domain](/learn/ddd/rich-domain) | Move logic, invariants, behavior methods |
-| [Value objects](/learn/ddd/value-objects) | Protected collections, `Money`, `RentalPeriod`, `Result` |
-| [Design notes](/learn/ddd/design-notes) | When DDD pays off — and when it does not |
+| [Foundations](/learn/ddd/foundations) | Modelling, anemic vs rich |
+| [Elements of a domain model](/learn/ddd/elements-of-a-domain-model) | Entities, value objects, domain services |
+| [Aggregates and associations](/learn/ddd/aggregates-and-associations) | Consistency boundaries inside a model |
+| [Repositories, specification, CQRS](/learn/ddd/repositories-specification-and-cqrs) | Persistence and read models |
+| [Domain and integration events](/learn/ddd/domain-and-integration-events) | Deferred dispatch, outbox, inbox |
+| [Testing domain models](/learn/ddd/testing-domain-models) | Unit / integration tests |
+| [Consistency boundaries](/learn/ddd/consistency-boundaries) | CAP, one aggregate / txn, sagas, AP across BCs |
 
 Domain language we use throughout: **Customer**, **Equipment**, `Reserve` / `Release`, **Rental**, fee, availability, rental period.
 

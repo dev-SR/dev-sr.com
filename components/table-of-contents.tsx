@@ -5,6 +5,7 @@ import { ChevronDown, List } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
+import { HASH_SCROLL_OFFSET, scrollToHashId } from '@/lib/scroll-to-hash';
 
 interface TocItem {
   id: string;
@@ -27,7 +28,7 @@ interface TableOfContentsProps {
   variant?: 'default' | 'compact';
 }
 
-const SCROLL_OFFSET = -92;
+const SCROLL_OFFSET = HASH_SCROLL_OFFSET;
 
 function extractHeadings(contentSelector: string): TocItem[] {
   const contentElement = document.querySelector(contentSelector);
@@ -200,15 +201,8 @@ function useTocSpy(tocItems: TocItem[]) {
   }, [tocItems]);
 
   const scrollToHeading = useCallback((id: string) => {
-    const element = document.getElementById(id);
-    if (!element) return;
-
-    const y = element.getBoundingClientRect().top + window.pageYOffset + SCROLL_OFFSET;
-    window.scrollTo({ top: y, behavior: 'smooth' });
+    if (!scrollToHashId(id)) return;
     setActiveId(id);
-
-    const nextUrl = `${window.location.pathname}${window.location.search}#${id}`;
-    window.history.pushState(null, '', nextUrl);
   }, []);
 
   return { activeId, scrollToHeading };
