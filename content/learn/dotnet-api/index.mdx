@@ -1,0 +1,34 @@
+---
+title: 'API in .NET - Minimal API+ Vertical Slice Architecture + CQRS'
+date: '2026-09-04'
+excerpt: 'Learn Dotnet API with Minimal API, Vertical Slice Architecture, and CQRS in ASP.NET Core.'
+tags: ['dotnet-api', 'minimal-api', 'vertical-slice-architecture', 'cqrs', 'dotnet']
+---
+
+## Course overview
+
+This track covers declaring and using API in .NET.
+
+## Declaring API in .NET
+
+```csharp title="Program.cs"
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+app.Run();
+```
+
+Open the **Routing** chapter in the sidebar for full CRUD samples with expandable code blocks.
+
+## Using API in .NET
+
+```csharp title="Program.cs"
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+app.Run();
+```

@@ -25,6 +25,7 @@
     "@xyflow/react": "^12.10.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cn": "^0.3.0",
     "elkjs": "^0.11.1",
     "gray-matter": "latest",
     "gsap": "^3.15.0",

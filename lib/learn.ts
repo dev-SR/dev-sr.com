@@ -10,6 +10,8 @@ const learnDirectory = path.join(process.cwd(), 'content', 'learn');
 export interface LearnPageMeta {
   title: string;
   description?: string;
+  excerpt?: string;
+  tags?: string[];
   icon?: string;
   order?: number;
   badge?: string;
@@ -19,6 +21,8 @@ export interface LearnPage {
   slug: string;
   title: string;
   description?: string;
+  excerpt?: string;
+  tags?: string[];
   icon?: string;
   order?: number;
   badge?: string;
@@ -32,6 +36,7 @@ export interface LearnNavNode {
   slug: string;
   title: string;
   description?: string;
+  tags?: string[];
   icon?: string;
   badge?: string;
   order: number;
@@ -44,6 +49,7 @@ export interface LearnCourseSummary {
   slug: string;
   title: string;
   description?: string;
+  tags?: string[];
   icon?: string;
   badge?: string;
   pageCount: number;
@@ -162,6 +168,17 @@ async function discoverRawLearnTree(dir: string = learnDirectory): Promise<RawLe
   });
 }
 
+function parseTags(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(String).map((tag) => tag.trim()).filter(Boolean);
+}
+
+function resolveExcerpt(data: Record<string, unknown>): string | undefined {
+  if (typeof data.excerpt === 'string' && data.excerpt.trim()) return data.excerpt;
+  if (typeof data.description === 'string' && data.description.trim()) return data.description;
+  return undefined;
+}
+
 async function loadLearnPageFromPath(relativePath: string): Promise<LearnPage | undefined> {
   try {
     const fullPath = path.join(learnDirectory, relativePath);
@@ -174,11 +191,15 @@ async function loadLearnPageFromPath(relativePath: string): Promise<LearnPage | 
     const slug = relativeLearnPathToSlug(relativePath);
     const courseSlug = slug.split('/')[0] ?? slug;
     const mdxSource = await renderMDX(content);
+    const excerpt = resolveExcerpt(data as Record<string, unknown>);
+    const tags = parseTags(data.tags);
 
     return {
       slug,
       title: data.title || 'Untitled',
-      description: data.description,
+      description: excerpt,
+      excerpt,
+      tags,
       icon: data.icon,
       order: data.order,
       badge: data.badge,
@@ -210,6 +231,7 @@ async function buildNavFromRaw(
         slug,
         title: page.title,
         description: page.description,
+        tags: page.tags,
         icon: page.icon,
         badge: page.badge,
         order: page.order ?? node.order,
@@ -243,6 +265,7 @@ async function buildNavFromRaw(
         slug: indexPage.slug,
         title: indexPage.title,
         description: indexPage.description,
+        tags: indexPage.tags,
         icon: indexPage.icon,
         badge: indexPage.badge,
         order: indexPage.order ?? node.order,
@@ -296,6 +319,7 @@ async function buildNavFromRaw(
       slug: chapterSlug,
       title: chapterTitle,
       description: indexPage?.description,
+      tags: indexPage?.tags,
       icon: indexPage?.icon,
       badge: indexPage?.badge,
       order: node.order,
@@ -359,6 +383,7 @@ export async function getLearnCatalog(): Promise<LearnCatalog> {
       slug: courseSlug,
       title: course.title,
       description: course.description,
+      tags: course.tags ?? [],
       icon: course.icon,
       badge: course.badge,
       pageCount: leaves.length,

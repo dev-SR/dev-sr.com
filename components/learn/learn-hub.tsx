@@ -9,6 +9,7 @@ import {
   Code2,
   Database,
   Layers3,
+  LayoutGrid,
   MousePointer2,
   Network,
   Play,
@@ -16,6 +17,7 @@ import {
   Search,
   Server,
   Sparkles,
+  Tags,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -24,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -45,14 +48,21 @@ function getIcon(name?: string) {
   return ICON_MAP[name] ?? BookOpen;
 }
 
-function matchesQuery(
-  query: string,
-  fields: Array<string | undefined>
-) {
+function matchesQuery(query: string, fields: Array<string | undefined>) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   return fields.some((field) => field?.toLowerCase().includes(q));
 }
+
+function formatTagLabel(tag: string) {
+  return tag
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+type ViewMode = 'courses' | 'by-tag';
 
 interface LearnHubProps {
   courses: LearnCatalogCourse[];
@@ -61,30 +71,56 @@ interface LearnHubProps {
 
 export function LearnHub({ courses, lessons }: LearnHubProps) {
   const [query, setQuery] = useState('');
-  const [courseFilter, setCourseFilter] = useState<string | 'all'>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('courses');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
 
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    for (const course of courses) {
+      for (const tag of course.tags ?? []) {
+        tags.add(tag);
+      }
+    }
+    return Array.from(tags).sort((a, b) => a.localeCompare(b));
+  }, [courses]);
+
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
-      if (courseFilter !== 'all' && course.slug !== courseFilter) return false;
       if (!query.trim()) return true;
-      return matchesQuery(query, [course.title, course.description, course.badge]);
+      return matchesQuery(query, [
+        course.title,
+        course.description,
+        course.badge,
+        ...(course.tags ?? []),
+      ]);
     });
-  }, [courses, courseFilter, query]);
+  }, [courses, query]);
 
   const matchedLessons = useMemo(() => {
     if (!query.trim()) return [];
     return lessons.filter((lesson) => {
-      if (courseFilter !== 'all' && lesson.courseSlug !== courseFilter) return false;
+      const course = courses.find((c) => c.slug === lesson.courseSlug);
       return matchesQuery(query, [
         lesson.title,
         lesson.description,
         lesson.courseTitle,
         lesson.badge,
+        ...(course?.tags ?? []),
       ]);
     });
-  }, [lessons, courseFilter, query]);
+  }, [lessons, courses, query]);
+
+  const coursesByTag = useMemo(() => {
+    const groups: Array<{ tag: string; courses: LearnCatalogCourse[] }> = [];
+    for (const tag of allTags) {
+      const tagged = filteredCourses.filter((course) => (course.tags ?? []).includes(tag));
+      if (tagged.length > 0) {
+        groups.push({ tag, courses: tagged });
+      }
+    }
+    return groups;
+  }, [allTags, filteredCourses]);
 
   const resultLinks = useMemo(() => {
     if (!query.trim()) return [] as Array<{ href: string; key: string }>;
@@ -95,7 +131,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [query, courseFilter]);
+  }, [query]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -161,7 +197,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
               ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search courses and lessons…"
+              placeholder="Search courses, lessons, and tags…"
               className="h-12 border-border/80 bg-card/80 pr-24 pl-10 text-base shadow-sm backdrop-blur-sm"
               aria-label="Search learn catalog"
             />
@@ -174,7 +210,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
                   className="h-8 px-2 text-muted-foreground"
                   onClick={clearQuery}
                   aria-label="Clear search">
-                  <X className="size-4" />
+                  <X data-icon="inline-start" />
                 </Button>
               ) : (
                 <kbd className="hidden rounded border border-border bg-muted/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
@@ -185,24 +221,8 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
           </div>
         </section>
 
-        <div className="mb-6 flex flex-wrap gap-2">
-          <FilterChip
-            active={courseFilter === 'all'}
-            onClick={() => setCourseFilter('all')}
-            label="All"
-          />
-          {courses.map((course) => (
-            <FilterChip
-              key={course.slug}
-              active={courseFilter === course.slug}
-              onClick={() => setCourseFilter(course.slug)}
-              label={course.title}
-            />
-          ))}
-        </div>
-
         {showResults && (
-          <section className="mb-10 space-y-6" aria-live="polite">
+          <section className="mb-10 flex flex-col gap-6" aria-live="polite">
             {!hasResults ? (
               <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center text-sm text-muted-foreground">
                 No courses or lessons match &ldquo;{query.trim()}&rdquo;.
@@ -214,7 +234,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
                     <h2 className="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
                       Courses
                     </h2>
-                    <ul className="space-y-2">
+                    <ul className="flex flex-col gap-2">
                       {filteredCourses.map((course) => {
                         resultCursor += 1;
                         const index = resultCursor;
@@ -225,6 +245,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
                               title={course.title}
                               meta={`${course.pageCount} lessons`}
                               description={course.description}
+                              tags={course.tags}
                               active={selectedIndex === index}
                             />
                           </li>
@@ -239,7 +260,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
                     <h2 className="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
                       Lessons
                     </h2>
-                    <ul className="space-y-2">
+                    <ul className="flex flex-col gap-2">
                       {matchedLessons.map((lesson) => {
                         resultCursor += 1;
                         const index = resultCursor;
@@ -266,57 +287,68 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
 
         {!showResults && (
           <section>
-            <div className="mb-4 flex items-end justify-between gap-4">
-              <h2 className="text-xl font-semibold text-foreground">Courses</h2>
-              <p className="text-sm text-muted-foreground">
-                {filteredCourses.length} track{filteredCourses.length === 1 ? '' : 's'}
-              </p>
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                {viewMode === 'courses' ? 'Courses' : 'By tag'}
+              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {filteredCourses.length} track{filteredCourses.length === 1 ? '' : 's'}
+                </p>
+                <ToggleGroup
+                  type="single"
+                  value={viewMode}
+                  onValueChange={(value) => {
+                    if (value === 'courses' || value === 'by-tag') setViewMode(value);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  aria-label="Catalog view">
+                  <ToggleGroupItem value="courses" aria-label="Courses grid">
+                    <LayoutGrid data-icon="inline-start" />
+                    Courses
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="by-tag" aria-label="Group by tag">
+                    <Tags data-icon="inline-start" />
+                    Group by tag
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
             </div>
 
             {filteredCourses.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center text-sm text-muted-foreground">
-                No courses in this filter.
+                No courses match this search.
+              </div>
+            ) : viewMode === 'courses' ? (
+              <div className="reveal-stagger grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredCourses.map((course) => (
+                  <CourseCard key={course.slug} course={course} />
+                ))}
+              </div>
+            ) : coursesByTag.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-card/40 px-6 py-10 text-center text-sm text-muted-foreground">
+                No tagged courses yet.
               </div>
             ) : (
-              <div className="reveal-stagger grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredCourses.map((course) => {
-                  const Icon = getIcon(course.icon);
-                  return (
-                    <Link
-                      key={course.slug}
-                      href={course.href}
-                      className="reveal-on-scroll group block h-full">
-                      <Card className="h-full border-border/80 bg-card/80 transition-[box-shadow,border-color] group-hover:border-accent/40 group-hover:shadow-md">
-                        <CardHeader>
-                          <div className="mb-3 flex items-center justify-between gap-3">
-                            <div className="flex size-11 items-center justify-center rounded-xl bg-muted/80 ring-1 ring-border/60">
-                              <Icon className="size-5 text-accent" />
-                            </div>
-                            {course.badge && <Badge variant="secondary">{course.badge}</Badge>}
-                          </div>
-                          <CardTitle className="text-lg transition-colors group-hover:text-accent">
-                            {course.title}
-                          </CardTitle>
-                          {course.description && (
-                            <CardDescription className="line-clamp-3">
-                              {course.description}
-                            </CardDescription>
-                          )}
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
-                          <span>
-                            {course.pageCount} lessons
-                            {course.chapterCount > 0 ? ` · ${course.chapterCount} chapters` : ''}
-                          </span>
-                          <span className="inline-flex items-center gap-1 font-medium text-foreground/80 group-hover:text-accent">
-                            Start
-                            <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
-                          </span>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
+              <div className="flex flex-col gap-10">
+                {coursesByTag.map(({ tag, courses: taggedCourses }) => (
+                  <div key={tag}>
+                    <div className="mb-4 flex items-baseline justify-between gap-3">
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {formatTagLabel(tag)}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {taggedCourses.length} course{taggedCourses.length === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    <div className="reveal-stagger grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                      {taggedCourses.map((course) => (
+                        <CourseCard key={`${tag}-${course.slug}`} course={course} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </section>
@@ -326,27 +358,50 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
   );
 }
 
-function FilterChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+function CourseCard({ course }: { course: LearnCatalogCourse }) {
+  const Icon = getIcon(course.icon);
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-full border px-3 py-1.5 text-sm transition-colors',
-        active
-          ? 'border-accent/50 bg-accent/15 text-foreground'
-          : 'border-border bg-card/60 text-muted-foreground hover:border-border hover:bg-muted/50 hover:text-foreground'
-      )}>
-      {label}
-    </button>
+    <Link href={course.href} className="reveal-on-scroll group block h-full">
+      <Card className="h-full border-border/80 bg-card/80 transition-[box-shadow,border-color] group-hover:border-accent/40 group-hover:shadow-md">
+        <CardHeader>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-muted/80 ring-1 ring-border/60">
+              <Icon className="size-5 text-accent" />
+            </div>
+            {course.badge && (
+              <Badge variant="secondary" size="sm">
+                {course.badge}
+              </Badge>
+            )}
+          </div>
+          <CardTitle className="text-lg transition-colors group-hover:text-accent">
+            {course.title}
+          </CardTitle>
+          {course.description && (
+            <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+          )}
+          {(course.tags?.length ?? 0) > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {course.tags!.map((tag) => (
+                <Badge key={tag} variant="outline" size="sm">
+                  {formatTagLabel(tag)}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {course.pageCount} lessons
+            {course.chapterCount > 0 ? ` · ${course.chapterCount} chapters` : ''}
+          </span>
+          <span className="inline-flex items-center gap-1 font-medium text-foreground/80 group-hover:text-accent">
+            Start
+            <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -356,6 +411,7 @@ function ResultRow({
   meta,
   description,
   badge,
+  tags,
   active,
 }: {
   href: string;
@@ -363,6 +419,7 @@ function ResultRow({
   meta: string;
   description?: string;
   badge?: string;
+  tags?: string[];
   active?: boolean;
 }) {
   return (
@@ -379,7 +436,7 @@ function ResultRow({
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium text-foreground">{title}</span>
             {badge && (
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" size="sm">
                 {badge}
               </Badge>
             )}
@@ -387,7 +444,15 @@ function ResultRow({
           {description && (
             <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{description}</p>
           )}
-          <p className="mt-1 text-xs text-muted-foreground">{meta}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-muted-foreground">{meta}</p>
+            {(tags?.length ?? 0) > 0 &&
+              tags!.map((tag) => (
+                <Badge key={tag} variant="outline" size="sm">
+                  {formatTagLabel(tag)}
+                </Badge>
+              ))}
+          </div>
         </div>
         <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
       </div>

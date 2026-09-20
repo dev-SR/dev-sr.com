@@ -368,25 +368,43 @@ Numeric folder/file prefixes (`01-overview`) control sort order only; they are s
 
 ### Learn frontmatter
 
-**Source**
+Blog and Learn share the same baseline fields (`title`, `excerpt`, `tags`). Course **roots** (`content/learn/<course>/index.mdx`) drive hub filtering — nested lessons do not need `tags`.
+
+**Course root**
+
+```yaml
+---
+title: 'Domain-Driven Design'
+excerpt: 'Refactor an anemic rental model into a rich domain with .NET Minimal API.'
+tags: ['ddd', 'domain-driven-design', 'dotnet']
+icon: 'Layers3'
+badge: 'New'
+---
+```
+
+**Nested lesson** (tags optional; hub ignores them)
 
 ```yaml
 ---
 title: 'Declaring Resources'
-description: 'Add databases and service references in AppHost.'
+excerpt: 'Add databases and service references in AppHost.'
 icon: 'Database'
 badge: 'New'
 ---
 ```
 
-| Field | Required | Notes |
-| --- | --- | --- |
-| `title` | yes | Page and sidebar label |
-| `description` | recommended | Subtitle under the title |
-| `icon` | optional | Lucide name: `BookOpen`, `Boxes`, `Code2`, `Database`, `Layers3`, `Network`, `Server`, `Sparkles` |
-| `badge` | optional | `New` / `Updated` pill in sidebar |
+| Field | Course root | Nested lesson | Notes |
+| --- | --- | --- | --- |
+| `title` | required | required | Page and sidebar label |
+| `excerpt` | required | optional | Short blurb; legacy `description` still works via loader alias |
+| `tags` | **required** | omit | Hub filters/groups by **course-root** tags only |
+| `date` | recommended | omit OK | `YYYY-MM-DD` |
+| `icon` | optional | optional | Lucide name: `BookOpen`, `Boxes`, `Code2`, `Database`, `Layers3`, `Network`, `Server`, `Sparkles` |
+| `badge` | optional | optional | `New` / `Updated` pill |
+| `order` | optional | optional | Sort override |
+| `coverImage` / `coverImageAlt` | optional | omit OK | Rarely used on Learn |
 
-No `date` or `coverImage`. Start body at `##`.
+No need to invent a third summary field — prefer `excerpt`; the loader treats `excerpt ?? description` as the summary. Start body at `##`.
 
 ### Learn-only MDX components
 
