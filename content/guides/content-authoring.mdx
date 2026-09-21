@@ -337,6 +337,234 @@ Curriculum graph from YAML. Inline `script={\`...\`}` often arrives empty after 
 
 ---
 
+## Annotations (handwritten marks)
+
+Hand-drawn underlines, circles, boxes, and optional arrow sidenotes — powered by [rough-notation](https://roughnotation.com). Available on **blog and Learn**. Attach a note with props on the same `<Mark>` (`note="…"` must be a **string**). Marks and notes are always visible.
+
+| Prop | Default | Values |
+| --- | --- | --- |
+| `type` | `underline` | `underline` \| `circle` \| `box` \| `highlight` \| `strike-through` \| `crossed-off` \| `bracket` |
+| `color` | `#F08F87` | Preset name **or** any CSS color |
+| `note` | — | String sidenote body |
+| `noteLayout` | `floating` | `floating` \| `margin` \| `inline` |
+| `noteSide` | `right` | `left` \| `right` \| `top` \| `bottom` (floating) |
+| `noteVariant` | `plain` | `plain` \| `sticky` \| `card` |
+| `noteMaxWidth` | content width | `18rem`, `280px`, `280`, … (single-line + ellipsis) |
+| `noteColor` | same as `color` | Preset or CSS color for note + arrow |
+| `arrow` | `true` | Show L-shaped connector |
+| `brackets` | — | `left` \| `right` \| `top` \| `bottom` (or array) when `type="bracket"` |
+
+**Color presets:** `default` (`#F08F87`), `note`, `tip`, `info`, `warning`, `danger`, `success`, `accent` — or a manual hex like `#2563eb`.
+
+### Stroke types
+
+**Source**
+
+````mdx
+<Mark type="underline">underline</Mark> ·
+<Mark type="circle">circle</Mark> ·
+<Mark type="box">box</Mark> ·
+<Mark type="highlight">highlight</Mark> ·
+<Mark type="strike-through">strike-through</Mark> ·
+<Mark type="crossed-off">crossed-off</Mark> ·
+<Mark type="bracket" brackets="left">bracket left</Mark> ·
+<Mark type="bracket" brackets={['left', 'right']}>bracket both</Mark>
+````
+
+**Result**
+
+<Mark type="underline">underline</Mark> ·
+<Mark type="circle">circle</Mark> ·
+<Mark type="box">box</Mark> ·
+<Mark type="highlight">highlight</Mark> ·
+<Mark type="strike-through">strike-through</Mark> ·
+<Mark type="crossed-off">crossed-off</Mark> ·
+<Mark type="bracket" brackets="left">bracket left</Mark> ·
+<Mark type="bracket" brackets={['left', 'right']}>bracket both</Mark>
+
+### Color presets + manual hex
+
+**Source**
+
+````mdx
+Default <Mark>coral</Mark> ·
+<Mark color="default">default</Mark> ·
+<Mark color="note">note</Mark> ·
+<Mark color="tip">tip</Mark> ·
+<Mark color="info">info</Mark> ·
+<Mark color="warning">warning</Mark> ·
+<Mark color="danger">danger</Mark> ·
+<Mark color="success">success</Mark> ·
+<Mark color="accent">accent</Mark> ·
+<Mark color="#2563eb">#2563eb</Mark> ·
+<Mark color="rgb(14 165 233)">rgb()</Mark>
+````
+
+**Result**
+
+Default <Mark>coral</Mark> ·
+<Mark color="default">default</Mark> ·
+<Mark color="note">note</Mark> ·
+<Mark color="tip">tip</Mark> ·
+<Mark color="info">info</Mark> ·
+<Mark color="warning">warning</Mark> ·
+<Mark color="danger">danger</Mark> ·
+<Mark color="success">success</Mark> ·
+<Mark color="accent">accent</Mark> ·
+<Mark color="#2563eb">#2563eb</Mark> ·
+<Mark color="rgb(14 165 233)">rgb()</Mark>
+
+### Type × color matrix
+
+**Source**
+
+````mdx
+<Mark type="underline" color="tip">underline tip</Mark> ·
+<Mark type="circle" color="warning">circle warning</Mark> ·
+<Mark type="box" color="info">box info</Mark> ·
+<Mark type="highlight" color="accent">highlight accent</Mark> ·
+<Mark type="strike-through" color="danger">strike danger</Mark> ·
+<Mark type="crossed-off" color="note">crossed note</Mark> ·
+<Mark type="bracket" brackets="right" color="success">bracket success</Mark> ·
+<Mark type="circle" color="#F08F87">circle hex</Mark>
+````
+
+**Result**
+
+<Mark type="underline" color="tip">underline tip</Mark> ·
+<Mark type="circle" color="warning">circle warning</Mark> ·
+<Mark type="box" color="info">box info</Mark> ·
+<Mark type="highlight" color="accent">highlight accent</Mark> ·
+<Mark type="strike-through" color="danger">strike danger</Mark> ·
+<Mark type="crossed-off" color="note">crossed note</Mark> ·
+<Mark type="bracket" brackets="right" color="success">bracket success</Mark> ·
+<Mark type="circle" color="#F08F87">circle hex</Mark>
+
+### Sidenote layouts (`noteLayout`)
+
+Leave room in the paragraph so floating / margin notes do not collide.
+
+**Source**
+
+````mdx
+Floating (default): a player makes a
+<Mark type="underline" note="RL?" noteLayout="floating" noteSide="right">move</Mark>
+in chess.
+
+Margin (desktop): the
+<Mark type="circle" note="CAP says pick two." noteLayout="margin" noteVariant="card" color="info">
+  consistency boundary
+</Mark>
+matters.
+
+Inline: the
+<Mark type="underline" note="Drawn after the sentence." noteLayout="inline" color="tip">
+  agent–environment loop
+</Mark>
+is central.
+````
+
+**Result**
+
+Floating (default): a player makes a <Mark type="underline" note="RL?" noteLayout="floating" noteSide="right">move</Mark> in chess.
+
+Margin (desktop): the <Mark type="circle" note="CAP says pick two." noteLayout="margin" noteVariant="card" color="info">consistency boundary</Mark> matters.
+
+Inline: the <Mark type="underline" note="Drawn after the sentence." noteLayout="inline" color="tip">agent–environment loop</Mark> is central.
+
+### Floating `noteSide`
+
+**Source**
+
+````mdx
+Right:
+<Mark note="→ right" noteLayout="floating" noteSide="right">anchor</Mark>
+· Left:
+<Mark note="← left" noteLayout="floating" noteSide="left">anchor</Mark>
+· Top:
+<Mark note="↑ top" noteLayout="floating" noteSide="top">anchor</Mark>
+· Bottom:
+<Mark note="↓ bottom" noteLayout="floating" noteSide="bottom">anchor</Mark>
+````
+
+**Result**
+
+Right: <Mark note="→ right" noteLayout="floating" noteSide="right">anchor</Mark>
+· Left: <Mark note="← left" noteLayout="floating" noteSide="left">anchor</Mark>
+· Top: <Mark note="↑ top" noteLayout="floating" noteSide="top">anchor</Mark>
+· Bottom: <Mark note="↓ bottom" noteLayout="floating" noteSide="bottom">anchor</Mark>
+
+### Note variants (`noteVariant`)
+
+**Source**
+
+````mdx
+Plain:
+<Mark type="underline" note="plain ink" noteVariant="plain" color="tip">text</Mark>
+· Sticky:
+<Mark type="underline" note="Outbox first." noteVariant="sticky" color="warning">events</Mark>
+· Card:
+<Mark type="circle" note="CAP says pick two." noteVariant="card" color="info">boundary</Mark>
+````
+
+**Result**
+
+Plain: <Mark type="underline" note="plain ink" noteVariant="plain" color="tip">text</Mark>
+· Sticky: <Mark type="underline" note="Outbox first." noteVariant="sticky" color="warning">events</Mark>
+· Card: <Mark type="circle" note="CAP says pick two." noteVariant="card" color="info">boundary</Mark>
+
+### `noteMaxWidth`, `noteColor`, `arrow={false}`
+
+**Source**
+
+````mdx
+Capped:
+<Mark
+  type="underline"
+  note="can we say that is supervised learning or unsupervised learning?"
+  noteMaxWidth="12rem"
+  noteVariant="card"
+  color="warning">
+  move
+</Mark>
+· Separate note ink:
+<Mark type="circle" note="green note" color="danger" noteColor="tip">stroke red</Mark>
+· No arrow:
+<Mark type="box" note="no arrow" arrow={false} color="accent">boxed</Mark>
+````
+
+**Result**
+
+Capped: <Mark type="underline" note="can we say that is supervised learning or unsupervised learning?" noteMaxWidth="12rem" noteVariant="card" color="warning">move</Mark>
+· Separate note ink: <Mark type="circle" note="green note" color="danger" noteColor="tip">stroke red</Mark>
+· No arrow: <Mark type="box" note="no arrow" arrow={false} color="accent">boxed</Mark>
+
+### Combined prose example
+
+**Source**
+
+````mdx
+A master chess player makes a
+<Mark type="underline" note="RL?" noteLayout="floating" noteSide="right">move</Mark>
+— is that reinforcement learning? It differs from
+<Mark type="circle" note="labels in, labels out" noteLayout="floating" noteVariant="card" color="info">
+  supervised learning
+</Mark>
+and
+<Mark type="circle" note="structure without labels" noteLayout="floating" noteVariant="card" color="accent">
+  unsupervised learning
+</Mark>.
+Domain
+<Mark type="underline" note="Outbox first." noteVariant="sticky" color="warning">events</Mark>
+need an outbox.
+````
+
+**Result**
+
+A master chess player makes a <Mark type="underline" note="RL?" noteLayout="floating" noteSide="right">move</Mark> — is that reinforcement learning? It differs from <Mark type="circle" note="labels in, labels out" noteLayout="floating" noteVariant="card" color="info">supervised learning</Mark> and <Mark type="circle" note="structure without labels" noteLayout="floating" noteVariant="card" color="accent">unsupervised learning</Mark>. Domain <Mark type="underline" note="Outbox first." noteVariant="sticky" color="warning">events</Mark> need an outbox.
+
+---
+
 ## Checklist for a new post
 
 1. Create `content/<topic>/<slug>.mdx`.
@@ -422,6 +650,7 @@ Learn uses the same **`CodeBlock`** card shell as blog posts. Learn-specific wra
 | `Mermaid` | ` ```mermaid ` fence or `chart` prop |
 | `FlowDiagram` | Architecture graphs (`script` YAML/JSON) |
 | `PathVisualizer` | Curriculum YAML graphs |
+| `Mark` | Handwritten underline/circle/box + optional `note` arrow sidenote |
 
 Do **not** use blog-only names `CodeFrame`, `CodeTabs`, or `MultiFileCodeBlock` on Learn pages. Prefer `DocsFileTabs` over `CodeTabs`.
 

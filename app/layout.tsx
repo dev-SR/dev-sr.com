@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { firaCode, greycliff, inter } from '@/lib/fonts';
+import { caveat, firaCode, greycliff, inter } from '@/lib/fonts';
 import { ThemeProvider } from '@/components/theme-provider';
 import SmoothScrollProvider from '@/components/smooth-scroll-provider';
 import SiteSplash from '@/components/site-splash';
@@ -32,7 +32,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(inter.variable, greycliff.variable, firaCode.variable)}>
+      className={cn(inter.variable, greycliff.variable, firaCode.variable, caveat.variable)}>
       <head>
         <script
           dangerouslySetInnerHTML={{

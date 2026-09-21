@@ -114,6 +114,7 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-greycliff), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-fira-code), ui-monospace, monospace;
+  --font-hand: var(--font-caveat), ui-sans-serif, system-ui, cursive;
 }
 
 @layer base {

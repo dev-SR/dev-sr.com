@@ -1,4 +1,4 @@
-import { Fira_Code, Inter } from 'next/font/google';
+import { Caveat, Fira_Code, Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 
 export const inter = Inter({
@@ -20,5 +20,12 @@ export const greycliff = localFont({
 export const firaCode = Fira_Code({
   variable: '--font-fira-code',
   subsets: ['latin'],
+  display: 'swap',
+});
+
+export const caveat = Caveat({
+  variable: '--font-caveat',
+  subsets: ['latin'],
+  weight: ['500', '600'],
   display: 'swap',
 });

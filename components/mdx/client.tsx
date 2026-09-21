@@ -10,6 +10,7 @@ import { CodeTabs, MultiFileCodeBlock } from './code-tabs';
 import { PrettyCodeFigure } from './pretty-code-figure';
 import { AuthoringPathDemo } from './authoring-path-demo';
 import { AuthoringFlowDemo } from './authoring-flow-demo';
+import { Mark, Sidenote } from './annotate';
 import { ComponentPreview } from '@/components/learn/component-preview';
 import { Callout } from '@/components/learn/callout';
 import { CommandBlock } from '@/components/learn/command-block';
@@ -37,6 +38,8 @@ export const mdxClientComponents = {
   PathVisualizer,
   AuthoringPathDemo,
   AuthoringFlowDemo,
+  Mark,
+  Sidenote,
   // Learn components — available so the authoring guide can show live results
   ComponentPreview,
   Callout,

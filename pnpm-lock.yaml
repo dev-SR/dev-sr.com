@@ -113,6 +113,9 @@ importers:
       remark-rehype:
         specifier: ^11.1.2
         version: 11.1.2
+      rough-notation:
+        specifier: ^0.5.1
+        version: 0.5.1
       shiki:
         specifier: ^4.1.0
         version: 4.1.0
@@ -4648,6 +4651,9 @@ packages:
 
   robust-predicates@3.0.3:
     resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
+
+  rough-notation@0.5.1:
+    resolution: {integrity: sha512-ITHofTzm13cWFVfoGsh/4c/k2Mg8geKgBCwex71UZLnNuw403tCRjYPQ68jSAd37DMbZIePXPjDgY0XdZi9HPw==}
 
   roughjs@4.6.6:
     resolution: {integrity: sha512-ZUz/69+SYpFN/g/lUlo2FXcIjRkSu3nDarreVdGGndHEBJ6cXPdKguS8JGxwj5HA5xIbVKSmLgr5b3AWxtRfvQ==}
@@ -10659,6 +10665,8 @@ snapshots:
   reusify@1.1.0: {}
 
   robust-predicates@3.0.3: {}
+
+  rough-notation@0.5.1: {}
 
   roughjs@4.6.6:
     dependencies:

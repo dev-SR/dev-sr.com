@@ -17,6 +17,7 @@ import { Guide, GuideStep } from './guide';
 import { Mermaid } from './mermaid';
 import { FlowDiagram } from './flow-diagram';
 import { CodeTabs, MultiFileCodeBlock } from '@/components/mdx/code-tabs';
+import { Mark, Sidenote } from '@/components/mdx/annotate';
 import { gsapDemoComponents } from './gsap-demos/mdx-registry';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
@@ -48,6 +49,8 @@ export const learnMdxClientComponents = {
   Mermaid,
   FlowDiagram,
   PathVisualizer,
+  Mark,
+  Sidenote,
   Button,
   Badge,
   Card,

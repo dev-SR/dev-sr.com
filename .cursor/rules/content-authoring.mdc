@@ -13,4 +13,5 @@ When creating or editing posts under `content/`, follow [content/guides/content-
 - Fenced code auto-renders as `CodeBlock` (card shell + header + dark panel). Use `title="filename"` for a copyable path in the header. Line numbers are on by default; use `hideLineNumbers` to opt out.
 - Multi-file = `<CodeTabs>` with editor-style tabs; each fence needs `title="filename"`. Diffs/focus/errors use `[!code ++]` comments, not screenshots.
 - Math is `$inline$` / `$$display$$` (KaTeX). Images live in `public/` and are referenced as `/...`.
+- Handwritten annotations: `<Mark type="underline|circle|box|highlight|strike-through|bracket" color="warning|#hex">…</Mark>`; optional `note` + `noteLayout` / `noteVariant` / `noteMaxWidth` / `noteColor`. Default ink `#F08F87`. Presets: `default`, `note`, `tip`, `info`, `warning`, `danger`, `success`, `accent` — or any CSS color.
 - Never use `MultiFileCodeBlock`, `CodeFrame`, or `DocsCodeBlock` in content. Never put docs or drafts in `content/`.
