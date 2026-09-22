@@ -2,6 +2,7 @@
 
 import { createContext, useContext, type ElementType } from 'react';
 import type React from 'react';
+import { InlineCode } from '@/components/code/inline-code';
 import { cn } from '@/lib/utils';
 
 export type GuideHeadingLevel = 2 | 3 | 4;
@@ -18,13 +19,31 @@ const GuideContext = createContext<GuideContextValue>({
   stepHeadingLevel: 3,
 });
 
+/** Strip `` `code` `` markers so heading ids match MDX prose headings. */
+function plainTitle(text: string): string {
+  return text.replace(/`([^`]+)`/g, '$1');
+}
+
 function slugifyHeading(text: string): string {
   return (
-    text
+    plainTitle(text)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '') || 'heading'
   );
+}
+
+/** Render inline `` `code` `` in Guide titles like MDX prose. */
+function renderTitle(text: string): React.ReactNode {
+  const parts = text.split(/(`[^`]+`)/g);
+  if (parts.length === 1) return text;
+
+  return parts.map((part, i) => {
+    if (part.startsWith('`') && part.endsWith('`') && part.length >= 2) {
+      return <InlineCode key={i}>{part.slice(1, -1)}</InlineCode>;
+    }
+    return part;
+  });
 }
 
 function GuideHeading({
@@ -78,7 +97,7 @@ export function Guide({
             level={headingLevel}
             id={slugifyHeading(title)}
             className="mb-6 scroll-m-28 text-lg font-semibold tracking-tight text-foreground">
-            {title}
+            {renderTitle(title)}
           </GuideHeading>
         )}
         <div
@@ -121,7 +140,7 @@ export function GuideStep({
           level={level}
           id={slugifyHeading(title)}
           className="scroll-m-28 text-xl font-semibold tracking-tight text-foreground">
-          {title}
+          {renderTitle(title)}
         </GuideHeading>
       </div>
       {children && (

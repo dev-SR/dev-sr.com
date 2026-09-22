@@ -1,6 +1,7 @@
 'use client';
 
 import { useGSAP } from '@gsap/react';
+import { ModeToggle } from '@/components/theme-toggle-button';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import gsap from 'gsap';
@@ -8,6 +9,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import React, { useRef } from 'react';
 
 interface NavbarProps {
@@ -28,27 +30,28 @@ gsap.registerPlugin(ScrollTrigger);
 
 export const Navbar = ({ children, className }: NavbarProps) => {
   const container = useRef<HTMLDivElement>(null);
+  // Theme changes update CSS vars; glass opacity is driven by --nav-glass so we
+  // never interpolate transparent→color (which GSAP treats as black and flashes wrong theme).
+  const { resolvedTheme } = useTheme();
 
   useGSAP(
     () => {
-      // Memorable hang → dock on scroll (transform y). Sticky rest offset stays top-1
-      // (was top-4/top-5) — not scrubbed away.
+      const el = container.current;
+      if (!el) return;
+
+      // Memorable hang → dock on scroll. Glass colors come from CSS (--nav-glass),
+      // so mid-scroll never interpolates through the wrong theme's black/cream.
       gsap.fromTo(
-        container.current,
+        el,
         {
           maxWidth: '64rem',
           y: 28,
-          backgroundColor: 'rgba(10, 10, 10, 0)',
-          borderColor: 'rgba(255, 255, 255, 0)',
-          boxShadow: '0 0 0 rgba(0, 0, 0, 0)',
+          '--nav-glass': 0,
         },
         {
           maxWidth: '48rem',
           y: 0,
-          backgroundColor: 'rgba(10, 10, 10, 0.76)',
-          borderColor: 'rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 18px 60px rgba(0, 0, 0, 0.28)',
-          backdropFilter: 'blur(18px)',
+          '--nav-glass': 1,
           ease: 'power2.out',
           scrollTrigger: {
             trigger: document.body,
@@ -59,7 +62,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
         }
       );
     },
-    { scope: container }
+    { scope: container, dependencies: [resolvedTheme] }
   );
 
   return (
@@ -68,7 +71,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
       <div className="mx-auto max-w-6xl">
         <div
           ref={container}
-          className="relative z-[60] mx-auto flex h-14 w-full max-w-5xl items-center justify-between rounded-full border border-transparent px-3 sm:px-4">
+          className="navbar-dock relative z-[60] mx-auto flex h-14 w-full max-w-5xl items-center justify-between rounded-full px-3 sm:px-4">
           {children}
         </div>
       </div>
@@ -182,8 +185,8 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
   const pathname = usePathname();
 
   return (
-    <div className={cn('hidden md:flex', className)}>
-      <div className="flex items-center gap-1 rounded-full bg-white/[0.04] p-1">
+    <div className={cn('hidden md:flex items-center gap-2', className)}>
+      <div className="flex items-center gap-1 rounded-full bg-foreground/5 p-1">
         {items.map((item) => {
           const isActive =
             item.link === '/' ? pathname === item.link : pathname.startsWith(item.link);
@@ -198,12 +201,13 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
                 'relative rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground',
                 isActive && 'text-foreground'
               )}>
-              {isActive && <span className="absolute inset-0 rounded-full bg-white/10" />}
+              {isActive && <span className="absolute inset-0 rounded-full bg-foreground/10" />}
               <span className="relative">{item.name}</span>
             </Link>
           );
         })}
       </div>
+      <ModeToggle />
     </div>
   );
 };
@@ -216,7 +220,8 @@ export const MobileMenuButton = ({
   setIsMenuOpen: (open: boolean) => void;
 }) => {
   return (
-    <div className="md:hidden">
+    <div className="flex items-center gap-1 md:hidden">
+      <ModeToggle />
       <Button
         variant="ghost"
         size="icon"
@@ -243,7 +248,7 @@ export const MobileNav = ({ isMenuOpen, setIsMenuOpen, items }: MobileNavProps) 
     <div
       ref={menuRef}
       className="absolute left-3 right-3 top-full mt-3 rounded-2xl
-border border-white/10 bg-background/92 p-3 shadow-2xl backdrop-blur-xl
+border border-border bg-background/92 p-3 shadow-2xl backdrop-blur-xl
 animate-in fade-in-0 slide-in-from-top-2 duration-200 md:hidden">
       <div className="flex flex-col gap-1">
         {items.map((item) => {
@@ -257,8 +262,8 @@ animate-in fade-in-0 slide-in-from-top-2 duration-200 md:hidden">
               transitionTypes={transitionFor(item.link)}
               onClick={() => setIsMenuOpen(false)}
               className={cn(
-                'rounded-xl px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-white/10 hover:text-foreground',
-                isActive && 'bg-white/10 text-foreground'
+                'rounded-xl px-4 py-3 text-sm text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground',
+                isActive && 'bg-foreground/10 text-foreground'
               )}>
               {item.name}
             </Link>

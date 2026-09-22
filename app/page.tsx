@@ -109,7 +109,7 @@ export default async function App() {
                         <p>posts</p>
                       </div>
                     </div>
-                    <div className="rounded-lg border border-white/10 bg-black/20 p-4 font-mono text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-border bg-muted/40 p-4 font-mono text-sm text-muted-foreground">
                       <p>
                         <span className="text-[#F08F87]">const</span> focus = [
                         {profile.focus.map((item, index) => (
@@ -136,7 +136,7 @@ export default async function App() {
                 return (
                   <div
                     key={label}
-                    className="reveal-on-scroll rounded-lg border border-white/10 bg-card/45 p-5 backdrop-blur">
+                    className="reveal-on-scroll rounded-lg border border-border bg-card/45 p-5 backdrop-blur">
                     <Icon className="mb-4 h-5 w-5 text-[#ACC5D3]" />
                     <p className="text-sm font-medium text-foreground">{label}</p>
                   </div>
@@ -169,7 +169,7 @@ export default async function App() {
                   const Icon = projectIcons[index] ?? Code2;
                   return (
                     <ViewTransition key={project.id} name={`project-${index}`} share="morph">
-                      <Card className="reveal-on-scroll group h-full overflow-hidden border-white/10 bg-card/55 transition-all duration-300 hover:-translate-y-1 hover:border-[#ACC5D3]/35 hover:shadow-2xl">
+                      <Card className="reveal-on-scroll group h-full overflow-hidden border-border bg-card/55 transition-all duration-300 hover:-translate-y-1 hover:border-[#ACC5D3]/35 hover:shadow-2xl">
                         <CardHeader>
                           <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-[#ACC5D3]/10 text-[#ACC5D3]">
                             <Icon className="h-5 w-5" />
@@ -228,7 +228,7 @@ export default async function App() {
           </section>
 
           <section className="px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-            <div className="reveal-on-scroll mx-auto flex max-w-6xl flex-col gap-6 rounded-lg border border-white/10 bg-[#101720]/80 p-6 backdrop-blur md:flex-row md:items-center md:justify-between">
+            <div className="reveal-on-scroll mx-auto flex max-w-6xl flex-col gap-6 rounded-lg border border-border bg-card/80 p-6 backdrop-blur md:flex-row md:items-center md:justify-between">
               <div>
                 <Code2 className="mb-4 h-6 w-6 text-[#F08F87]" />
                 <h2 className="text-2xl font-bold text-foreground">Looking for project context?</h2>

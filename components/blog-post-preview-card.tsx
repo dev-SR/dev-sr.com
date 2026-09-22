@@ -24,7 +24,7 @@ export function BlogPostPreviewCard({
 
   return (
     <Card
-      className={`reveal-on-scroll group h-full gap-0 overflow-hidden py-0 border-white/10 bg-card/55 transition-all duration-500 hover:-translate-y-1 hover:border-[#F08F87]/35 hover:bg-card/75 hover:shadow-2xl ${
+      className={`reveal-on-scroll group h-full gap-0 overflow-hidden py-0 border-border bg-card/55 transition-all duration-500 hover:-translate-y-1 hover:border-[#F08F87]/35 hover:bg-card/75 hover:shadow-2xl ${
         isLanding ? 'md:grid md:grid-cols-[15rem_minmax(0,1fr)]' : ''
       }`}>
       {post.coverImage ? (
@@ -55,14 +55,14 @@ export function BlogPostPreviewCard({
         </Link>
       ) : (
         <div
-          className={`relative flex shrink-0 items-center justify-center overflow-hidden bg-[#121923] ${
+          className={`relative flex shrink-0 items-center justify-center overflow-hidden bg-muted ${
             isLanding
-              ? 'min-h-44 border-b border-white/5 md:h-full md:min-h-full md:border-b-0 md:border-r'
-              : 'h-44 border-b border-white/5'
+              ? 'min-h-44 border-b border-border md:h-full md:min-h-full md:border-b-0 md:border-r'
+              : 'h-44 border-b border-border'
           }`}>
           <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(172,197,211,0.08),transparent_45%,rgba(240,143,135,0.08))]" />
           <div className="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-card via-card/65 to-transparent" />
-          <span className="relative flex size-12 items-center justify-center rounded-md border border-white/10 bg-background/25 text-[#ACC5D3]">
+          <span className="relative flex size-12 items-center justify-center rounded-md border border-border bg-background/25 text-[#ACC5D3]">
             <ImageIcon className="size-5" />
           </span>
         </div>
@@ -102,7 +102,7 @@ export function BlogPostPreviewCard({
         </CardHeader>
 
         <CardContent className="mt-auto">
-          <div className="flex flex-wrap gap-2 border-t border-white/5 pt-4">
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
             {post.tags?.slice(0, 3).map((tag) => (
               <Badge key={tag} variant="outline" className="bg-background/15 text-xs">
                 {tag}

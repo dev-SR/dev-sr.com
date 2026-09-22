@@ -12,7 +12,7 @@ export const mdxServerComponents = {
   ),
   h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
     <h2
-      className="mb-5 mt-14 scroll-mt-24 border-b border-white/10 pb-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl"
+      className="mb-5 mt-14 scroll-mt-24 border-b border-border pb-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl"
       {...props}>
       {children}
     </h2>
@@ -73,10 +73,10 @@ export const mdxServerComponents = {
     </blockquote>
   ),
   hr: (props: React.ComponentPropsWithoutRef<'hr'>) => (
-    <hr className="my-12 border-0 border-t border-white/10" {...props} />
+    <hr className="my-12 border-0 border-t border-border" {...props} />
   ),
   table: ({ children, ...props }: React.ComponentPropsWithoutRef<'table'>) => (
-    <div className="my-8 overflow-x-auto rounded-lg border border-white/10 bg-card/35">
+    <div className="my-8 overflow-x-auto rounded-lg border border-border bg-card/35">
       <table className="w-full border-collapse text-sm" {...props}>
         {children}
       </table>
@@ -84,14 +84,14 @@ export const mdxServerComponents = {
   ),
   th: ({ children, ...props }: React.ComponentPropsWithoutRef<'th'>) => (
     <th
-      className="border-b border-r border-white/10 bg-muted/40 px-4 py-3 text-left font-semibold text-foreground last:border-r-0"
+      className="border-b border-r border-border bg-muted/40 px-4 py-3 text-left font-semibold text-foreground last:border-r-0"
       {...props}>
       {children}
     </th>
   ),
   td: ({ children, ...props }: React.ComponentPropsWithoutRef<'td'>) => (
     <td
-      className="border-b border-r border-white/10 px-4 py-3 text-muted-foreground last:border-r-0"
+      className="border-b border-r border-border px-4 py-3 text-muted-foreground last:border-r-0"
       {...props}>
       {children}
     </td>

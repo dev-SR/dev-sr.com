@@ -141,6 +141,10 @@ export async function renderMDX(content: string): Promise<MDXRemoteSerializeResu
     ],
   };
   return await serialize(content, {
+    // Author-owned content: allow JSX attribute expressions like headingLevel={2}.
+    // next-mdx-remote defaults blockJS=true, which strips those props (Guide then
+    // falls back to its h3 default). Dangerous calls stay blocked.
+    blockJS: false,
     mdxOptions: {
       remarkPlugins: [remarkGfm, remarkMath],
       rehypePlugins: [

@@ -46,7 +46,7 @@ export default function RootLayout({
         />
         <JsonLd data={[getPersonSchema(), getWebSiteSchema(), getOrganizationSchema()]} />
       </head>
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning>
         <SmoothScrollProvider>
           <ThemeProvider
             attribute="class"

@@ -366,7 +366,7 @@ function TocPanel({
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
-              className="mb-1 h-auto w-full justify-between rounded-md px-2 py-1.5 text-left hover:bg-white/2.5">
+              className="mb-1 h-auto w-full justify-between rounded-md px-2 py-1.5 text-left hover:bg-foreground/5">
               <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground/85">
                 <List className="size-4 text-muted-foreground" />
                 <span className="truncate">On this page</span>

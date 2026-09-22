@@ -169,7 +169,7 @@ export function Figure({
         className
       )}
       style={style}>
-      <div className="overflow-hidden rounded-lg border border-white/10 bg-card/40 shadow-xl shadow-black/20">
+      <div className="overflow-hidden rounded-lg border border-border bg-card/40 shadow-xl shadow-black/20">
         {children ? (
           Children.map(children, (child) => {
             if (!isValidElement(child) || child.type !== 'img') return child;

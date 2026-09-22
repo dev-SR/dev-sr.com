@@ -12,7 +12,7 @@ interface PopularPostCardProps {
 
 export function PopularPostCard({ post, rank }: PopularPostCardProps) {
   return (
-    <Card className="reveal-on-scroll group gap-0 overflow-hidden border-white/10 bg-card/45 py-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#ACC5D3]/35 hover:bg-card/70 hover:shadow-lg">
+    <Card className="reveal-on-scroll group gap-0 overflow-hidden border-border bg-card/45 py-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#ACC5D3]/35 hover:bg-card/70 hover:shadow-lg">
       <Link
         href={`/blog/${post.slug}`}
         transitionTypes={['post-open']}
@@ -66,7 +66,7 @@ interface BlogTopicCardProps {
 
 export function BlogTopicCard({ topic, count }: BlogTopicCardProps) {
   return (
-    <Card className="reveal-on-scroll group gap-0 border-white/10 bg-card/45 py-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#F08F87]/30 hover:bg-card/70 hover:shadow-md">
+    <Card className="reveal-on-scroll group gap-0 border-border bg-card/45 py-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#F08F87]/30 hover:bg-card/70 hover:shadow-md">
       <CardContent className="flex min-h-24 items-center gap-3 p-4">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ACC5D3]/25 bg-[#ACC5D3]/10 text-[#ACC5D3]">
           <Hash className="size-4" />
@@ -77,7 +77,7 @@ export function BlogTopicCard({ topic, count }: BlogTopicCardProps) {
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">Topic collection</p>
         </div>
-        <Badge variant="outline" className="shrink-0 border-white/10 bg-background/20 text-xs">
+        <Badge variant="outline" className="shrink-0 border-border bg-background/20 text-xs">
           {count}
         </Badge>
       </CardContent>
