@@ -2,6 +2,7 @@ import 'server-only';
 import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
+import { cache } from 'react';
 import { serialize } from 'next-mdx-remote/serialize';
 import rehypePrettyCode from 'rehype-pretty-code';
 import rehypeSlug from 'rehype-slug';
@@ -127,7 +128,7 @@ export async function getAllPosts(): Promise<BlogPost[]> {
   return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export async function renderMDX(content: string): Promise<MDXRemoteSerializeResult> {
+export const renderMDX = cache(async (content: string): Promise<MDXRemoteSerializeResult> => {
   /** @type {import('rehype-pretty-code').Options} */
   const rehypePrettyCodeOptions = {
     theme: 'dracula',
@@ -189,7 +190,7 @@ export async function renderMDX(content: string): Promise<MDXRemoteSerializeResu
     },
     parseFrontmatter: false,
   });
-}
+});
 
 // Get a single post by slug
 export async function getPostBySlug(slug: string): Promise<BlogPost | undefined> {

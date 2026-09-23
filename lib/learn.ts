@@ -2,6 +2,7 @@ import 'server-only';
 import fs from 'node:fs';
 import path from 'node:path';
 import matter from 'gray-matter';
+import { cache } from 'react';
 import type { MDXRemoteSerializeResult } from 'next-mdx-remote';
 import { renderMDX } from '@/lib/mdx';
 
@@ -28,6 +29,13 @@ export interface LearnPage {
   badge?: string;
   content: string;
   mdxSource: MDXRemoteSerializeResult;
+  path: string;
+  courseSlug: string;
+}
+
+/** Frontmatter + path identity — no MDX/Shiki work. */
+interface LearnPageRecord extends LearnPageMeta {
+  slug: string;
   path: string;
   courseSlug: string;
 }
@@ -128,7 +136,7 @@ interface RawLearnNode {
   children?: RawLearnNode[];
 }
 
-async function discoverRawLearnTree(dir: string = learnDirectory): Promise<RawLearnNode[]> {
+function discoverRawLearnTree(dir: string = learnDirectory): RawLearnNode[] {
   if (!fs.existsSync(dir)) {
     return [];
   }
@@ -142,7 +150,7 @@ async function discoverRawLearnTree(dir: string = learnDirectory): Promise<RawLe
     const relativePath = path.relative(learnDirectory, fullPath);
 
     if (stat.isDirectory()) {
-      const children = await discoverRawLearnTree(fullPath);
+      const children = discoverRawLearnTree(fullPath);
       if (children.length > 0) {
         tree.push({
           name: item,
@@ -177,6 +185,38 @@ function resolveExcerpt(data: Record<string, unknown>): string | undefined {
   if (typeof data.excerpt === 'string' && data.excerpt.trim()) return data.excerpt;
   if (typeof data.description === 'string' && data.description.trim()) return data.description;
   return undefined;
+}
+
+/** Frontmatter only — safe to call for every page when building nav. */
+function loadLearnMetaFromPath(relativePath: string): LearnPageRecord | undefined {
+  try {
+    const fullPath = path.join(learnDirectory, relativePath);
+    if (!fs.existsSync(fullPath)) {
+      return undefined;
+    }
+
+    const fileContents = fs.readFileSync(fullPath, 'utf8');
+    const { data } = matter(fileContents);
+    const slug = relativeLearnPathToSlug(relativePath);
+    const courseSlug = slug.split('/')[0] ?? slug;
+    const excerpt = resolveExcerpt(data as Record<string, unknown>);
+
+    return {
+      slug,
+      title: data.title || 'Untitled',
+      description: excerpt,
+      excerpt,
+      tags: parseTags(data.tags),
+      icon: data.icon,
+      order: data.order,
+      badge: data.badge,
+      path: relativePath.replace(/\\/g, '/'),
+      courseSlug,
+    };
+  } catch (error) {
+    console.error(`Error reading learn meta ${relativePath}:`, error);
+    return undefined;
+  }
 }
 
 async function loadLearnPageFromPath(relativePath: string): Promise<LearnPage | undefined> {
@@ -214,21 +254,20 @@ async function loadLearnPageFromPath(relativePath: string): Promise<LearnPage | 
   }
 }
 
-async function buildNavFromRaw(
+function buildNavFromRaw(
   nodes: RawLearnNode[],
   parentSegments: string[] = [],
   depth: 0 | 1 | 2 = 0
-): Promise<LearnNavNode[]> {
+): LearnNavNode[] {
   const navNodes: LearnNavNode[] = [];
 
   for (const node of nodes) {
     if (node.type === 'file') {
-      const slug = relativeLearnPathToSlug(node.path);
-      const page = await loadLearnPageFromPath(node.path);
+      const page = loadLearnMetaFromPath(node.path);
       if (!page) continue;
 
       navNodes.push({
-        slug,
+        slug: page.slug,
         title: page.title,
         description: page.description,
         tags: page.tags,
@@ -236,7 +275,7 @@ async function buildNavFromRaw(
         badge: page.badge,
         order: page.order ?? node.order,
         type: depth === 0 ? 'course' : 'page',
-        href: `/learn/${slug}`,
+        href: `/learn/${page.slug}`,
       });
       continue;
     }
@@ -246,14 +285,13 @@ async function buildNavFromRaw(
     const chapterSlug = segmentsToSlug(chapterSegments);
     const indexPath = path.join(node.path, 'index.mdx');
     const indexMdPath = path.join(node.path, 'index.md');
-    const hasIndex = fs.existsSync(path.join(learnDirectory, indexPath))
-      || fs.existsSync(path.join(learnDirectory, indexMdPath));
+    const resolvedIndexPath = fs.existsSync(path.join(learnDirectory, indexPath))
+      ? indexPath
+      : fs.existsSync(path.join(learnDirectory, indexMdPath))
+        ? indexMdPath
+        : null;
 
-    const indexPage = hasIndex
-      ? await loadLearnPageFromPath(
-          fs.existsSync(path.join(learnDirectory, indexPath)) ? indexPath : indexMdPath
-        )
-      : undefined;
+    const indexPage = resolvedIndexPath ? loadLearnMetaFromPath(resolvedIndexPath) : undefined;
 
     const childPages = (node.children ?? []).filter((child) => child.type === 'file');
     const childDirs = (node.children ?? []).filter((child) => child.type === 'directory');
@@ -276,12 +314,13 @@ async function buildNavFromRaw(
 
     for (const child of childPages) {
       if (child.name === 'index') continue;
-      const page = await loadLearnPageFromPath(child.path);
+      const page = loadLearnMetaFromPath(child.path);
       if (!page) continue;
       children.push({
         slug: page.slug,
         title: page.title,
         description: page.description,
+        tags: page.tags,
         icon: page.icon,
         badge: page.badge,
         order: page.order ?? child.order,
@@ -291,8 +330,7 @@ async function buildNavFromRaw(
     }
 
     if (childDirs.length > 0) {
-      const nested = await buildNavFromRaw(childDirs, chapterSegments, depth === 0 ? 1 : 2);
-      children.push(...nested);
+      children.push(...buildNavFromRaw(childDirs, chapterSegments, depth === 0 ? 1 : 2));
     }
 
     if (children.length === 0) {
@@ -347,14 +385,42 @@ function flattenNavLeaves(nodes: LearnNavNode[]): LearnNavNode[] {
   return leaves;
 }
 
+/** slug → relative path under content/learn */
+const getSlugPathIndex = cache((): Map<string, string> => {
+  const index = new Map<string, string>();
+
+  function walk(dir: string) {
+    if (!fs.existsSync(dir)) return;
+    for (const item of fs.readdirSync(dir)) {
+      const fullPath = path.join(dir, item);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        walk(fullPath);
+      } else if (item.endsWith('.md') || item.endsWith('.mdx')) {
+        const relativePath = path.relative(learnDirectory, fullPath).replace(/\\/g, '/');
+        const slug = relativeLearnPathToSlug(relativePath);
+        if (!index.has(slug)) {
+          index.set(slug, relativePath);
+        }
+      }
+    }
+  }
+
+  walk(learnDirectory);
+  return index;
+});
+
+const getLearnNavTree = cache(async (): Promise<LearnNavNode[]> => {
+  return buildNavFromRaw(discoverRawLearnTree());
+});
+
 export async function getLearnCourseNav(courseSlug: string): Promise<LearnNavNode | null> {
-  const nav = await getLearnNav();
+  const nav = await getLearnNavTree();
   return nav.find((node) => node.slug === courseSlug || node.slug.split('/')[0] === courseSlug) ?? null;
 }
 
 export async function getLearnNav(courseSlug?: string): Promise<LearnNavNode[]> {
-  const tree = await discoverRawLearnTree();
-  const nav = await buildNavFromRaw(tree);
+  const nav = await getLearnNavTree();
 
   if (!courseSlug) {
     return nav;
@@ -369,8 +435,8 @@ export async function getLearnCourses(): Promise<LearnCourseSummary[]> {
   return catalog.courses.map(({ href: _href, chapterCount: _chapterCount, ...course }) => course);
 }
 
-export async function getLearnCatalog(): Promise<LearnCatalog> {
-  const nav = await getLearnNav();
+export const getLearnCatalog = cache(async (): Promise<LearnCatalog> => {
+  const nav = await getLearnNavTree();
   const courses: LearnCatalogCourse[] = [];
   const lessons: LearnCatalogLesson[] = [];
 
@@ -407,67 +473,52 @@ export async function getLearnCatalog(): Promise<LearnCatalog> {
   }
 
   return { courses, lessons };
-}
+});
 
-export async function getAllLearnPages(): Promise<LearnPage[]> {
-  const nav = await getLearnNav();
-  const slugs = flattenNavLeaves(nav).map((node) => node.slug);
-  const uniqueSlugs = [...new Set(slugs)];
-  const pages = await Promise.all(uniqueSlugs.map((slug) => getLearnPage(slug)));
-  return pages.filter((page): page is LearnPage => Boolean(page));
-}
+/** Slugs only — for generateStaticParams / sitemap (no Shiki). */
+export const getAllLearnSlugs = cache(async (): Promise<string[]> => {
+  const nav = await getLearnNavTree();
+  return [...new Set(flattenNavLeaves(nav).map((node) => node.slug))];
+});
 
-export async function getLearnPage(slug: string): Promise<LearnPage | undefined> {
+export const getLearnPage = cache(async (slug: string): Promise<LearnPage | undefined> => {
   if (!fs.existsSync(learnDirectory)) {
     return undefined;
   }
 
-  const candidates: string[] = [];
-
-  function walk(dir: string) {
-    if (!fs.existsSync(dir)) return;
-    for (const item of fs.readdirSync(dir)) {
-      const fullPath = path.join(dir, item);
-      const stat = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
-        walk(fullPath);
-      } else if (item.endsWith('.md') || item.endsWith('.mdx')) {
-        const relativePath = path.relative(learnDirectory, fullPath).replace(/\\/g, '/');
-        if (relativeLearnPathToSlug(relativePath) === slug) {
-          candidates.push(relativePath);
-        }
-      }
-    }
-  }
-
-  walk(learnDirectory);
-
-  if (candidates.length === 0) {
+  const relativePath = getSlugPathIndex().get(slug);
+  if (!relativePath) {
     return undefined;
   }
 
-  return loadLearnPageFromPath(candidates[0]);
-}
+  return loadLearnPageFromPath(relativePath);
+});
+
+export const getAllLearnPages = cache(async (): Promise<LearnPage[]> => {
+  const slugs = await getAllLearnSlugs();
+  const pages = await Promise.all(slugs.map((slug) => getLearnPage(slug)));
+  return pages.filter((page): page is LearnPage => Boolean(page));
+});
 
 export async function getLearnNeighbors(slug: string): Promise<{
   previous: LearnNeighbor | null;
   next: LearnNeighbor | null;
 }> {
-  const page = await getLearnPage(slug);
-  if (!page) {
-    return { previous: null, next: null };
-  }
-
-  const courseNav = await getLearnNav(page.courseSlug);
+  const courseSlug = slug.split('/')[0] ?? slug;
+  const courseNav = await getLearnNav(courseSlug);
   const leaves = flattenNavLeaves(courseNav);
   const index = leaves.findIndex((node) => node.slug === slug);
+
+  if (index < 0) {
+    return { previous: null, next: null };
+  }
 
   const previous =
     index > 0
       ? { slug: leaves[index - 1].slug, title: leaves[index - 1].title, href: leaves[index - 1].href }
       : null;
   const next =
-    index >= 0 && index < leaves.length - 1
+    index < leaves.length - 1
       ? { slug: leaves[index + 1].slug, title: leaves[index + 1].title, href: leaves[index + 1].href }
       : null;
 

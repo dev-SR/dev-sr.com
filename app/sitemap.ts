@@ -1,10 +1,10 @@
 import type { MetadataRoute } from 'next';
-import { getAllLearnPages } from '@/lib/learn';
+import { getAllLearnSlugs } from '@/lib/learn';
 import { getAllPosts } from '@/lib/mdx';
 import { siteConfig } from '@/lib/seo';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [posts, learnPages] = await Promise.all([getAllPosts(), getAllLearnPages()]);
+  const [posts, learnSlugs] = await Promise.all([getAllPosts(), getAllLearnSlugs()]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -52,8 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
-  const learnRoutes: MetadataRoute.Sitemap = learnPages.map((page) => ({
-    url: `${siteConfig.url}/learn/${page.slug}`,
+  const learnRoutes: MetadataRoute.Sitemap = learnSlugs.map((slug) => ({
+    url: `${siteConfig.url}/learn/${slug}`,
     lastModified: new Date(),
     changeFrequency: 'weekly',
     priority: 0.8,

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import {
-  getAllLearnPages,
+  getAllLearnSlugs,
   getLearnCourseNav,
   getLearnNeighbors,
   getLearnPage,
@@ -21,9 +21,9 @@ interface LearnSlugPageProps {
 }
 
 export async function generateStaticParams() {
-  const pages = await getAllLearnPages();
-  return pages.map((page) => ({
-    slug: page.slug.split('/'),
+  const slugs = await getAllLearnSlugs();
+  return slugs.map((slug) => ({
+    slug: slug.split('/'),
   }));
 }
 
