@@ -63,9 +63,12 @@ export function CodeContainerBody({
   return <div className={cn('relative', className)}>{children}</div>;
 }
 
-/** Editor-style tab triggers — attach inside TabsList */
+/** Editor-style tab triggers — attach inside TabsList.
+ * Width/truncate for active vs inactive is applied in FileTabs (isActive),
+ * not via data-[state] — those max-width overrides were not winning in practice.
+ */
 export const editorTabTriggerClass =
-  'group relative h-8 max-w-[14rem] shrink-0 rounded-none border-r border-border/50 px-3 font-mono text-xs text-muted-foreground shadow-none transition-colors last:border-r-0 data-[state=active]:border-b-2 data-[state=active]:border-b-foreground/70 data-[state=active]:bg-card/80 data-[state=active]:text-foreground data-[state=inactive]:bg-muted/25 data-[state=inactive]:hover:bg-muted/40';
+  'group relative h-8 flex-none shrink-0 rounded-none border-r border-border/50 px-3 font-mono text-xs text-muted-foreground shadow-none transition-colors last:border-r-0 data-[state=active]:border-b-2 data-[state=active]:border-b-foreground/70 data-[state=active]:bg-card/80 data-[state=active]:text-foreground data-[state=inactive]:bg-muted/25 data-[state=inactive]:hover:bg-muted/40';
 
 export const editorTabsListClass =
-  'h-auto w-auto max-w-full justify-start gap-0 overflow-x-auto rounded-none border-0 bg-transparent p-0';
+  'h-auto w-max max-w-full justify-start gap-0 overflow-x-auto rounded-none border-0 bg-transparent p-0';

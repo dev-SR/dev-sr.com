@@ -57,36 +57,47 @@ export function FileTabs({
     );
   }
 
+  const selectedTab = activeTab || items[0].id;
+
   return (
     <FileTabsProvider>
       <CodeContainer className={cn('code-file-tabs code-block not-prose my-6', className)}>
-        <Tabs value={activeTab || items[0].id} onValueChange={setActiveTab}>
-          <CodeContainerHeader className="gap-1 px-0 py-0 pr-3">
-            <div className="flex min-w-0 flex-1 items-center overflow-hidden">
-              <CodeContainerIcon className="ml-3">
+        <Tabs value={selectedTab} onValueChange={setActiveTab} className="gap-0">
+          <CodeContainerHeader className="gap-1 overflow-hidden px-0 py-0 pr-3">
+            <div className="flex min-w-0 flex-1 items-center overflow-x-auto">
+              <CodeContainerIcon className="ml-3 shrink-0">
                 <FileCode className="size-3.5 text-muted-foreground" />
               </CodeContainerIcon>
               <TabsList className={cn(editorTabsListClass, 'min-w-0 flex-1')}>
-                {items.map((item) => (
-                  <TabsTrigger
-                    key={item.id}
-                    value={item.id}
-                    title={item.label}
-                    className={editorTabTriggerClass}>
-                    <span className="truncate">{item.label}</span>
-                  </TabsTrigger>
-                ))}
+                {items.map((item) => {
+                  const isActive = item.id === selectedTab;
+                  return (
+                    <TabsTrigger
+                      key={item.id}
+                      value={item.id}
+                      title={item.label}
+                      style={{ maxWidth: isActive ? 'none' : '14rem' }}
+                      className={cn(
+                        editorTabTriggerClass,
+                        // Kill base TabsTrigger flex-1 so width follows the label
+                        '!flex-none',
+                        isActive ? 'overflow-visible' : 'overflow-hidden'
+                      )}>
+                      <span
+                        className={cn(
+                          'whitespace-nowrap',
+                          isActive ? 'overflow-visible' : 'block min-w-0 truncate'
+                        )}>
+                        {item.label}
+                      </span>
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {activeItem?.language && activeItem.language !== 'text' && (
                 <LanguageBadge language={activeItem.language} />
-              )}
-              {activeItem?.label && (
-                <CopyableFilename
-                  filename={activeItem.label}
-                  className="hidden max-w-[10rem] lg:flex"
-                />
               )}
               {showGroupCopy && (
                 <CodeCopyButton

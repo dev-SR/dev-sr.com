@@ -1,0 +1,1194 @@
+--- 
+title: "Structuring Dependency Injection"
+description: "How to structure dependency injection in a .NET API"
+---
+
+# Structuring Dependency Injection in ASP.NET Core 9 — The Right Way - Freedium
+
+July 14, 2026
+
+# Structuring Dependency Injection in ASP.NET Core 9 — The Right Way
+
+Clean Architecture + Service Collection Extensions + Lifetime Mastery
+
+By Mori
+
+7 min read
+
+Download article
+
+## Contents
+
+19
+
+-   [1 The Problem: The 300-Line Program.cs](#the-problem-the-300-line-programcs)
+-   [2 The Solution: Service Collection Extension Pattern](#the-solution-service-collection-extension-pattern)
+-   [3 The Convention](#the-convention)
+-   [4 Clean Architecture Project Structure](#clean-architecture-project-structure)
+-   [5 Layer 1: Application Layer DI](#layer-1-application-layer-di)
+
+Show all 19 sections
+
+Your `Program.cs` is 300 lines long. `builder.Services.Add...` calls are scattered between configuration binding, database setup, authentication, caching, and third-party integrations. When a new developer joins, they spend two hours tracing where things are registered. When you need to swap out Redis for Azure Cache, you touch seven files.
+
+This isn't a DI problem. It's an organization problem.
+
+ASP.NET Core 9's built-in DI container is powerful — but power without structure becomes chaos. This article shows you the Microsoft-endorsed pattern for organizing registrations, the lifetime rules that prevent memory leaks, and the Clean Architecture integration that keeps your composition root clean.
+
+### The Problem: The 300-Line Program.cs
+
+```csharp title="Program.cs"
+// Program.cs — the "everything file" anti-pattern
+var builder = WebApplication.CreateBuilder(args);
+// Database
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+// Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+// JWT Auth
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]!);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+// Swagger
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header...",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement { ... });
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFile));
+});
+// HttpClients
+builder.Services.AddHttpClient<IWeatherService, WeatherService>()
+    .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(3, _ => TimeSpan.FromSeconds(2)))
+    .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(6, TimeSpan.FromSeconds(5)));
+// Application services
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+builder.Services.AddTransient<IFileStorage, AzureBlobStorage>();
+builder.Services.AddHostedService<BackgroundWorkerService>();
+// More services...
+// 200 more lines...
+var app = builder.Build();
+app.Run();
+```
+
+```csharp title="Program.cs"
+// Program.cs — the "everything file" anti-pattern
+var builder = WebApplication.CreateBuilder(args);
+// Database
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+// Identity
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+// JWT Auth
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var key = Encoding.ASCII.GetBytes(jwtSettings["Secret"]!);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+});
+// Swagger
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header...",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement { ... });
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFile));
+});
+// HttpClients
+builder.Services.AddHttpClient<IWeatherService, WeatherService>()
+    .AddTransientHttpErrorPolicy(p => p.WaitAndRetryAsync(3, _ => TimeSpan.FromSeconds(2)))
+    .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(6, TimeSpan.FromSeconds(5)));
+// Application services
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IEmailService, SmtpEmailService>();
+builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+builder.Services.AddTransient<IFileStorage, AzureBlobStorage>();
+builder.Services.AddHostedService<BackgroundWorkerService>();
+// More services...
+// 200 more lines...
+var app = builder.Build();
+app.Run();
+```
+
+This violates every principle of maintainable code. Registrations are mixed across concerns. There's no discoverability. Adding a new service means hunting through the file. Testing requires mocking half the framework.
+
+### The Solution: Service Collection Extension Pattern
+
+Microsoft's official recommendation: group related registrations into extension methods on `IServiceCollection`, placed in the `Microsoft.Extensions.DependencyInjection` namespace for automatic IntelliSense discovery.
+
+### The Convention
+
+  ![None](/img/medium/700/1*z727WVYWgywdMDYyqzz0GA.png)
+
+### Clean Architecture Project Structure
+
+```text
+src/
+├── MyApp.Domain/              # No DI registrations (pure entities)
+├── MyApp.Application/
+│   ├── Behaviors/
+│   ├── Interfaces/
+│   ├── DependencyInjection.cs  # AddApplication()
+│   └── ...
+├── MyApp.Infrastructure/
+│   ├── Persistence/
+│   ├── Services/
+│   ├── DependencyInjection.cs  # AddInfrastructure()
+│   └── ...
+├── MyApp.Api/
+│   ├── Controllers/ (or Endpoints/)
+│   ├── Middleware/
+│   ├── DependencyInjection.cs  # AddApi(), AddCustomServices()
+│   ├── Program.cs              # 20 lines, calls extensions
+│   └── ...
+└── MyApp.Tests/
+```
+
+```txt
+src/
+├── MyApp.Domain/              # No DI registrations (pure entities)
+├── MyApp.Application/
+│   ├── Behaviors/
+│   ├── Interfaces/
+│   ├── DependencyInjection.cs  # AddApplication()
+│   └── ...
+├── MyApp.Infrastructure/
+│   ├── Persistence/
+│   ├── Services/
+│   ├── DependencyInjection.cs  # AddInfrastructure()
+│   └── ...
+├── MyApp.Api/
+│   ├── Controllers/ (or Endpoints/)
+│   ├── Middleware/
+│   ├── DependencyInjection.cs  # AddApi(), AddCustomServices()
+│   ├── Program.cs              # 20 lines, calls extensions
+│   └── ...
+└── MyApp.Tests/
+```
+
+### Layer 1: Application Layer DI
+
+The Application layer registers MediatR, FluentValidation, and application services. It knows nothing about HTTP, databases, or external APIs.
+
+```csharp title="src/MyApp.Application/DependencyInjection.cs"
+// src/MyApp.Application/DependencyInjection.cs
+namespace Microsoft.Extensions.DependencyInjection;
+public static class ApplicationServiceCollectionExtensions
+{
+    public static IServiceCollection AddApplication(
+        this IServiceCollection services)
+    {
+        // MediatR - discovers all handlers in this assembly
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(ApplicationServiceCollectionExtensions).Assembly);
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+        });
+        // FluentValidation - discovers all validators
+        services.AddValidatorsFromAssembly(
+            typeof(ApplicationServiceCollectionExtensions).Assembly,
+            includeInternalTypes: true);
+        // Application services (stateless, often transient)
+        services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+        services.AddSingleton<IEmailTemplateEngine, EmailTemplateEngine>();
+        return services;
+    }
+}
+```
+
+```csharp title="src/MyApp.Application/DependencyInjection.cs"
+// src/MyApp.Application/DependencyInjection.cs
+namespace Microsoft.Extensions.DependencyInjection;
+public static class ApplicationServiceCollectionExtensions
+{
+    public static IServiceCollection AddApplication(
+        this IServiceCollection services)
+    {
+        // MediatR - discovers all handlers in this assembly
+        services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(ApplicationServiceCollectionExtensions).Assembly);
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+        });
+        // FluentValidation - discovers all validators
+        services.AddValidatorsFromAssembly(
+            typeof(ApplicationServiceCollectionExtensions).Assembly,
+            includeInternalTypes: true);
+        // Application services (stateless, often transient)
+        services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+        services.AddSingleton<IEmailTemplateEngine, EmailTemplateEngine>();
+        return services;
+    }
+}
+```
+
+Key decisions:
+
+-   `MediatR` is singleton (it's a dispatcher, no state)
+-   `IValidator<T>` implementations are transient (lightweight, no shared state)
+-   `IDateTimeProvider` is transient (could be scoped, but no state)
+-   `IEmailTemplateEngine` is singleton (expensive to build, read-only after init)
+
+### Layer 2: Infrastructure Layer DI
+
+The Infrastructure layer registers databases, external HTTP clients, caching, file storage, and anything that talks to the outside world.
+
+```csharp title="src/MyApp.Infrastructure/DependencyInjection.cs"
+// src/MyApp.Infrastructure/DependencyInjection.cs
+namespace Microsoft.Extensions.DependencyInjection;
+public static class InfrastructureServiceCollectionExtensions
+{
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services
+            .AddDatabase(configuration)
+            .AddExternalApis(configuration)
+            .AddCaching(configuration)
+            .AddFileStorage(configuration)
+            .AddEmailServices(configuration)
+            .AddBackgroundServices();
+        return services;
+    }
+    private static IServiceCollection AddDatabase(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+        {
+            options.UseSqlServer(connectionString, sqlOptions =>
+            {
+                sqlOptions.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+            });
+            // Enable sensitive data logging in development only
+            if (serviceProvider.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            {
+                options.EnableSensitiveDataLogging();
+            }
+        });
+        services.AddScoped<IApplicationDbContext>(provider =>
+            provider.GetRequiredService<ApplicationDbContext>());
+        services.AddScoped<IUnitOfWork>(provider =>
+            provider.GetRequiredService<ApplicationDbContext>());
+        return services;
+    }
+    private static IServiceCollection AddExternalApis(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // Payment Gateway
+        services.AddHttpClient<IPaymentGateway, StripePaymentGateway>(client =>
+        {
+            client.BaseAddress = new Uri(configuration["Stripe:ApiUrl"]!);
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {configuration["Stripe:SecretKey"]}");
+        })
+        .AddTransientHttpErrorPolicy(policy => policy
+            .WaitAndRetryAsync(3, retryAttempt =>
+                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
+        .AddTransientHttpErrorPolicy(policy => policy
+            .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)))
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+        });
+        // Shipping API
+        services.AddHttpClient<IShippingService, FedExShippingService>(client =>
+        {
+            client.BaseAddress = new Uri(configuration["FedEx:ApiUrl"]!);
+        })
+        .AddPolicyHandler(GetRetryPolicy())
+        .AddPolicyHandler(GetCircuitBreakerPolicy());
+        // Weather API (for demo/background processing)
+        services.AddHttpClient<IWeatherService, OpenWeatherMapService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.openweathermap.org/data/2.5/");
+        })
+        .AddStandardResilienceHandler(); // .NET 9 built-in resilience
+        return services;
+    }
+    private static IServiceCollection AddCaching(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var redisConnection = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnection))
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnection;
+                options.InstanceName = "MyApp_";
+            });
+            services.AddSingleton<ICacheService, RedisCacheService>();
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+            services.AddSingleton<ICacheService, InMemoryCacheService>();
+        }
+        return services;
+    }
+    private static IServiceCollection AddFileStorage(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var storageConnection = configuration.GetConnectionString("AzureBlobStorage");
+        if (!string.IsNullOrEmpty(storageConnection))
+        {
+            services.AddSingleton(x => new BlobServiceClient(storageConnection));
+            services.AddSingleton<IFileStorage, AzureBlobStorage>();
+        }
+        else
+        {
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+        }
+        return services;
+    }
+    private static IServiceCollection AddEmailServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var emailProvider = configuration["Email:Provider"]?.ToLowerInvariant();
+        switch (emailProvider)
+        {
+            case "sendgrid":
+                services.AddHttpClient<IEmailService, SendGridEmailService>();
+                break;
+            case "ses":
+                services.AddSingleton<IEmailService, AwsSesEmailService>();
+                break;
+            default:
+                services.AddSingleton<IEmailService, SmtpEmailService>();
+                break;
+        }
+        return services;
+    }
+    private static IServiceCollection AddBackgroundServices(this IServiceCollection services)
+    {
+        services.AddHostedService<QueueProcessorService>();
+        services.AddHostedService<MetricsCollectorService>();
+        // Scoped service for background jobs
+        services.AddScoped<IJobProcessor, JobProcessor>();
+        return services;
+    }
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryAsync(3, retryAttempt =>
+                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+    private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy() =>
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
+}
+```
+
+```csharp title="src/MyApp.Infrastructure/DependencyInjection.cs"   
+// src/MyApp.Infrastructure/DependencyInjection.cs
+namespace Microsoft.Extensions.DependencyInjection;
+public static class InfrastructureServiceCollectionExtensions
+{
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services
+            .AddDatabase(configuration)
+            .AddExternalApis(configuration)
+            .AddCaching(configuration)
+            .AddFileStorage(configuration)
+            .AddEmailServices(configuration)
+            .AddBackgroundServices();
+        return services;
+    }
+    private static IServiceCollection AddDatabase(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+        {
+            options.UseSqlServer(connectionString, sqlOptions =>
+            {
+                sqlOptions.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+            });
+            // Enable sensitive data logging in development only
+            if (serviceProvider.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            {
+                options.EnableSensitiveDataLogging();
+            }
+        });
+        services.AddScoped<IApplicationDbContext>(provider =>
+            provider.GetRequiredService<ApplicationDbContext>());
+        services.AddScoped<IUnitOfWork>(provider =>
+            provider.GetRequiredService<ApplicationDbContext>());
+        return services;
+    }
+    private static IServiceCollection AddExternalApis(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // Payment Gateway
+        services.AddHttpClient<IPaymentGateway, StripePaymentGateway>(client =>
+        {
+            client.BaseAddress = new Uri(configuration["Stripe:ApiUrl"]!);
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {configuration["Stripe:SecretKey"]}");
+        })
+        .AddTransientHttpErrorPolicy(policy => policy
+            .WaitAndRetryAsync(3, retryAttempt =>
+                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))))
+        .AddTransientHttpErrorPolicy(policy => policy
+            .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)))
+        .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+        {
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+        });
+        // Shipping API
+        services.AddHttpClient<IShippingService, FedExShippingService>(client =>
+        {
+            client.BaseAddress = new Uri(configuration["FedEx:ApiUrl"]!);
+        })
+        .AddPolicyHandler(GetRetryPolicy())
+        .AddPolicyHandler(GetCircuitBreakerPolicy());
+        // Weather API (for demo/background processing)
+        services.AddHttpClient<IWeatherService, OpenWeatherMapService>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.openweathermap.org/data/2.5/");
+        })
+        .AddStandardResilienceHandler(); // .NET 9 built-in resilience
+        return services;
+    }
+    private static IServiceCollection AddCaching(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var redisConnection = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrEmpty(redisConnection))
+        {
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = redisConnection;
+                options.InstanceName = "MyApp_";
+            });
+            services.AddSingleton<ICacheService, RedisCacheService>();
+        }
+        else
+        {
+            services.AddDistributedMemoryCache();
+            services.AddSingleton<ICacheService, InMemoryCacheService>();
+        }
+        return services;
+    }
+    private static IServiceCollection AddFileStorage(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var storageConnection = configuration.GetConnectionString("AzureBlobStorage");
+        if (!string.IsNullOrEmpty(storageConnection))
+        {
+            services.AddSingleton(x => new BlobServiceClient(storageConnection));
+            services.AddSingleton<IFileStorage, AzureBlobStorage>();
+        }
+        else
+        {
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+        }
+        return services;
+    }
+    private static IServiceCollection AddEmailServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var emailProvider = configuration["Email:Provider"]?.ToLowerInvariant();
+        switch (emailProvider)
+        {
+            case "sendgrid":
+                services.AddHttpClient<IEmailService, SendGridEmailService>();
+                break;
+            case "ses":
+                services.AddSingleton<IEmailService, AwsSesEmailService>();
+                break;
+            default:
+                services.AddSingleton<IEmailService, SmtpEmailService>();
+                break;
+        }
+        return services;
+    }
+    private static IServiceCollection AddBackgroundServices(this IServiceCollection services)
+    {
+        services.AddHostedService<QueueProcessorService>();
+        services.AddHostedService<MetricsCollectorService>();
+        // Scoped service for background jobs
+        services.AddScoped<IJobProcessor, JobProcessor>();
+        return services;
+    }
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryAsync(3, retryAttempt =>
+                TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+    private static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy() =>
+        HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30));
+}
+```
+
+### Layer 3: API Layer DI
+
+The API layer registers HTTP-specific concerns: authentication, authorization, CORS, Swagger, and middleware.
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// src/MyApp.Api/DependencyInjection.cs
+namespace Microsoft.Extensions.DependencyInjection;
+public static class ApiServiceCollectionExtensions
+{
+    public static IServiceCollection AddApi(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services
+            .AddAuthenticationAndAuthorization(configuration)
+            .AddCorsPolicies(configuration)
+            .AddOpenApiDocumentation()
+            .AddApiVersioningSupport()
+            .AddHealthChecks(configuration)
+            .AddProblemDetails();
+        return services;
+    }
+    private static IServiceCollection AddAuthenticationAndAuthorization(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.Authority = jwtSettings["Authority"];
+            options.Audience = jwtSettings["Audience"];
+            options.RequireHttpsMetadata = !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")!.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        });
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("RequireAdmin", policy =>
+                policy.RequireRole("Admin"));
+            options.AddPolicy("RequireManager", policy =>
+                policy.RequireRole("Manager", "Admin"));
+            options.AddPolicy("CanManageProducts", policy =>
+                policy.RequireClaim("Permission", "products:create", "products:update", "products:delete"));
+        });
+        return services;
+    }
+    private static IServiceCollection AddCorsPolicies(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var allowedOrigins = configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? Array.Empty<string>();
+        services.AddCors(options =>
+        {
+            options.AddPolicy("Production", policy =>
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader()
+                      .AllowCredentials());
+            options.AddPolicy("Development", policy =>
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader());
+        });
+        return services;
+    }
+    private static IServiceCollection AddOpenApiDocumentation(this IServiceCollection services)
+    {
+        services.AddOpenApi(options =>
+        {
+            options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1;
+        });
+        return services;
+    }
+    private static IServiceCollection AddApiVersioningSupport(this IServiceCollection services)
+    {
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1, 0);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        })
+        .AddApiExplorer(options =>
+        {
+            options.GroupNameFormat = "'v'VVV";
+            options.SubstituteApiVersionInUrl = true;
+        });
+        return services;
+    }
+    private static IServiceCollection AddHealthChecks(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>()
+            .AddRedis("Redis", tags: new[] { "cache" })
+            .AddUrlGroup(
+                new Uri(configuration["ExternalApis:PaymentGateway:HealthUrl"]!),
+                name: "payment-gateway",
+                tags: new[] { "external" });
+        return services;
+    }
+}
+```
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"  
+// src/MyApp.Api/DependencyInjection.cs
+namespace Microsoft.Extensions.DependencyInjection;
+public static class ApiServiceCollectionExtensions
+{
+    public static IServiceCollection AddApi(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services
+            .AddAuthenticationAndAuthorization(configuration)
+            .AddCorsPolicies(configuration)
+            .AddOpenApiDocumentation()
+            .AddApiVersioningSupport()
+            .AddHealthChecks(configuration)
+            .AddProblemDetails();
+        return services;
+    }
+    private static IServiceCollection AddAuthenticationAndAuthorization(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var jwtSettings = configuration.GetSection("JwtSettings");
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.Authority = jwtSettings["Authority"];
+            options.Audience = jwtSettings["Audience"];
+            options.RequireHttpsMetadata = !Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")!.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        });
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("RequireAdmin", policy =>
+                policy.RequireRole("Admin"));
+            options.AddPolicy("RequireManager", policy =>
+                policy.RequireRole("Manager", "Admin"));
+            options.AddPolicy("CanManageProducts", policy =>
+                policy.RequireClaim("Permission", "products:create", "products:update", "products:delete"));
+        });
+        return services;
+    }
+    private static IServiceCollection AddCorsPolicies(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var allowedOrigins = configuration
+            .GetSection("Cors:AllowedOrigins")
+            .Get<string[]>() ?? Array.Empty<string>();
+        services.AddCors(options =>
+        {
+            options.AddPolicy("Production", policy =>
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyMethod()
+                      .AllowAnyHeader()
+                      .AllowCredentials());
+            options.AddPolicy("Development", policy =>
+                policy.AllowAnyOrigin()
+                      .AllowAnyMethod()
+                      .AllowAnyHeader());
+        });
+        return services;
+    }
+    private static IServiceCollection AddOpenApiDocumentation(this IServiceCollection services)
+    {
+        services.AddOpenApi(options =>
+        {
+            options.OpenApiVersion = Microsoft.OpenApi.OpenApiSpecVersion.OpenApi3_1;
+        });
+        return services;
+    }
+    private static IServiceCollection AddApiVersioningSupport(this IServiceCollection services)
+    {
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1, 0);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            options.ApiVersionReader = new UrlSegmentApiVersionReader();
+        })
+        .AddApiExplorer(options =>
+        {
+            options.GroupNameFormat = "'v'VVV";
+            options.SubstituteApiVersionInUrl = true;
+        });
+        return services;
+    }
+    private static IServiceCollection AddHealthChecks(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        services.AddHealthChecks()
+            .AddDbContextCheck<ApplicationDbContext>()
+            .AddRedis("Redis", tags: new[] { "cache" })
+            .AddUrlGroup(
+                new Uri(configuration["ExternalApis:PaymentGateway:HealthUrl"]!),
+                name: "payment-gateway",
+                tags: new[] { "external" });
+        return services;
+    }
+}
+```
+
+### The Composition Root: Clean Program.cs
+
+```csharp title="src/MyApp.Api/Program.cs"
+// src/MyApp.Api/Program.cs
+using Scalar.AspNetCore;
+var builder = WebApplication.CreateBuilder(args);
+// ── Service Registration (3 lines, calls 3 extension methods) ──
+builder.Services
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration)
+    .AddApi(builder.Configuration);
+var app = builder.Build();
+// ── Middleware Pipeline ──
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+app.UseHttpsRedirection();
+app.UseCors(app.Environment.IsDevelopment() ? "Development" : "Production");
+app.UseAuthentication();
+app.UseAuthorization();
+// ── Endpoints ──
+app.MapControllers();
+app.MapHealthChecks("/health");
+app.Run();
+```
+
+```csharp title="src/MyApp.Api/Program.cs"
+// src/MyApp.Api/Program.cs
+using Scalar.AspNetCore;
+var builder = WebApplication.CreateBuilder(args);
+// ── Service Registration (3 lines, calls 3 extension methods) ──
+builder.Services
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration)
+    .AddApi(builder.Configuration);
+var app = builder.Build();
+// ── Middleware Pipeline ──
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+app.UseHttpsRedirection();
+app.UseCors(app.Environment.IsDevelopment() ? "Development" : "Production");
+app.UseAuthentication();
+app.UseAuthorization();
+// ── Endpoints ──
+app.MapControllers();
+app.MapHealthChecks("/health");
+app.Run();
+```
+
+20 lines. Every concern is delegated to its layer. The composition root tells you _what_ the app does, not _how_ it does it.
+
+### Service Lifetime Deep Dive: The Rules That Prevent Disasters
+
+Choosing the wrong lifetime is the #1 source of DI-related bugs in production. Here are the rules, with examples.
+
+### The Three Lifetimes
+
+  ![None](/img/medium/700/1*scM0RSMUC6JN5omtl0PKrg.png)
+
+### The Captive Dependency Trap
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// ❌ WRONG: Scoped service injected into Singleton
+public class SingletonService
+{
+    // This DbContext lives for the entire application!
+    // It's shared across all requests — thread-unsafe, memory leak.
+    public SingletonService(ApplicationDbContext dbContext) { }
+}
+services.AddSingleton<ISingletonService, SingletonService>(); // ❌
+services.AddScoped<ApplicationDbContext>(); // Scoped
+```
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// ❌ WRONG: Scoped service injected into Singleton
+public class SingletonService
+{
+    // This DbContext lives for the entire application!
+    // It's shared across all requests — thread-unsafe, memory leak.
+    public SingletonService(ApplicationDbContext dbContext) { }
+}
+services.AddSingleton<ISingletonService, SingletonService>(); // ❌
+services.AddScoped<ApplicationDbContext>(); // Scoped
+```
+
+Fix: Use `IServiceScopeFactory` to create short-lived scopes inside singletons.
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// ✅ CORRECT: Singleton creates scopes as needed
+public class SingletonService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+public SingletonService(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+    }
+    public async Task DoWorkAsync()
+    {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        // Use dbContext - disposed when scope ends
+    }
+}
+services.AddSingleton<ISingletonService, SingletonService>(); // ✅
+services.AddScoped<ApplicationDbContext>(); // ✅
+```
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// ✅ CORRECT: Singleton creates scopes as needed
+public class SingletonService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+public SingletonService(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+    }
+    public async Task DoWorkAsync()
+    {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        // Use dbContext - disposed when scope ends
+    }
+}
+services.AddSingleton<ISingletonService, SingletonService>(); // ✅
+services.AddScoped<ApplicationDbContext>(); // ✅
+```
+
+### The Disposable Transient Trap
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// ❌ WRONG: Disposable transient resolved at root scope
+services.AddTransient<IDisposableService, DisposableService>();
+// Resolved from root scope → never disposed → memory leak
+```
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// ❌ WRONG: Disposable transient resolved at root scope
+services.AddTransient<IDisposableService, DisposableService>();
+// Resolved from root scope → never disposed → memory leak
+```
+
+Fix: Don't register `IDisposable` types as transient unless you control disposal. Use factories or scoped services.
+
+### Lifetime Decision Matrix
+
+   ![None](/img/medium/700/1*HQUy0UGc3Fts17aUMrbKpA.png)  ![None](/img/medium/700/1*IT-EH01nboA0HgdNa-sO9w.png)
+
+### Advanced: Conditional Registration by Environment
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// src/MyApp.Api/DependencyInjection.cs
+public static class EnvironmentServiceCollectionExtensions
+{
+    public static IServiceCollection AddEnvironmentSpecificServices(
+        this IServiceCollection services,
+        IHostEnvironment environment)
+    {
+        if (environment.IsDevelopment())
+        {
+            services.AddSingleton<IEmailService, ConsoleEmailService>();
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            services.AddSingleton<IEmailService, SendGridEmailService>();
+            services.AddSingleton<IFileStorage, AzureBlobStorage>();
+            services.AddStackExchangeRedisCache(options =>
+                options.Configuration = "your-redis-connection");
+        }
+return services;
+    }
+}
+```
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"  
+// src/MyApp.Api/DependencyInjection.cs
+public static class EnvironmentServiceCollectionExtensions
+{
+    public static IServiceCollection AddEnvironmentSpecificServices(
+        this IServiceCollection services,
+        IHostEnvironment environment)
+    {
+        if (environment.IsDevelopment())
+        {
+            services.AddSingleton<IEmailService, ConsoleEmailService>();
+            services.AddSingleton<IFileStorage, LocalFileStorage>();
+            services.AddDistributedMemoryCache();
+        }
+        else
+        {
+            services.AddSingleton<IEmailService, SendGridEmailService>();
+            services.AddSingleton<IFileStorage, AzureBlobStorage>();
+            services.AddStackExchangeRedisCache(options =>
+                options.Configuration = "your-redis-connection");
+        }
+return services;
+    }
+}
+```
+
+### Advanced: Keyed Services (.NET 8+)
+
+When you need multiple implementations of the same interface:
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// Registration
+services.AddKeyedSingleton<ICacheService, RedisCacheService>("redis");
+services.AddKeyedSingleton<ICacheService, InMemoryCacheService>("memory");
+// Injection
+public class ProductService
+{
+    public ProductService(
+        [FromKeyedServices("redis")] ICacheService cache) { }
+}
+```
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+// Registration
+services.AddKeyedSingleton<ICacheService, RedisCacheService>("redis");
+services.AddKeyedSingleton<ICacheService, InMemoryCacheService>("memory");
+// Injection
+public class ProductService
+{
+    public ProductService(
+        [FromKeyedServices("redis")] ICacheService cache) { }
+}
+```
+
+### Testing: Verifying Your DI Container
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+public class DependencyInjectionTests
+{
+    [Fact]
+    public void AllServices_CanBeResolved()
+    {
+        // Arrange
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:DefaultConnection"] = "Server=.;Database=Test;Trusted_Connection=True;",
+            ["JwtSettings:Authority"] = "https://test.auth0.com",
+            ["JwtSettings:Audience"] = "test-api"
+        });
+builder.Services
+            .AddApplication()
+            .AddInfrastructure(builder.Configuration)
+            .AddApi(builder.Configuration);
+        var app = builder.Build();
+        // Act & Assert - verify no circular dependencies or missing registrations
+        var serviceProvider = app.Services;
+        var controllers = typeof(Program).Assembly.GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(ControllerBase)));
+        foreach (var controller in controllers)
+        {
+            serviceProvider.GetRequiredService(controller); // Throws if can't resolve
+        }
+    }
+    [Fact]
+    public void ScopedServices_AreNotSingletons()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<IOrderService, OrderService>();
+        var provider = services.BuildServiceProvider();
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+        var instance1 = scope1.ServiceProvider.GetRequiredService<IOrderService>();
+        var instance2 = scope2.ServiceProvider.GetRequiredService<IOrderService>();
+        var instance3 = scope1.ServiceProvider.GetRequiredService<IOrderService>();
+        Assert.NotSame(instance1, instance2); // Different scopes
+        Assert.Same(instance1, instance3);     // Same scope
+    }
+}
+```
+
+```csharp title="src/MyApp.Api/DependencyInjection.cs"
+public class DependencyInjectionTests
+{
+    [Fact]
+    public void AllServices_CanBeResolved()
+    {
+        // Arrange
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:DefaultConnection"] = "Server=.;Database=Test;Trusted_Connection=True;",
+            ["JwtSettings:Authority"] = "https://test.auth0.com",
+            ["JwtSettings:Audience"] = "test-api"
+        });
+builder.Services
+            .AddApplication()
+            .AddInfrastructure(builder.Configuration)
+            .AddApi(builder.Configuration);
+        var app = builder.Build();
+        // Act & Assert - verify no circular dependencies or missing registrations
+        var serviceProvider = app.Services;
+        var controllers = typeof(Program).Assembly.GetTypes()
+            .Where(t => t.IsSubclassOf(typeof(ControllerBase)));
+        foreach (var controller in controllers)
+        {
+            serviceProvider.GetRequiredService(controller); // Throws if can't resolve
+        }
+    }
+    [Fact]
+    public void ScopedServices_AreNotSingletons()
+    {
+        var services = new ServiceCollection();
+        services.AddScoped<IOrderService, OrderService>();
+        var provider = services.BuildServiceProvider();
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+        var instance1 = scope1.ServiceProvider.GetRequiredService<IOrderService>();
+        var instance2 = scope2.ServiceProvider.GetRequiredService<IOrderService>();
+        var instance3 = scope1.ServiceProvider.GetRequiredService<IOrderService>();
+        Assert.NotSame(instance1, instance2); // Different scopes
+        Assert.Same(instance1, instance3);     // Same scope
+    }
+}
+```
+
+### The Complete Checklist
+
+  ![None](/img/medium/700/1*0w5qm6OK4TgkQiDhiwZlvQ.png)
+
+### The Bottom Line
+
+Dependency Injection in ASP.NET Core 9 isn't about the container — it's about organization. The Service Collection Extension Pattern, endorsed by Microsoft, transforms your `Program.cs` from a 300-line mess into a 20-line composition root that delegates to focused, testable, discoverable extension methods.
+
+Combine this with lifetime discipline (transient for stateless, scoped for request-bound, singleton for global and thread-safe) and you eliminate the most common source of production DI bugs: captive dependencies, memory leaks, and race conditions.
+
+Your `Program.cs` should tell a story. "This app has an application layer, infrastructure layer, and API layer." Not "This app configures JWT validation parameters on line 47 and Redis cache options on line 203."
+
+References:
+
+-   [Microsoft: Dependency Injection in ASP.NET Core — Register Groups with Extension Methods](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-10.0)
+-   [Microsoft: Dependency Injection Guidelines](https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection/guidelines)
+-   [GitHub: IServiceCollection and IApplicationBuilder Should Be in Standard Namespaces](https://github.com/dotnet/extensions/issues/4389)
+-   [DotNetFullStackDev: Service Collection Extension Pattern in .NET Core](https://dotnetfullstackdev.medium.com/service-collection-extension-pattern-in-net-core-with-item-services-6db8cf9dcfd6)
+-   [TheCodeMan: The ServiceCollection Extension Pattern](https://thecodeman.net/posts/the-service-collection-extension-pattern)
+-   [Dev.to: What Every ASP.NET Core Web API Project Needs — IServiceCollection Extension](https://dev.to/moesmp/what-every-asp-net-core-web-api-project-needs-part-6-iservicecollection-extension-19g9)
+-   [CodeWithMukesh: Transient vs Scoped vs Singleton in .NET](https://codewithmukesh.com/blog/when-to-use-transient-scoped-singleton-dotnet/)
+-   [Andrew Lock: Going Beyond Singleton, Scoped, and Transient Lifetimes](https://andrewlock.net/going-beyond-singleton-scoped-and-transient-lifetimes/)
+
+#### _How many lines is your current Program.cs? Have you tried the extension method pattern, or are you still registering everything inline? Share your DI horror stories below._

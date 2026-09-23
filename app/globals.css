@@ -60,8 +60,16 @@
 
   /* Hero console */
   --hero-console-bg:
-    linear-gradient(135deg, color-mix(in oklab, var(--brand-coral) 14%, transparent), transparent 38%),
-    linear-gradient(215deg, color-mix(in oklab, var(--brand-slate) 18%, transparent), transparent 42%),
+    linear-gradient(
+      135deg,
+      color-mix(in oklab, var(--brand-coral) 14%, transparent),
+      transparent 38%
+    ),
+    linear-gradient(
+      215deg,
+      color-mix(in oklab, var(--brand-slate) 18%, transparent),
+      transparent 42%
+    ),
     color-mix(in oklab, #f6f5ec 92%, white);
   --hero-console-grid: color-mix(in oklab, #100f06 6%, transparent);
   --hero-console-bar-border: color-mix(in oklab, #100f06 10%, transparent);
@@ -471,7 +479,7 @@
 
   .has-focused:focus-within code > span[data-line]:not(.focused) {
     filter: blur(calc(var(--tnf-blur) * 0.5));
-    opacity: 0.45;
+    opacity: 0.75;
   }
 
   /* Error and warning */
@@ -711,7 +719,8 @@
   border: 1px solid
     color-mix(
       in srgb,
-      var(--navbar-scrolled-border) calc(var(--nav-glass) * var(--navbar-scrolled-border-alpha) * 100%),
+      var(--navbar-scrolled-border)
+        calc(var(--nav-glass) * var(--navbar-scrolled-border-alpha) * 100%),
       transparent
     );
   background-color: color-mix(

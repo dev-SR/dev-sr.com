@@ -24,6 +24,7 @@ Instead of putting all application operations into the same service, CQRS encour
   alt="CQRS"
   caption="Fig 1. CQRS architecture"
   width="500"
+  priority
 />
 
 
@@ -196,61 +197,189 @@ Together they can keep:
 
 However, **Mediator is not required for CQRS**. CQRS can be implemented without MediatR or any mediator library; the mediator is an additional pattern that helps with request dispatching and dependency management.
 
-## Implementing Custom Mediator Pattern with CQRS and Minimal API
+## Custom Mediator Pattern: 1. Command and Query Requests
 
 <Guide numbered stepHeadingLevel={3}>
-<GuideStep title="Build the CQRS dispatcher (no MediatR)">
+<GuideStep title="The Architecture: Interfaces">
 
-This is the heart of the project: a ~150-line MediatR replacement with the same
-public API shape but no external dependency. The folder structure (under the
-new layout — see the [path-mapping table](#2-build-it-from-scratch--incremental-guide)
-at the top of this section):
+The public API is intentionally shape-compatible with MediatR 12. 
 
 ```
-backend/src/Shared/MyApp.Shared/
-└── Cqrs/
-    ├── Contracts/
-    │   ├── IRequest.cs           ← marker interfaces + Unit
-    │   ├── IRequestHandler.cs    ← ValueTask<T> Handle(...)
-    │   ├── IPipelineBehavior.cs  ← cross-cutting concerns
-    │   └── ISender.cs            ← what endpoints inject
-    └── Dispatcher/
-        ├── DispatcherRegistry.cs           ← FrozenDictionary<Type, wrapper>
-        ├── RequestHandlerWrapper.cs        ← typed wrapper, builds the pipeline
-        ├── Dispatcher.cs                   ← ISender implementation
-        └── DispatcherRegistration.cs       ← AddDispatcher(...) + AddPipelineBehavior(...)
+backend/src/Shared/Mediator/
+├── Mediator.csproj
+├── Contracts/
+│   ├── IRequest.cs
+│   ├── IRequestHandler.cs
+│   ├── IPipelineBehavior.cs
+│   └── IMediator.cs
+└── Dispatcher/
+    ├── DispatcherRegistry.cs
+    ├── RequestHandlerWrapper.cs
+    ├── Dispatcher.cs
+    └── DispatcherRegistration.cs
 ```
-
-> **Path note for Steps 10–16.** The `mkdir` and `Create <path>` commands in
-> the remaining walkthrough steps use the shorthand `src/MyApp.Api/Cqrs/...`
-> notation. Substitute the actual paths from the mapping table at the top of
-> this section. The file *contents* are unchanged.
-
-Create the folder structure and add the files:
+Create the **Mediator class library**, add it to the solution, and reference it from
+the API (from `MyApp/backend/`, the solution root):
 
 ```bash
-mkdir -p src/Shared/MyApp.Shared/Cqrs/Contracts
-mkdir -p src/Shared/MyApp.Shared/Cqrs/Dispatcher
+# from MyApp/backend/  (the solution root)
+
+dotnet new classlib -n Mediator -o src/Shared/Mediator --framework net10.0
+dotnet sln MyApp.slnx add src/Shared/Mediator/Mediator.csproj
+dotnet add src/Services/MyApp.Api/MyApp.Api.csproj reference src/Shared/Mediator/Mediator.csproj
+
+# DI abstractions for IServiceCollection / GetRequiredService
+dotnet add src/Shared/Mediator package Microsoft.Extensions.DependencyInjection.Abstractions
+
+# Dir & files:
+rm -f src/Shared/Mediator/Class1.cs
+mkdir -p src/Shared/Mediator/Contracts
+mkdir -p src/Shared/Mediator/Dispatcher
+touch src/Shared/Mediator/Contracts/IRequest.cs
+touch src/Shared/Mediator/Contracts/IRequestHandler.cs
+touch src/Shared/Mediator/Contracts/IPipelineBehavior.cs
+touch src/Shared/Mediator/Contracts/IMediator.cs
+touch src/Shared/Mediator/Dispatcher/DispatcherRegistry.cs
+touch src/Shared/Mediator/Dispatcher/RequestHandlerWrapper.cs
+touch src/Shared/Mediator/Dispatcher/Dispatcher.cs
+touch src/Shared/Mediator/Dispatcher/DispatcherRegistration.cs
 ```
 
-Create `src/MyApp.Api/Cqrs/Contracts/IRequest.cs`:
+Mediator <Mark type="underline" color="tip">sends</Mark> a <Mark type="underline" color="default">request or message</Mark><Mark type="underline" color="tip">from a caller to a handler</Mark>. For this to work, we need to define the request and handler interfaces:
 
-```csharp
-namespace MyApp.Cqrs;
+```csharp title="src/Shared/Mediator/Contracts/IRequest.cs"
+namespace Mediator;
 
+// Marker for any request that returns a response
 public interface IRequest<out TResponse>;
+// Void-equivalent for commands with no return value
 public interface IRequest : IRequest<Unit>;
-
 public readonly struct Unit
 {
     public static readonly Unit Value = default;
 }
 ```
 
-Create `src/MyApp.Api/Cqrs/Contracts/IRequestHandler.cs`:
+Usage:
 
-```csharp
-namespace MyApp.Cqrs;
+<CodeTabs>
+
+```csharp title="Products/CreateProduct/CreateProductCommand.cs"
+public sealed record CreateProductCommand(
+    string Name,
+    string Category,
+    decimal Price,
+    int Stock) : IRequest<Guid>;
+```
+
+```csharp title="Products/GetProduct/GetProductQuery.cs"
+public sealed record GetProductQuery(Guid Id) : IRequest<ProductDto?>;
+```
+
+```csharp title="Products/GetProducts/GetProductsQuery.cs"
+public sealed record GetProductsQuery() : IRequest<List<ProductDto>>;
+```
+</CodeTabs>
+
+Mediator interface defines the `Send` method that takes the request of Type `TRequest` and returns a response of Type `TResponse`:
+
+
+```csharp title="src/Shared/Mediator/Contracts/IMediator.cs"
+namespace Mediator;
+
+public interface IMediator
+{
+    ValueTask<TResponse> Send<TResponse>(
+        IRequest<TResponse> request,
+        CancellationToken cancellationToken = default);
+}
+```
+
+So the the client we can send a request to the mediator which then dispatches the request to the appropriate handler.
+
+<CodeTabs>
+
+```csharp title="Products/GetProduct/GetProductEndpoint.cs" showLineNumbers {15}
+public class GetProductEndpoint : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        app.MapGet("/products/{id:guid}", HandleAsync)
+            .WithName("GetProduct")
+            .WithTags("Products");
+    }
+
+    private async Task<Results<Ok<ProductDto>, NotFound>> HandleAsync(
+        Guid id,
+        IMediator mediator,
+        CancellationToken ct)
+    {
+        var product = await mediator.Send(new GetProductQuery(id), ct);
+        return product is null ? TypedResults.NotFound() : TypedResults.Ok(product);
+    }
+}
+```
+
+
+```csharp title="Products/GetProducts/GetProductsEndpoint.cs" showLineNumbers {15}
+public class GetProductsEndpoint : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        app.MapGet("/products", HandleAsync)
+            .WithName("GetProducts")
+            .WithTags("Products")
+            .Produces<List<ProductDto>>(StatusCodes.Status200OK);
+    }
+
+    private async Task<Ok<List<ProductDto>>> HandleAsync(
+        IMediator mediator,
+        CancellationToken ct)
+    {
+        var products = await mediator.Send(new GetProductsQuery(), ct);
+        return TypedResults.Ok(products);
+    }
+}
+```
+
+```csharp title="MyApp.Api/Features/Products/CreateProduct/CreateProductEndpoint.cs" showLineNumbers {14}
+public class CreateProductEndpoint : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        app.MapPost("/products", HandleAsync)
+            .WithName("CreateProduct")
+            .WithTags("Products");
+    }
+    private async Task<Created<Guid>> HandleAsync(
+        CreateProductCommand command,
+        IMediator mediator,
+        CancellationToken ct)
+    {
+        var id = await mediator.Send(command, ct); // note we can pass the command directly without creating a new instance unlike query requests
+        return TypedResults.Created($"/products/{id}", id);
+    }
+}
+
+```
+
+</CodeTabs>
+
+
+<Figure
+  src="/learn/dotnet-api/02-cqrs-and-mediator-pattern/endpoint-mediator-message.png"
+  alt="Mediator Sending a Message"
+  caption="Fig 2. Mediator Sending a Message"
+  width="900"
+/>
+
+
+
+Now we need to define the handlers for <Mark type="underline" color="tip">each requests message</Mark>. The `IRequestHandler` must be same as the <Mark type="underline" color="tip">request type and the response type</Mark> of the <Mark type="circle" note=": IRequest<TResponse>" noteLayout="floating" noteSide="right">request message</Mark> as shown below:
+
+
+```csharp title="src/Shared/Mediator/Contracts/IRequestHandler.cs" showLineNumbers {4}
+namespace Mediator;
 
 public interface IRequestHandler<in TRequest, TResponse>
     where TRequest : IRequest<TResponse>
@@ -259,70 +388,182 @@ public interface IRequestHandler<in TRequest, TResponse>
 }
 ```
 
-Create `src/MyApp.Api/Cqrs/Contracts/IPipelineBehavior.cs`:
+The one MediatR-incompatible decision: <Mark type="box" color="info">`ValueTask<TResponse>`</Mark> instead of `Task<TResponse>`. `ValueTask<T>` avoids the heap allocation when a handler completes synchronously — a measurable win for cached queries and trivial commands. The cost is that callers cannot await a `ValueTask` more than once, which is rarely a problem in practice.
 
-```csharp
-namespace MyApp.Cqrs;
+Usage:
 
-public delegate ValueTask<TResponse> RequestHandlerDelegate<TResponse>(
-    CancellationToken cancellationToken = default);
 
-public interface IPipelineBehavior<in TRequest, TResponse>
-    where TRequest : IRequest<TResponse>
+<CodeTabs>
+
+```csharp title="Products/GetProduct/GetProductsQueryHandler.cs" 
+internal sealed class GetProductsQueryHandler(AppDbContext dbContext)
+    : IRequestHandler<GetProductsQuery, List<ProductDto>>
 {
-    ValueTask<TResponse> Handle(
-        TRequest request,
-        RequestHandlerDelegate<TResponse> next,
-        CancellationToken cancellationToken);
-}
-```
-
-Create `src/MyApp.Api/Cqrs/Contracts/ISender.cs`:
-
-```csharp
-namespace MyApp.Cqrs;
-
-public interface ISender
-{
-    ValueTask<TResponse> Send<TResponse>(
-        IRequest<TResponse> request,
-        CancellationToken cancellationToken = default);
-}
-```
-
-Now the dispatcher. Create `src/MyApp.Api/Cqrs/Dispatcher/DispatcherRegistry.cs`:
-
-```csharp
-using System.Collections.Frozen;
-
-namespace MyApp.Cqrs.Dispatcher;
-
-internal sealed class DispatcherRegistry
-{
-    public FrozenDictionary<Type, RequestHandlerBase> Handlers { get; }
-
-    public DispatcherRegistry(FrozenDictionary<Type, RequestHandlerBase> handlers)
+    public async ValueTask<List<ProductDto>> Handle(
+        GetProductsQuery query,
+        CancellationToken cancellationToken)
     {
-        Handlers = handlers;
+        return await dbContext.Products
+            .AsNoTracking()
+            .OrderByDescending(p => p.CreatedAt) // Newest first
+            .Select(p => new ProductDto(
+                p.Id,
+                p.Name,
+                p.Category,
+                p.Price,
+                p.Stock))
+            .ToListAsync(cancellationToken);
     }
+}
+```
 
-    public RequestHandlerBase<TResponse> Get<TResponse>(Type requestType)
-        where TResponse : notnull
+```csharp title="Products/CreateProduct/CreateProductCommandHandler.cs" 
+internal sealed class CreateProductCommandHandler(
+    AppDbContext dbContext,
+    ILogger<CreateProductCommandHandler> logger)
+    : IRequestHandler<CreateProductCommand, Guid>
+{
+    public async ValueTask<Guid> Handle(
+        CreateProductCommand command,
+        CancellationToken cancellationToken)
     {
-        if (!Handlers.TryGetValue(requestType, out var handler))
+        var product = new Product
         {
-            throw new InvalidOperationException(
-                $"No handler registered for request {requestType.FullName}.");
-        }
-        return (RequestHandlerBase<TResponse>)handler;
+            Id = Guid.NewGuid(),
+            Name = command.Name,
+            Category = command.Category,
+            Price = command.Price,
+            Stock = command.Stock,
+            CreatedAt = DateTime.UtcNow
+        };
+        dbContext.Products.Add(product);
+
+        // SaveChanges is now handled directly inside the command handler
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Product {ProductId} created", product.Id);
+        return product.Id;
     }
 }
 ```
 
-Create `src/MyApp.Api/Cqrs/Dispatcher/RequestHandlerWrapper.cs`:
+```csharp title="Products/UpdateProduct/GetProductQueryHandler.cs" 
+internal sealed class GetProductQueryHandler(
+    AppDbContext dbContext)
+    : IRequestHandler<GetProductQuery, ProductDto?>
+{
+    public async ValueTask<ProductDto?> Handle(
+        GetProductQuery query,
+        CancellationToken cancellationToken)
+    {
+        var product = await dbContext.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == query.Id, cancellationToken);
 
-```csharp
-namespace MyApp.Cqrs.Dispatcher;
+        return product is null
+            ? null
+            : new ProductDto(
+                product.Id,
+                product.Name,
+                product.Category,
+                product.Price,
+                product.Stock);
+    }
+}
+```
+
+</CodeTabs>
+
+<Figure
+  src="/learn/dotnet-api/02-cqrs-and-mediator-pattern/handler.png"
+  alt="Handler receiving a message from the mediator"
+  caption="Fig 2. Handler receiving a message from the mediator and returning a response"
+  width="900"
+/>
+
+The figure shows the it receives the request message from the mediator and returns the response.
+
+
+</GuideStep>
+<GuideStep title="The Dispatcher: FrozenDictionary + Typed Wrappers">
+
+The core idea: at startup, scan the assembly for every `IRequestHandler<TRequest, TResponse>` implementation. For each one, build a strongly-typed `RequestHandlerWrapper<TRequest, TResponse>` instance. Store all wrappers in a `FrozenDictionary<Type, RequestHandlerBase>` keyed by the concrete request type. At dispatch time, look up the wrapper and call into it. <Mark type="underline">No per-call reflection. No per-call `MakeGenericType`.</Mark>
+
+
+<Guide stepHeadingLevel={4}>
+<GuideStep title="DI Registration: One Extension Method">
+
+```csharp title="src/Shared/Mediator/MediatorRegistration.cs"
+// MediatorRegistration.cs
+using System.Collections.Frozen;
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Mediator;
+
+public static class MediatorRegistration
+{
+    public static void AddDispatcher(this IServiceCollection services,
+        params Assembly[] assemblies)
+    {
+        var requestWrappers = new Dictionary<Type, RequestHandlerBase>();
+        foreach (var assembly in assemblies)
+        {
+            foreach (var type in assembly.GetTypes())
+            {
+                if (type.IsAbstract || type.IsInterface)
+                    continue;
+                foreach (var iface in type.GetInterfaces())
+                {
+                    if (!iface.IsGenericType)
+                        continue;
+                    var genericDef = iface.GetGenericTypeDefinition();
+                    if (genericDef != typeof(IRequestHandler<,>)) continue;
+                    // Register handler in DI
+                    services.AddScoped(iface, type);
+                    // Build wrapper once at startup
+                    var args = iface.GetGenericArguments();
+                    var requestType = args[0];
+                    var responseType = args[1];
+                    if (requestWrappers.ContainsKey(requestType)) continue;
+                    var wrapperType = typeof(RequestHandlerWrapper<,>)
+                        .MakeGenericType(requestType, responseType);
+                    requestWrappers[requestType] =
+                        (RequestHandlerBase)Activator.CreateInstance(wrapperType)!;
+                }
+            }
+        }
+        var registry = new MediatorRegistry(requestWrappers.ToFrozenDictionary());
+        services.AddSingleton(registry);
+        services.AddScoped<Mediator>();
+        services.AddScoped<IMediator>(sp => sp.GetRequiredService<Mediator>());
+    }
+}
+
+```
+  The `MakeGenericType` and `Activator.CreateInstance` calls <Mark type="underline" color="default">happen once per handler type at startup</Mark> and all the <Mark type="highlight" color="accent">handlers are stored in a frozen lookup table</Mark>. The hot dispatch path <Mark type="underline" color="tip">never touches reflection again</Mark>. This is the crucial design decision: pay the reflection cost once, when types are known, and store the result in a frozen lookup table.
+
+<Figure
+  src="/learn/dotnet-api/02-cqrs-and-mediator-pattern/registration.png"
+  alt="Mediator Registration in action"
+  caption="Fig 2. Mediator Registration in action"
+  width="900"
+  priority
+/>
+
+The dispatch path is one dictionary lookup, one reference cast, one virtual call. FrozenDictionary shipped in .NET and is purpose-built for read-heavy lookup tables that are frozen after construction.
+
+</GuideStep>
+
+
+  <GuideStep title="The Wrapper Hierarchy">
+  
+```csharp title="src/Shared/Mediator/RequestHandlerWrapper.cs"
+// RequestHandlerWrapper.cs
+
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Mediator;
 
 internal abstract class RequestHandlerBase;
 
@@ -343,109 +584,64 @@ internal sealed class RequestHandlerWrapper<TRequest, TResponse> : RequestHandle
         CancellationToken cancellationToken)
     {
         var typed = (TRequest)request;
+        // Resolve handler from DI and invoke directly
         var handler = provider.GetRequiredService<IRequestHandler<TRequest, TResponse>>();
-        var behaviors = provider.GetServices<IPipelineBehavior<TRequest, TResponse>>();
-
-        RequestHandlerDelegate<TResponse> pipeline = ct => handler.Handle(typed, ct);
-        foreach (var behavior in behaviors.Reverse())
-        {
-            var next = pipeline;
-            var current = behavior;
-            pipeline = ct => current.Handle(typed, next, ct);
-        }
-        return pipeline(cancellationToken);
+        return handler.Handle(typed, cancellationToken);
     }
 }
+
 ```
 
-Create `src/MyApp.Api/Cqrs/Dispatcher/Dispatcher.cs`:
+  </GuideStep>
+  <GuideStep title="The Mediator">
 
-```csharp
-using MyApp.Cqrs.Dispatcher;
+```csharp title="src/Shared/Mediator/Dispatcher/DispatcherRegistry.cs"
+// Mediator.cs
+namespace Mediator;
 
-namespace MyApp.Cqrs;
-
-internal sealed class Dispatcher : ISender
+internal sealed class Mediator(
+    IServiceProvider provider,
+    MediatorRegistry registry) : IMediator
 {
-    private readonly DispatcherRegistry _registry;
-    private readonly IServiceProvider _provider;
-
-    public Dispatcher(DispatcherRegistry registry, IServiceProvider provider)
-    {
-        _registry = registry;
-        _provider = provider;
-    }
-
     public ValueTask<TResponse> Send<TResponse>(
         IRequest<TResponse> request,
         CancellationToken cancellationToken = default)
-        where TResponse : notnull
     {
-        var requestType = request.GetType();
-        var wrapper = _registry.Get<TResponse>(requestType);
-        return wrapper.Handle(request, _provider, cancellationToken);
-    }
-}
-```
-
-Create `src/MyApp.Api/Cqrs/Dispatcher/DispatcherRegistration.cs`:
-
-```csharp
-using System.Collections.Frozen;
-using System.Reflection;
-using MyApp.Cqrs.Dispatcher;
-
-namespace MyApp.Cqrs;
-
-public static class DispatcherRegistration
-{
-    public static IServiceCollection AddDispatcher(
-        this IServiceCollection services,
-        params Assembly[] assemblies)
-    {
-        var requestWrappers = new Dictionary<Type, RequestHandlerBase>();
-
-        foreach (var assembly in assemblies)
+        ArgumentNullException.ThrowIfNull(request);
+        if (!registry.RequestWrappers.TryGetValue(request.GetType(), out var wrapper))
         {
-            foreach (var type in assembly.GetTypes())
-            {
-                if (type.IsAbstract || type.IsInterface) continue;
-
-                foreach (var iface in type.GetInterfaces())
-                {
-                    if (!iface.IsGenericType) continue;
-                    if (iface.GetGenericTypeDefinition() != typeof(IRequestHandler<,>)) continue;
-
-                    services.AddScoped(iface, type);
-                    var args = iface.GetGenericArguments();
-                    var requestType = args[0];
-                    var responseType = args[1];
-
-                    if (requestWrappers.ContainsKey(requestType)) continue;
-
-                    var wrapperType = typeof(RequestHandlerWrapper<,>)
-                        .MakeGenericType(requestType, responseType);
-                    requestWrappers[requestType] =
-                        (RequestHandlerBase)Activator.CreateInstance(wrapperType)!;
-                }
-            }
+            throw new InvalidOperationException(
+                $"No handler registered for request type '{request.GetType().FullName}'. " +
+                $"Ensure the handler implements IRequestHandler<{request.GetType().Name}, TResponse> " +
+                $"and that AddDispatcher scanned the correct assembly.");
         }
-
-        services.AddSingleton(new DispatcherRegistry(requestWrappers.ToFrozenDictionary()));
-        services.AddScoped<Dispatcher>();
-        services.AddScoped<ISender>(sp => sp.GetRequiredService<Dispatcher>());
-        return services;
-    }
-
-    public static IServiceCollection AddPipelineBehavior(
-        this IServiceCollection services,
-        Type openGenericBehaviorType)
-    {
-        services.AddScoped(typeof(IPipelineBehavior<,>), openGenericBehaviorType);
-        return services;
+        // Reference-type cast - cheap, no boxing
+        return ((RequestHandlerBase<TResponse>)wrapper).Handle(request, provider, cancellationToken);
     }
 }
 ```
+
+<Figure
+  src="/learn/dotnet-api/02-cqrs-and-mediator-pattern/request-handler.png"
+  alt="Mediator in action"
+  caption="Fig 2. Mediator in action"
+  width="900"
+/>
+
+<Figure
+  src="/learn/dotnet-api/02-cqrs-and-mediator-pattern/request-handler-wrapper.png"
+  alt="Request Handler Wrapper in action"
+  caption="Request Handler Wrapper gets the handler from the DI container and invokes it according to the request type sent by the mediator"
+  width="900"
+/>
+
+In the figures we can see the mediator is sending a message to the request handler wrapper which then gets the handler from the DI container and invokes it according to the request type sent by the mediator.
+
+</GuideStep>
+  
+
+</Guide>
+
 
 Why this design works:
 
@@ -459,6 +655,16 @@ Why this design works:
 
 </GuideStep>
 
+
+
+
+</Guide>
+
+## Custom Mediator Pattern: 2. Behaviors Pipelines
+
+
+<Guide numbered stepHeadingLevel={3}>
+
 <GuideStep title="Step 11 — Build the Common folder (Result, Error, exceptions, queryable extensions)">
 
 The `Common/` folder holds types that are shared across multiple slices but have
@@ -466,10 +672,10 @@ nothing to do with HTTP: the Result pattern, the exception hierarchy, and the
 reusable `IQueryable` extensions for filtering / sorting / pagination.
 
 ```bash
-mkdir -p src/MyApp.Api/Common/Exceptions
+mkdir -p src/Services/MyApp.Api/Common/Exceptions
 ```
 
-Create `src/MyApp.Api/Common/Error.cs`:
+Create `src/Services/MyApp.Api/Common/Error.cs`:
 
 ```csharp
 namespace MyApp.Common;
@@ -488,7 +694,7 @@ public sealed record Error(string Code, string Message, string? Uri = null)
 }
 ```
 
-Create `src/MyApp.Api/Common/Result.cs`:
+Create `src/Services/MyApp.Api/Common/Result.cs`:
 
 ```csharp
 namespace MyApp.Common;
@@ -521,7 +727,7 @@ public sealed class Result<T> : Result
 }
 ```
 
-Create `src/MyApp.Api/Common/Exceptions/AppException.cs`:
+Create `src/Services/MyApp.Api/Common/Exceptions/AppException.cs`:
 
 ```csharp
 namespace MyApp.Common.Exceptions;
@@ -542,7 +748,7 @@ public abstract class AppException : Exception
 }
 ```
 
-Create `src/MyApp.Api/Common/Exceptions/AppExceptions.cs`:
+Create `src/Services/MyApp.Api/Common/Exceptions/AppExceptions.cs`:
 
 ```csharp
 using System.Net;
@@ -588,7 +794,7 @@ public sealed class ForbiddenException : AppException
 }
 ```
 
-Create `src/MyApp.Api/Common/PagedResponse.cs`:
+Create `src/Services/MyApp.Api/Common/PagedResponse.cs`:
 
 ```csharp
 namespace MyApp.Common;
@@ -605,7 +811,7 @@ public sealed class PagedResponse<T>
 }
 ```
 
-Create `src/MyApp.Api/Common/QueryableExtensions.cs` — the filtering, sorting,
+Create `src/Services/MyApp.Api/Common/QueryableExtensions.cs` — the filtering, sorting,
 and pagination helpers. The sort method uses a property whitelist so attackers
 cannot inject arbitrary SQL via the `sortBy` query parameter.
 
@@ -696,19 +902,19 @@ public static class QueryableExtensions
 <GuideStep title="Step 12 — Build the Infrastructure folder (entities, DbContext, behaviors, exception handlers)">
 
 ```bash
-mkdir -p src/MyApp.Api/Infrastructure/Persistence/Entities
-mkdir -p src/MyApp.Api/Infrastructure/Behaviors
-mkdir -p src/MyApp.Api/Infrastructure/ExceptionHandlers
+mkdir -p src/Services/MyApp.Api/Infrastructure/Persistence/Entities
+mkdir -p src/Services/MyApp.Api/Infrastructure/Behaviors
+mkdir -p src/Services/MyApp.Api/Infrastructure/ExceptionHandlers
 ```
 
-Create the entities in `src/MyApp.Api/Infrastructure/Persistence/Entities/`.
+Create the entities in `src/Services/MyApp.Api/Infrastructure/Persistence/Entities/`.
 Each entity is a plain anemic class — public setters, no domain invariants — and
 each carries its own `IEntityTypeConfiguration` so EF Core mapping lives next to
 the entity rather than in a giant `OnModelCreating` override. See the existing
 `Product.cs`, `Customer.cs`, and `Order.cs` files in this repo for the full
 source — copy them verbatim.
 
-Create `src/MyApp.Api/Infrastructure/Persistence/AppDbContext.cs`:
+Create `src/Services/MyApp.Api/Infrastructure/Persistence/AppDbContext.cs`:
 
 ```csharp
 using MyApp.Infrastructure.Persistence.Entities;
@@ -736,11 +942,11 @@ public sealed class AppDbContext : DbContext
 Create the three pipeline behaviors. The order they are *registered* in `Program.cs`
 determines execution order — first registered runs outermost.
 
-`src/MyApp.Api/Infrastructure/Behaviors/LoggingBehavior.cs` — outermost:
+`src/Services/MyApp.Api/Infrastructure/Behaviors/LoggingBehavior.cs` — outermost:
 
 ```csharp
 using System.Diagnostics;
-using MyApp.Cqrs;
+using Mediator;
 using Microsoft.Extensions.Logging;
 
 namespace MyApp.Infrastructure.Behaviors;
@@ -776,10 +982,10 @@ public sealed class LoggingBehavior<TRequest, TResponse>(
 }
 ```
 
-`src/MyApp.Api/Infrastructure/Behaviors/ValidationBehavior.cs` — middle:
+`src/Services/MyApp.Api/Infrastructure/Behaviors/ValidationBehavior.cs` — middle:
 
 ```csharp
-using MyApp.Cqrs;
+using Mediator;
 using FluentValidation;
 
 namespace MyApp.Infrastructure.Behaviors;
@@ -806,11 +1012,11 @@ public sealed class ValidationBehavior<TRequest, TResponse>(
 }
 ```
 
-`src/MyApp.Api/Infrastructure/Behaviors/TransactionBehavior.cs` — innermost,
+`src/Services/MyApp.Api/Infrastructure/Behaviors/TransactionBehavior.cs` — innermost,
 wraps commands only (queries skip it because their name ends in `Query`):
 
 ```csharp
-using MyApp.Cqrs;
+using Mediator;
 using MyApp.Infrastructure.Persistence;
 using Microsoft.Extensions.Logging;
 
@@ -848,7 +1054,7 @@ public sealed class TransactionBehavior<TRequest, TResponse>(
 ```
 
 Create the four exception handlers in
-`src/MyApp.Api/Infrastructure/ExceptionHandlers/`. Each implements
+`src/Services/MyApp.Api/Infrastructure/ExceptionHandlers/`. Each implements
 `IExceptionHandler` and returns `true` if it handled the exception, `false`
 otherwise — the framework tries them in registration order. See
 `ValidationExceptionHandler.cs`, `NotFoundExceptionHandler.cs`,
@@ -858,7 +1064,7 @@ otherwise — the framework tries them in registration order. See
 <GuideStep title="Step 13 — Build the OpenAPI transformers">
 
 ```bash
-mkdir -p src/MyApp.Api/OpenApi
+mkdir -p src/Services/MyApp.Api/OpenApi
 ```
 
 Create `DocumentTransformer.cs`, `OperationTransformer.cs`, and
@@ -875,7 +1081,7 @@ own folder with everything it needs: the endpoint (Carter module), the command
 or query, the handler, the validator, and the wire request DTO.
 
 ```bash
-mkdir -p src/MyApp.Api/Features/Products/{CreateProduct,GetProduct,ListProducts,UpdateProduct,DeleteProduct}
+mkdir -p Products/{CreateProduct,GetProduct,ListProducts,UpdateProduct,DeleteProduct}
 ```
 
 Create the files in this order (each one references the previous):
@@ -899,7 +1105,7 @@ plain C# that can be unit-tested without a web server.
 </GuideStep>
 <GuideStep title="Step 15 — Wire everything in `Program.cs`">
 
-Replace `src/MyApp.Api/Program.cs` with the composition root. The final file
+Replace `src/Services/MyApp.Api/Program.cs` with the composition root. The final file
 is ~150 lines and does nothing but wiring — no business logic, no `if` branches
 on feature flags, just registration and middleware order. See the file in this
 repo for the full source.
@@ -922,7 +1128,7 @@ The critical ordering rules:
 <GuideStep title="Step 16 — Add `appsettings.json` and `appsettings.Development.json`">
 
 ```bash
-cat > src/MyApp.Api/appsettings.json << 'EOF'
+cat > src/Services/MyApp.Api/appsettings.json << 'EOF'
 {
   "ConnectionStrings": {
     "DefaultConnection": "Data Source=ecomapi.db"
@@ -963,7 +1169,7 @@ To prove the architecture scales, add the Orders feature. The pattern is
 identical to Products — one folder per use case, one Carter module per feature.
 
 ```bash
-mkdir -p src/MyApp.Api/Features/Orders/{CreateOrder,GetOrder,ListOrders}
+mkdir -p Orders/{CreateOrder,GetOrder,ListOrders}
 ```
 
 Create `OrderResponse.cs`, `OrdersModule.cs`, and the three sub-slices. The
@@ -984,7 +1190,7 @@ validators on `AddValidatorsFromAssembly(...)`.
 Same pattern again:
 
 ```bash
-mkdir -p src/MyApp.Api/Features/Customers/{CreateCustomer,GetCustomer,ListCustomers,UpdateCustomer,DeleteCustomer}
+mkdir -p Customers/{CreateCustomer,GetCustomer,ListCustomers,UpdateCustomer,DeleteCustomer}
 ```
 
 The `DeleteCustomerHandler` shows a third error strategy: it returns
@@ -1065,7 +1271,7 @@ MyApp/                                  ← repo root — repo-wide files only
     │   │   └── MyApp.Shared/
     │   │       ├── MyApp.Shared.csproj
     │   │       ├── Cqrs/                 ← custom MediatR replacement (~150 LOC)
-    │   │       │   ├── Contracts/        ← IRequest, IRequestHandler, IPipelineBehavior, ISender
+    │   │       │   ├── Contracts/        ← IRequest, IRequestHandler, IPipelineBehavior, IMediator
     │   │       │   └── Dispatcher/       ← Dispatcher, DispatcherRegistry (FrozenDictionary), Wrapper, Registration
     │   │       ├── Common/               ← Result, Error, QueryableExtensions (sort/search/pagination), PagedResponse
     │   │       │   └── Exceptions/       ← AppException + NotFound / Conflict / BusinessRule / Forbidden
@@ -1133,7 +1339,7 @@ The `Shared/Cqrs/` folder is a ~150-line MediatR replacement with shape-compatib
 - `IRequest<TResponse>` / `IRequest` (= `IRequest<Unit>`)
 - `IRequestHandler<in TRequest, TResponse>` — returns `ValueTask<TResponse>` (no allocation when sync)
 - `IPipelineBehavior<in TRequest, TResponse>` — pipeline composition
-- `ISender` — what endpoints inject
+- `IMediator` — what endpoints inject
 
 ### Why ValueTask
 
@@ -1185,7 +1391,7 @@ public async ValueTask<Result<ProductResponse>> Handle(GetProductQuery q, Cancel
 Endpoints translate `Result` to HTTP via `ResultExtensions.ToHttpResult()`:
 
 ```csharp
-v1.MapGet("/{id:guid}", async (Guid id, ISender sender, CancellationToken ct) =>
+v1.MapGet("/{id:guid}", async (Guid id, IMediator sender, CancellationToken ct) =>
 {
     var result = await sender.Send(new GetProductQuery(id), ct);
     return result.ToHttpResult();  // 200 OK or 404 Problem Details
