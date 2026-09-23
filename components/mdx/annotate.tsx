@@ -229,10 +229,11 @@ export function Mark({
     annotationRef.current?.remove();
     annotationRef.current = null;
 
+    const shouldAnimate = animate && !prefersReducedMotion();
     const annotation = annotate(el, {
       type,
       color: strokeColor,
-      animate: animate && !prefersReducedMotion(),
+      animate: shouldAnimate,
       animationDuration: duration,
       strokeWidth,
       padding,
@@ -241,9 +242,61 @@ export function Mark({
       multiline: true,
     });
     annotationRef.current = annotation;
-    annotation.show();
+
+    /** rough-notation measures once at show(); hide→show remasures. */
+    const redraw = (withAnimation = false) => {
+      if (annotationRef.current !== annotation) return;
+      const prevAnimate = annotation.animate;
+      annotation.animate = withAnimation && shouldAnimate;
+      if (annotation.isShowing()) annotation.hide();
+      annotation.show();
+      annotation.animate = prevAnimate;
+    };
+
+    redraw(true);
+
+    // Ignore layout noise while the entrance animation runs (RO often fires on observe).
+    let suppressUntil = performance.now() + (shouldAnimate ? duration + 50 : 0);
+    let rafId = 0;
+    const scheduleRedraw = () => {
+      if (performance.now() < suppressUntil) return;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => redraw(false));
+    };
+
+    // Mark size changes (wrap, font metrics) and content-root size changes
+    // (images/code above push the mark) both invalidate the SVG position.
+    const resizeObserver = new ResizeObserver(scheduleRedraw);
+    resizeObserver.observe(el);
+    const layoutRoot =
+      el.closest('.mdx-content, .learn-content, article, main') ?? el.parentElement;
+    if (layoutRoot && layoutRoot !== el) {
+      resizeObserver.observe(layoutRoot);
+    }
+
+    window.addEventListener('resize', scheduleRedraw);
+
+    let fontsCancelled = false;
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      void document.fonts.ready.then(() => {
+        if (!fontsCancelled) {
+          suppressUntil = 0;
+          scheduleRedraw();
+        }
+      });
+    }
+    // Catch late layout after images / deferred client UI settle.
+    const settleTimer = window.setTimeout(() => {
+      suppressUntil = 0;
+      scheduleRedraw();
+    }, Math.max(400, shouldAnimate ? duration + 100 : 0));
 
     return () => {
+      fontsCancelled = true;
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(settleTimer);
+      window.removeEventListener('resize', scheduleRedraw);
+      resizeObserver.disconnect();
       annotation.remove();
       annotationRef.current = null;
     };
