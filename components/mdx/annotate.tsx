@@ -122,76 +122,97 @@ function NoteBody({
   );
 }
 
-/** L-shaped hand-drawn connector from mark → note (matches note-taking screenshots). */
+/** Inline connector for left/right (in-flow). Top/bottom use BentCornerArrow. */
 function FloatingArrow({
   side,
   color,
 }: {
-  side: MarkNoteSide;
+  side: Extract<MarkNoteSide, 'left' | 'right'>;
   color: string;
 }) {
-  if (side === 'right' || side === 'bottom') {
-    return (
-      <svg
-        aria-hidden
-        viewBox="0 0 28 22"
-        className="pointer-events-none absolute top-[85%] left-[92%] size-7 overflow-visible"
-        fill="none"
-        stroke={color}
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round">
-        <path d="M2 2 L2 14 C2 16, 4 18, 10 18 L22 18" />
-        <path d="M18 14 L23 18 L18 22" />
-      </svg>
-    );
-  }
   if (side === 'left') {
+    // Note is to the left of the arrow: tip toward note (←).
     return (
       <svg
         aria-hidden
-        viewBox="0 0 28 22"
-        className="pointer-events-none absolute top-[85%] right-[92%] size-7 overflow-visible"
+        viewBox="0 0 24 16"
+        className="size-5 shrink-0 overflow-visible"
         fill="none"
         stroke={color}
-        strokeWidth="1.75"
+        strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round">
-        <path d="M26 2 L26 14 C26 16, 24 18, 18 18 L6 18" />
-        <path d="M10 14 L5 18 L10 22" />
+        <path d="M22 8 C 16 6, 10 6, 4 8" />
+        <path d="M8 5 L3 8 L8 11" />
       </svg>
     );
   }
+
+  // right: tip toward note (→).
   return (
     <svg
       aria-hidden
-      viewBox="0 0 22 28"
-      className="pointer-events-none absolute bottom-[85%] left-1/2 size-7 -translate-x-1/2 overflow-visible"
+      viewBox="0 0 24 16"
+      className="size-5 shrink-0 overflow-visible"
+      fill="none"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round">
+      <path d="M2 8 C 8 6, 14 6, 20 8" />
+      <path d="M16 5 L21 8 L16 11" />
+    </svg>
+  );
+}
+
+/**
+ * L-bend connector for top/bottom — like ⤵ / ⤴ (vertical then tip rightwards).
+ * Absolute so notes sit in the corner without stretching line-height.
+ */
+function BentCornerArrow({
+  side,
+  color,
+}: {
+  side: Extract<MarkNoteSide, 'top' | 'bottom'>;
+  color: string;
+}) {
+  if (side === 'top') {
+    // Up, then tip rightwards (⤴).
+    return (
+      <svg
+        aria-hidden
+        viewBox="0 0 28 22"
+        className="pointer-events-none absolute bottom-[88%] left-[88%] size-7 overflow-visible"
+        fill="none"
+        stroke={color}
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <path d="M2 20 L2 8 C2 6, 4 4, 10 4 L22 4" />
+        <path d="M18 1 L23 4 L18 7" />
+      </svg>
+    );
+  }
+
+  // Down, then tip rightwards (⤵).
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 28 22"
+      className="pointer-events-none absolute top-[88%] left-[88%] size-7 overflow-visible"
       fill="none"
       stroke={color}
       strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round">
-      <path d="M11 26 L11 10 C11 6, 13 4, 18 4 L20 4" />
-      <path d="M16 1 L21 4 L16 7" />
+      <path d="M2 2 L2 14 C2 16, 4 18, 10 18 L22 18" />
+      <path d="M18 14 L23 18 L18 22" />
     </svg>
   );
 }
 
-function notePositionClass(layout: MarkNoteLayout, side: MarkNoteSide) {
-  if (layout === 'margin') {
-    return 'absolute top-0 left-[calc(100%+1.75rem)] z-20 w-max';
-  }
-  switch (side) {
-    case 'left':
-      return 'absolute top-[calc(100%+0.15rem)] right-[calc(100%+0.25rem)] z-20 w-max';
-    case 'top':
-      return 'absolute bottom-[calc(100%+1.25rem)] left-1/2 z-20 w-max -translate-x-1/2';
-    case 'bottom':
-    case 'right':
-    default:
-      return 'absolute top-[calc(100%+0.35rem)] left-[calc(100%+1.45rem)] z-20 w-max';
-  }
+function marginNotePositionClass() {
+  return 'absolute top-0 left-[calc(100%+1.75rem)] z-20 w-max';
 }
 
 export function Mark({
@@ -353,23 +374,68 @@ export function Mark({
     );
   }
 
-  return (
-    <span
-      className={cn(
-        'relative inline-block align-baseline',
-        noteLayout === 'floating' && 'mb-6',
-        noteLayout === 'margin' && 'lg:mr-0',
-        className
-      )}>
-      <span ref={markRef} className="relative inline" aria-describedby={noteId}>
-        {children}
-      </span>
+  const markEl = (
+    <span ref={markRef} className="relative inline" aria-describedby={noteId}>
+      {children}
+    </span>
+  );
 
-      {noteLayout === 'margin' && (
+  const floatingNoteEl = (
+    <span
+      id={noteId}
+      role="note"
+      className="pointer-events-none w-max shrink-0"
+      style={{ maxWidth: resolvedMaxWidth }}>
+      <NoteBody
+        note={note!}
+        variant={noteVariant}
+        color={ink}
+        maxWidth={resolvedMaxWidth}
+      />
+    </span>
+  );
+
+  // Floating: left/right stay in-flow; top/bottom use a corner bend so line-height stays calm.
+  if (noteLayout === 'floating') {
+    if (noteSide === 'left') {
+      return (
+        <span className={cn('inline-flex items-center gap-1.5 align-baseline', className)}>
+          {floatingNoteEl}
+          {arrow ? <FloatingArrow side="left" color={ink} /> : null}
+          {markEl}
+        </span>
+      );
+    }
+    if (noteSide === 'right') {
+      return (
+        <span className={cn('inline-flex items-center gap-1.5 align-baseline', className)}>
+          {markEl}
+          {arrow ? <FloatingArrow side="right" color={ink} /> : null}
+          {floatingNoteEl}
+        </span>
+      );
+    }
+
+    // top / bottom — absolute note + ⤵/⤴ bend; modest margin reserves room without flex-col.
+    const isTop = noteSide === 'top';
+    return (
+      <span
+        className={cn(
+          'relative inline-block align-baseline',
+          isTop ? 'mt-8' : 'mb-8',
+          className
+        )}>
+        {markEl}
+        {arrow ? <BentCornerArrow side={isTop ? 'top' : 'bottom'} color={ink} /> : null}
         <span
           id={noteId}
           role="note"
-          className="mt-2 block w-max lg:hidden"
+          className={cn(
+            'pointer-events-none absolute z-20 w-max',
+            isTop
+              ? 'bottom-[calc(100%+0.2rem)] left-[calc(100%+0.2rem)]'
+              : 'top-[calc(100%+0.2rem)] left-[calc(100%+0.2rem)]'
+          )}
           style={{ maxWidth: resolvedMaxWidth }}>
           <NoteBody
             note={note!}
@@ -378,20 +444,37 @@ export function Mark({
             maxWidth={resolvedMaxWidth}
           />
         </span>
-      )}
+      </span>
+    );
+  }
 
-      {arrow && noteLayout === 'floating' && <FloatingArrow side={noteSide} color={ink} />}
+  // Margin: absolute note in the desktop gutter; stacked fallback on small screens.
+  return (
+    <span className={cn('relative inline-block align-baseline lg:mr-0', className)}>
+      {markEl}
 
       <span
-        id={noteLayout === 'margin' ? undefined : noteId}
+        id={noteId}
+        role="note"
+        className="mt-2 block w-max lg:hidden"
+        style={{ maxWidth: resolvedMaxWidth }}>
+        <NoteBody
+          note={note!}
+          variant={noteVariant}
+          color={ink}
+          maxWidth={resolvedMaxWidth}
+        />
+      </span>
+
+      <span
         role="note"
         className={cn(
           'pointer-events-none',
-          notePositionClass(noteLayout, noteSide),
-          noteLayout === 'margin' && 'hidden lg:block'
+          marginNotePositionClass(),
+          'hidden lg:block'
         )}
         style={{ maxWidth: resolvedMaxWidth }}>
-        {arrow && noteLayout === 'margin' && (
+        {arrow && (
           <svg
             aria-hidden
             viewBox="0 0 24 16"
