@@ -1,0 +1,752 @@
+---
+title: "Queryable Extensions, Specification, Filtering, Sorting and Pagination"
+date: '2026-09-25'
+excerpt: 'Learn how to implement Queryable Extensions, Specification, Filtering, Sorting and Pagination in minimal api project in .NET.'
+---
+
+## Queryable Extensions
+
+<Guide numbered stepHeadingLevel={3}>
+
+
+
+<GuideStep title="Step 1 — Create the PagedResponse class">
+Create `src/Services/MyApp.Api/Common/PagedResponse.cs`:
+
+```csharp
+namespace MyApp.Common;
+
+public sealed class PagedResponse<T>
+{
+    public IReadOnlyList<T> Data { get; init; } = [];
+    public int PageNumber { get; init; }
+    public int PageSize { get; init; }
+    public int TotalPages { get; init; }
+    public int TotalRecords { get; init; }
+    public bool HasNextPage => PageNumber < TotalPages;
+    public bool HasPreviousPage => PageNumber > 1;
+}
+```
+
+Create `src/Services/MyApp.Api/Common/QueryableExtensions.cs` — the filtering, sorting,
+and pagination helpers. The sort method uses a property whitelist so attackers
+cannot inject arbitrary SQL via the `sortBy` query parameter.
+
+```csharp
+using System.Linq.Dynamic.Core;
+using System.Linq.Expressions;
+using System.Reflection;
+
+namespace MyApp.Common;
+
+public static class QueryableExtensions
+{
+    public static IQueryable<T> ApplyPagination<T>(
+        this IQueryable<T> query, int pageNumber, int pageSize)
+    {
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 10;
+        return query.Skip((pageNumber - 1) * pageSize).Take(pageSize);
+    }
+
+    public static IQueryable<T> ApplySort<T>(this IQueryable<T> query, string? sortBy)
+        where T : class
+    {
+        if (string.IsNullOrWhiteSpace(sortBy)) return query;
+
+        var allowedProperties = typeof(T)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.PropertyType.IsPrimitive
+                || p.PropertyType == typeof(string)
+                || p.PropertyType == typeof(DateTime)
+                || p.PropertyType == typeof(decimal)
+                || p.PropertyType == typeof(Guid)
+                || Nullable.GetUnderlyingType(p.PropertyType) is { } ut
+                    && (ut.IsPrimitive || ut == typeof(DateTime)))
+            .Select(p => p.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var sortExpressions = new List<string>();
+        foreach (var part in sortBy.Split(',',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var tokens = part.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0 || !allowedProperties.Contains(tokens[0])) continue;
+
+            var direction = tokens.Length > 1
+                && tokens[1].Equals("desc", StringComparison.OrdinalIgnoreCase)
+                    ? "descending"
+                    : "ascending";
+            sortExpressions.Add($"{tokens[0]} {direction}");
+        }
+
+        return sortExpressions.Count > 0
+            ? query.OrderBy(string.Join(", ", sortExpressions))
+            : query;
+    }
+
+    public static IQueryable<T> ApplySearch<T>(
+        this IQueryable<T> query,
+        string? searchTerm,
+        params string[] searchProperties) where T : class
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm) || searchProperties.Length == 0)
+            return query;
+
+        var lowerSearch = searchTerm.ToLowerInvariant();
+        var parameter = Expression.Parameter(typeof(T), "x");
+        Expression? combined = null;
+
+        foreach (var propName in searchProperties)
+        {
+            var property = Expression.Property(parameter, propName);
+            var toLower = Expression.Call(property,
+                typeof(string).GetMethod("ToLower", Type.EmptyTypes)!);
+            var contains = Expression.Call(toLower,
+                typeof(string).GetMethod("Contains", [typeof(string)])!,
+                Expression.Constant(lowerSearch));
+            combined = combined is null ? contains : Expression.OrElse(combined, contains);
+        }
+
+        if (combined is null) return query;
+        var lambda = Expression.Lambda<Func<T, bool>>(combined, parameter);
+        return query.Where(lambda);
+    }
+}
+```
+
+</GuideStep>
+<GuideStep title="Step 12 — Build the Infrastructure folder (entities, DbContext, behaviors, exception handlers)">
+
+```bash
+mkdir -p src/Services/MyApp.Api/Infrastructure/Persistence/Entities
+mkdir -p src/Services/MyApp.Api/Infrastructure/Behaviors
+mkdir -p src/Services/MyApp.Api/Infrastructure/ExceptionHandlers
+```
+
+Create the entities in `src/Services/MyApp.Api/Infrastructure/Persistence/Entities/`.
+Each entity is a plain anemic class — public setters, no domain invariants — and
+each carries its own `IEntityTypeConfiguration` so EF Core mapping lives next to
+the entity rather than in a giant `OnModelCreating` override. See the existing
+`Product.cs`, `Customer.cs`, and `Order.cs` files in this repo for the full
+source — copy them verbatim.
+
+Create `src/Services/MyApp.Api/Infrastructure/Persistence/AppDbContext.cs`:
+
+```csharp
+using MyApp.Infrastructure.Persistence.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace MyApp.Infrastructure.Persistence;
+
+public sealed class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
+    }
+}
+```
+
+Create the three pipeline behaviors. The order they are *registered* in `Program.cs`
+determines execution order — first registered runs outermost.
+
+`src/Services/MyApp.Api/Infrastructure/Behaviors/LoggingBehavior.cs` — outermost:
+
+```csharp
+using System.Diagnostics;
+using Common;
+using Microsoft.Extensions.Logging;
+
+namespace MyApp.Infrastructure.Behaviors;
+
+public sealed class LoggingBehavior<TRequest, TResponse>(
+    ILogger<LoggingBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async ValueTask<TResponse> Handle(
+        TRequest request, RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        var requestName = typeof(TRequest).Name;
+        logger.LogInformation("--> Handling {RequestName}", requestName);
+        var sw = Stopwatch.StartNew();
+        try
+        {
+            var response = await next(cancellationToken);
+            sw.Stop();
+            logger.LogInformation("<-- Handled {RequestName} in {ElapsedMs}ms",
+                requestName, sw.ElapsedMilliseconds);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            logger.LogError(ex, "!! {RequestName} FAILED after {ElapsedMs}ms",
+                requestName, sw.ElapsedMilliseconds);
+            throw;
+        }
+    }
+}
+```
+
+`src/Services/MyApp.Api/Infrastructure/Behaviors/ValidationBehavior.cs` — middle:
+
+```csharp
+using Common;
+using FluentValidation;
+
+namespace MyApp.Infrastructure.Behaviors;
+
+public sealed class ValidationBehavior<TRequest, TResponse>(
+    IEnumerable<IValidator<TRequest>> validators)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async ValueTask<TResponse> Handle(
+        TRequest request, RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        if (!validators.Any()) return await next(cancellationToken);
+
+        var context = new ValidationContext<TRequest>(request);
+        var results = await Task.WhenAll(
+            validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+        var failures = results.SelectMany(r => r.Errors).Where(f => f is not null).ToList();
+
+        if (failures.Count > 0) throw new ValidationException(failures);
+        return await next(cancellationToken);
+    }
+}
+```
+
+`src/Services/MyApp.Api/Infrastructure/Behaviors/TransactionBehavior.cs` — innermost,
+wraps commands only (queries skip it because their name ends in `Query`):
+
+```csharp
+using Common;
+using MyApp.Infrastructure.Persistence;
+using Microsoft.Extensions.Logging;
+
+namespace MyApp.Infrastructure.Behaviors;
+
+public sealed class TransactionBehavior<TRequest, TResponse>(
+    AppDbContext dbContext,
+    ILogger<TransactionBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    public async ValueTask<TResponse> Handle(
+        TRequest request, RequestHandlerDelegate<TResponse> next,
+        CancellationToken cancellationToken)
+    {
+        if (typeof(TRequest).Name.EndsWith("Query", StringComparison.Ordinal))
+            return await next(cancellationToken);
+
+        await using var tx = await dbContext.Database
+            .BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var response = await next(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+            return response;
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+}
+```
+
+Create the four exception handlers in
+`src/Services/MyApp.Api/Infrastructure/ExceptionHandlers/`. Each implements
+`IExceptionHandler` and returns `true` if it handled the exception, `false`
+otherwise — the framework tries them in registration order. See
+`ValidationExceptionHandler.cs`, `NotFoundExceptionHandler.cs`,
+`BusinessExceptionHandler.cs`, and `GlobalExceptionHandler.cs` in this repo.
+
+</GuideStep>
+<GuideStep title="Step 13 — Build the OpenAPI transformers">
+
+```bash
+mkdir -p src/Services/MyApp.Api/OpenApi
+```
+
+Create `DocumentTransformer.cs`, `OperationTransformer.cs`, and
+`SchemaTransformer.cs`. They implement `IOpenApiDocumentTransformer`,
+`IOpenApiOperationTransformer`, and `IOpenApiSchemaTransformer` respectively —
+the three extension points the .NET 10 OpenAPI generator offers. See the files
+in this repo for the full source.
+
+</GuideStep>
+<GuideStep title="Step 14 — Build the first slice (Products)">
+
+This is where Vertical Slice Architecture shines. Every use case lives in its
+own folder with everything it needs: the endpoint (Carter module), the command
+or query, the handler, the validator, and the wire request DTO.
+
+```bash
+mkdir -p Products/{CreateProduct,GetProduct,ListProducts,UpdateProduct,DeleteProduct}
+```
+
+Create the files in this order (each one references the previous):
+
+1. `Features/Products/ProductResponse.cs` — shared read DTO for the slice
+2. `Features/Products/CreateProduct/CreateProductCommand.cs`
+3. `Features/Products/CreateProduct/CreateProductHandler.cs`
+4. `Features/Products/CreateProduct/CreateProductValidator.cs`
+5. `Features/Products/CreateProduct/CreateProductRequest.cs`
+6. `Features/Products/GetProduct/GetProductQuery.cs`
+7. `Features/Products/GetProduct/GetProductHandler.cs`
+8. `Features/Products/ListProducts/ListProductsQuery.cs` — includes `ProductQueryFilter`
+9. `Features/Products/ListProducts/ListProductsHandler.cs` — filtering + sorting + pagination
+10. `Features/Products/UpdateProduct/...`
+11. `Features/Products/DeleteProduct/...`
+12. `Features/Products/ProductsModule.cs` — the `ICarterModule` that wires every endpoint
+
+The Carter module is the *only* file that knows about HTTP. Everything else is
+plain C# that can be unit-tested without a web server.
+
+</GuideStep>
+<GuideStep title="Step 15 — Wire everything in `Program.cs`">
+
+Replace `src/Services/MyApp.Api/Program.cs` with the composition root. The final file
+is ~150 lines and does nothing but wiring — no business logic, no `if` branches
+on feature flags, just registration and middleware order. See the file in this
+repo for the full source.
+
+The critical ordering rules:
+
+1. `AddApiVersioning` → `AddApiExplorer` → `AddOpenApi` — the chained
+   `AddOpenApi` from `Asp.Versioning.Mvc.ApiExplorer` is what produces
+   per-version OpenAPI documents. Calling `AddOpenApi` standalone instead
+   would generate a single unversioned document.
+2. `RegisterRequestHandlers` before `AddPipelineBehavior` — behaviors are decorators
+   around the dispatcher, they must be registered after.
+3. `AddProblemDetails` before `AddExceptionHandler` — the handlers depend
+   on `IProblemDetailsService` being in the container.
+4. `UseExceptionHandler` with `SuppressDiagnosticsCallback` — .NET 10
+   feature that stops the framework from logging expected business
+   exceptions at Error level.
+
+</GuideStep>
+<GuideStep title="Step 16 — Add `appsettings.json` and `appsettings.Development.json`">
+
+```bash
+cat > src/Services/MyApp.Api/appsettings.json << 'EOF'
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=ecomapi.db"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
+EOF
+```
+
+</GuideStep>
+<GuideStep title="Step 17 — Run it and verify">
+
+```bash
+cd src/Services/MyApp.Api
+dotnet run
+```
+
+Open http://localhost:5000/scalar — you should see the Scalar UI with three
+tag groups (Products, Orders, Customers) and a single v1 API version. Hit
+http://localhost:5000/api/v1/products?pageSize=5 with curl to confirm the
+SQLite database was seeded:
+
+```bash
+curl -s http://localhost:5000/api/v1/products?pageSize=3 | jq .
+```
+
+</GuideStep>
+<GuideStep title="Step 18 — Add the Orders slice (incremental feature)">
+
+To prove the architecture scales, add the Orders feature. The pattern is
+identical to Products — one folder per use case, one Carter module per feature.
+
+```bash
+mkdir -p Orders/{CreateOrder,GetOrder,ListOrders}
+```
+
+Create `OrderResponse.cs`, `OrdersModule.cs`, and the three sub-slices. The
+`CreateOrderHandler` is interesting because it mixes both error strategies:
+it returns `Result.Failure` for "customer not found" (expected, caller-facing)
+but throws `ConflictException` for "insufficient stock" (the global handler
+turns it into a 409). Both end up as RFC 9457 Problem Details — the
+difference is whether the handler short-circuits or lets the pipeline run.
+
+You do **not** need to touch `Program.cs`. Carter auto-discovers the new
+module on `app.MapCarter()`, the dispatcher auto-discovers the new handlers
+on `RegisterRequestHandlers(...)`, and FluentValidation auto-discovers the new
+validators on `AddValidatorsFromAssembly(...)`.
+
+</GuideStep>
+<GuideStep title="Step 19 — Add the Customers slice">
+
+Same pattern again:
+
+```bash
+mkdir -p Customers/{CreateCustomer,GetCustomer,ListCustomers,UpdateCustomer,DeleteCustomer}
+```
+
+The `DeleteCustomerHandler` shows a third error strategy: it returns
+`Result.Failure(Error.NotFound(...))` for missing customers, but throws
+`ConflictException` for customers that have orders (because the database
+FK constraint would fail otherwise).
+
+</GuideStep>
+<GuideStep title="Step 20 — Add integration tests">
+
+```bash
+mkdir -p tests/MyApp.Tests/Features/Products
+```
+
+Create `tests/MyApp.Tests/Features/Products/ProductEndpointsTests.cs`. The
+test class inherits from `IClassFixture<WebApplicationFactory<Program>>`,
+swaps the SQLite DbContext for an in-memory one, seeds it via
+`DatabaseSeeder`, and exercises the HTTP pipeline end-to-end. See the file
+in this repo for the full source.
+
+Run the tests:
+
+```bash
+dotnet test
+```
+
+</GuideStep>
+<GuideStep title="Step 21 — (Optional) Add EF Core migrations">
+
+The demo uses `EnsureCreatedAsync` + `DatabaseSeeder` so the API works
+zero-config. For a real project, switch to migrations:
+
+```bash
+cd src/Services/MyApp.Api
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+```
+
+Then replace `db.Database.EnsureCreatedAsync()` in `Program.cs` with
+`db.Database.MigrateAsync()`.
+
+</GuideStep>
+
+</Guide>
+
+## 3. Solution layout
+
+The folder layout is designed to **match the future target** (modular monolith + standalone microservices + Aspire orchestration + Next.js BFF + Python ML service) **with zero breaking moves**. Today only the gateway API project actually contains code; everything else is either a stub or a `.gitkeep`'d placeholder. When we promote a slice to its own microservice, the code lands in a folder that already exists.
+
+```
+MyApp/                                  ← repo root — repo-wide files only
+├── global.json                           ← pins .NET 10 SDK + roll-forward policy
+├── aspire.config.json                    ← Aspire run config (placeholder until AppHost is wired)
+├── docker-compose.yml                    ← local dev orchestration (build context = repo root)
+├── .editorconfig                         ← code style as law (Roslyn analyzer severity overrides)
+├── .gitignore
+├── README.md                             ← this file
+│
+├── frontend/                             ← future Next.js BFF clients
+│   ├── client/                           ←   consumer web (Aspire: AddNextJsApp("client-web"))
+│   └── admin/                            ←   admin web (reserved)
+│
+├── mobile/                               ← reserved for future clients (React Native / Flutter)
+│
+└── backend/                              ← .NET solution lives here
+    ├── MyApp.slnx                      ← new XML solution format (human-readable, merge-friendly)
+    ├── Directory.Packages.props          ← Central Package Management (one source of truth for NuGet versions)
+    ├── Directory.Build.props             ← solution-wide MSBuild settings (analyzers, nullable, etc.)
+    │
+    ├── src/
+    │   ├── AppHost/                      ← Aspire orchestration entry point (STUB)
+    │   │   └── MyApp.AppHost.csproj      ← `aspire start` here — never `dotnet run` the Api directly once wired
+    │   │
+    │   ├── ServiceDefaults/              ← shared OTel + health + service discovery extension (STUB)
+    │   │   └── MyApp.ServiceDefaults.csproj
+    │   │
+    │   ├── Shared/               ← cross-cutting code shared by every backend service
+    │   │   └── MyApp.Shared/
+    │   │       ├── MyApp.Shared.csproj
+    │   │       ├── Cqrs/                 ← custom MediatR replacement (~150 LOC)
+    │   │       │   ├── Contracts/        ← IRequest, IRequestHandler, IPipelineBehavior, IMediator
+    │   │       │   └── Dispatcher/       ← Dispatcher, DispatcherRegistry (FrozenDictionary), Wrapper, Registration
+    │   │       ├── Common/               ← Result, Error, QueryableExtensions (sort/search/pagination), PagedResponse
+    │   │       │   └── Exceptions/       ← AppException + NotFound / Conflict / BusinessRule / Forbidden
+    │   │       ├── Infrastructure/
+    │   │       │   ├── Persistence/      ← AppDbContext + DatabaseSeeder + Entities (Product, Customer, Order)
+    │   │       │   ├── Behaviors/        ← LoggingBehavior → ValidationBehavior → TransactionBehavior
+    │   │       │   └── ExceptionHandlers/← IExceptionHandler chain (Validation → NotFound → Business → Global)
+    │   │       └── OpenApi/              ← Document / Operation / Schema transformers
+    │   │
+    │   ├── Modules/                      ← vertical slices (future modular monolith)
+    │   │   └── MyApp.Modules/
+    │   │       ├── MyApp.Modules.csproj
+    │   │       ├── Products/             ← /api/v1/products — full CRUD + filtering + sorting + pagination
+    │   │       │   ├── ProductsModule.cs ← ICarterModule (auto-discovered by MapCarter)
+    │   │       │   ├── ProductResponse.cs
+    │   │       │   └── {Create,Get,List,Update,Delete}Product/
+    │   │       ├── Orders/               ← /api/v1/orders — CreateOrder demonstrates exception-based control flow
+    │   │       │   ├── OrdersModule.cs
+    │   │       │   ├── OrderResponse.cs
+    │   │       │   └── {Create,Get,List}Order/
+    │   │       └── Customers/            ← /api/v1/customers — CRUD with conflict-on-orders delete guard
+    │   │           ├── CustomersModule.cs
+    │   │           ├── CustomerResponse.cs
+    │   │           └── {Create,Get,List,Update,Delete}Customer/
+    │   │
+    │   └── Services/                     ← deployable services (gateway + future microservices)
+    │       ├── MyApp.Api/              ← gateway host (modules + YARP edge + Scalar) — THE entry point today
+    │       │   ├── MyApp.Api.csproj    ← composition root only — references Shared + Modules
+    │       │   ├── Dockerfile            ← multi-stage build, CO-LOCATED with the csproj (one Dockerfile per service)
+    │       │   ├── Program.cs            ← ~150 lines: DI wiring + middleware pipeline
+    │       │   ├── appsettings.json
+    │       │   ├── appsettings.Development.json
+    │       │   └── Properties/launchSettings.json
+    │       ├── NotificationService/      ← STUB — Inbox-pattern event consumer (future)
+    │       ├── ReportingService/         ← STUB — saga + reporting microservice (future)
+    │       └── ml-diagnosis-service/     ← STUB — Python / FastAPI (non-.NET, outside slnx)
+    │
+    ├── tests/
+    │   ├── MyApp.Tests.Unit/           ← STUB — pure-logic tests for handlers, validators, Result, QueryableExtensions
+    │   ├── MyApp.Tests.Integration/    ← WebApplicationFactory<Program> + InMemory DB
+    │   │   └── Features/Products/ProductEndpointsTests.cs
+    │   └── MyApp.Tests.Architecture/   ← STUB — NetArchTest rules (Modules ↔ Shared boundaries)
+    │
+    └── k8s/                              ← manual kubectl apply -k (Aspire publish/deploy = future)
+```
+
+### How the layout evolves (no breaking moves)
+
+| Today | Tomorrow |
+|-------|----------|
+| `Modules/MyApp.Modules/` is one project with three slices | Each slice becomes its own project: `Modules/MyApp.Modules.Products/`, `…Orders/`, `…Customers/`. Folder names stay the same; only the `.csproj` files split. |
+| `Services/MyApp.Api/` is the only deployable | `Services/NotificationService/` and `Services/ReportingService/` become their own .NET projects. They were already in the tree as stubs. |
+| `AppHost/` and `ServiceDefaults/` are stubs | `AppHost/` references Aspire.Hosting and orchestrates everything; `ServiceDefaults/` is referenced by every backend project. |
+| SQLite, single `AppDbContext` | Postgres + per-module schemas; `AppDbContext` becomes a composite of `IModuleDbContext` interfaces. |
+| `frontend/client/` is empty | Becomes a Next.js project (`pnpm` + `output: "standalone"` for Aspire). |
+| `ml-diagnosis-service/` is empty | Becomes a Python FastAPI project, containerised, orchestrated by Aspire as `AddContainer(...)`. |
+| `k8s/` is empty | Holds kustomize manifests. Aspire publish/deploy is the long-term goal; manual kubectl is the interim. |
+
+---
+
+## 4. Custom CQRS dispatcher (no MediatR)
+
+The `Shared/Cqrs/` folder is a ~150-line MediatR replacement with shape-compatible interfaces:
+
+- `IRequest<TResponse>` / `IRequest` (= `IRequest<Unit>`)
+- `IRequestHandler<in TRequest, TResponse>` — returns `ValueTask<TResponse>` (no allocation when sync)
+- `IPipelineBehavior<in TRequest, TResponse>` — pipeline composition
+- `IMediator` — what endpoints inject
+
+### Why ValueTask
+
+`ValueTask<T>` avoids a heap allocation when the handler completes synchronously
+(cached queries, trivial commands). The trade-off: callers can't await it twice —
+rarely a problem in real handlers.
+
+### Hot-path performance
+
+- At startup, `RegisterRequestHandlers(Assembly.GetExecutingAssembly())` scans every type, registers
+  handlers in DI as scoped, and builds a `FrozenDictionary<Type, RequestHandlerBase>`.
+- On every dispatch, the wrapper looks up the typed wrapper and calls into it. **Zero
+  per-call reflection** — no `MakeGenericType`, no `GetMethod().Invoke()`.
+- Behaviors are resolved per-dispatch from the current DI scope, then composed into a
+  delegate chain via reverse iteration (so the first registered behavior runs outermost).
+
+### Registration
+
+```csharp
+// Program.cs (excerpt)
+builder.Services.RegisterRequestHandlers(Assembly.GetExecutingAssembly());
+
+// Order = execution order. First registered runs OUTERMOST.
+builder.Services.AddPipelineBehavior(typeof(LoggingBehavior<,>));     // sees request first
+builder.Services.AddPipelineBehavior(typeof(ValidationBehavior<,>));  // validate before tx
+builder.Services.AddPipelineBehavior(typeof(TransactionBehavior<,>)); // wraps handler innermost
+```
+
+---
+
+## 5. Result pattern + Exception handling
+
+The codebase uses **two complementary strategies**:
+
+### Result pattern — for *expected* failures
+
+```csharp
+public async ValueTask<Result<ProductResponse>> Handle(GetProductQuery q, CancellationToken ct)
+{
+    var product = await db.Products.FirstOrDefaultAsync(...);
+    if (product is null)
+    {
+        return Result<ProductResponse>.Failure(Error.NotFound("Product", q.Id));
+    }
+    return Result<ProductResponse>.Success(Map(product));
+}
+```
+
+Endpoints translate `Result` to HTTP via `ResultExtensions.ToHttpResult()`:
+
+```csharp
+v1.MapGet("/{id:guid}", async (Guid id, IMediator sender, CancellationToken ct) =>
+{
+    var result = await sender.Send(new GetProductQuery(id), ct);
+    return result.ToHttpResult();  // 200 OK or 404 Problem Details
+});
+```
+
+### Exceptions — for *exceptional* failures + cross-cutting validation
+
+`CreateOrderHandler` throws `ConflictException` when stock is insufficient — the global
+`BusinessExceptionHandler` translates it to a 409 Problem Details response.
+
+The handler chain (registered most-specific first):
+
+```
+ValidationExceptionHandler  → 400 (FluentValidation failures)
+NotFoundExceptionHandler    → 404 (entity not found)
+BusinessExceptionHandler    → 409 / 422 / 403 (Conflict / BusinessRule / Forbidden)
+GlobalExceptionHandler      → 500 (catch-all, hides details in Production)
+```
+
+`.NET 10` introduces `SuppressDiagnosticsCallback` — wired in `Program.cs` to silence the
+"unhandled exception" log noise for expected business exceptions.
+
+---
+
+## 6. Filtering, sorting, pagination
+
+The `Common/QueryableExtensions.cs` file gives you three composable `IQueryable<T>` extensions:
+
+```csharp
+var items = await db.Products
+    .AsNoTracking()
+    .ApplySearch(filter.Search, "Name", "Description")  // case-insensitive Contains
+    .ApplySort(filter.SortBy ?? "CreatedAt desc")        // property-whitelist-validated
+    .ApplyPagination(pageNumber, pageSize)               // Skip + Take
+    .ToListAsync(ct);
+```
+
+**Sort syntax**: `"name asc, price desc"` — comma-separated, with direction.
+**Sort safety**: only properties that actually exist on the entity are accepted. Anything
+else is silently ignored — no SQL injection via sort column.
+
+**Query example**:
+
+```
+GET /api/v1/products?pageSize=5&sortBy=price desc&category=Peripherals&inStock=true&search=keyboard
+```
+
+Returns a `PagedResponse<ProductResponse>` with `Data`, `PageNumber`, `PageSize`,
+`TotalRecords`, `TotalPages`, `HasNextPage`, `HasPreviousPage`.
+
+---
+
+## 7. OpenAPI in .NET 10
+
+The stack is the **2026 Microsoft-recommended combination**:
+
+| Component | Package | Purpose |
+|-----------|---------|---------|
+| OpenAPI generator | `Microsoft.AspNetCore.OpenApi` (built into .NET 10) | Generates `/openapi/v1.json` |
+| Versioning | `Asp.Versioning.Mvc` + `.ApiExplorer` | URL-segment versioning: `/api/v{version}/...` |
+| UI | `Scalar.AspNetCore` | Modern API reference UI (replaces Swagger UI) |
+
+### Transformers
+
+```csharp
+builder.Services.AddApiVersioning(...)
+    .AddApiExplorer(o => o.GroupNameFormat = "'v'VVV")
+    .AddOpenApi(options =>
+    {
+        options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+        options.AddDocumentTransformer<DocumentTransformer>();   // info, license, security scheme
+        options.AddOperationTransformer<OperationTransformer>(); // adds 500/429 to every op
+        options.AddSchemaTransformer<SchemaTransformer>();       // example values
+    });
+```
+
+### Per-version docs
+
+```csharp
+app.MapOpenApi().WithDocumentPerVersion(); // generates /openapi/v1.json, /openapi/v2.json, ...
+```
+
+---
+
+## 8. Tests
+
+```bash
+dotnet test
+```
+
+`ProductEndpointsTests` exercises the full HTTP pipeline via `WebApplicationFactory<Program>`:
+
+- Carter routing → CQRS dispatcher → behaviors → handler → AppDbContext (in-memory)
+- Verifies 200/201/400/404 paths
+- Verifies filtering by category actually filters
+
+---
+
+## 9. Adding a new slice
+
+1. Pick a feature, e.g. `Reviews`.
+2. `mkdir -p backend/src/Modules/MyApp.Modules/Reviews/CreateReview`
+3. Create `CreateReviewCommand.cs`, `CreateReviewHandler.cs`, `CreateReviewValidator.cs`,
+   `CreateReviewRequest.cs` in that folder.
+4. Create `Reviews/ReviewsModule.cs` implementing `ICarterModule`.
+5. **Done.** Carter auto-discovers the module on `app.MapCarter()`. The dispatcher
+   auto-discovers the handler on `RegisterRequestHandlers(...)`. FluentValidation auto-discovers
+   the validator. You don't touch `Program.cs`.
+
+This is the whole point of Vertical Slice Architecture — **adding a feature touches one folder.**
+
+---
+
+## 10. Migrations
+
+```bash
+cd backend/src/Services/MyApp.Api
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+```
+
+For the demo we use `EnsureCreatedAsync` + `DatabaseSeeder` so migrations are optional.
+
+---
+
+## 11. References
+
+The patterns in this repo are based on the .NET 10 production guide articles:
+
+- *The .NET Project Setup Every Senior Dev Uses in 2026*
+- *Vertical Slice Architecture: The .NET 10 Project Setup That Cut Our PRs in Half*
+- *I Removed MediatR — Building Your Own CQRS Handlers in .NET 10*
+- *Adding Filtering, Sorting And Pagination To a REST API | .NET 10*
+- *Production OpenAPI in .NET 10: Contracts, Scalar, and Versioned Minimal APIs*
+- *The New Global Error Handling in ASP.NET Core 10*
+- *Get Rid of Exceptions in Your Code With the Result Pattern*
+
+All adapted to a single Vertical-Slice project (no separate Domain/Application/Infrastructure
+assemblies) — the simplest setup that still scales.
+

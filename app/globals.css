@@ -286,6 +286,19 @@
     box-shadow: none;
   }
 
+  /* Dual Shiki themes from rehype-pretty-code.
+   * Light colors are the default inline `color` (or --shiki-light).
+   * Dark overrides via --shiki-dark + !important (Shiki class-based dual themes). */
+  code[data-theme*=' '],
+  code[data-theme*=' '] span {
+    color: var(--shiki-light);
+  }
+
+  .dark code[data-theme*=' '],
+  .dark code[data-theme*=' '] span {
+    color: var(--shiki-dark) !important;
+  }
+
   .code-block [data-rehype-pretty-code-figure] > pre,
   .code-block .code-pre {
     position: relative;
@@ -294,7 +307,9 @@
     overflow: auto;
     border-radius: 0;
     border: 0;
-    background: #131419;
+    /* Beat any Shiki inline background on <pre> */
+    background: #f6f8fa !important;
+    color: var(--shiki-light);
     padding: 1rem 0;
     box-shadow: none;
     scrollbar-gutter: stable;
@@ -308,7 +323,8 @@
 
   .dark .code-block [data-rehype-pretty-code-figure] > pre,
   .dark .code-block .code-pre {
-    background: #131419;
+    background: #131419 !important;
+    color: var(--shiki-dark) !important;
   }
 
   .code-block [data-rehype-pretty-code-figure] > pre code,

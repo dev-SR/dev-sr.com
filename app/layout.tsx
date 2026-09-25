@@ -50,7 +50,7 @@ export default function RootLayout({
         <SmoothScrollProvider>
           <ThemeProvider
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="dark"
             enableSystem
             disableTransitionOnChange>
             <SiteSplash />

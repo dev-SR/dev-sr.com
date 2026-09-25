@@ -40,7 +40,8 @@ export function Pre(props: PreProps) {
       <pre
         className={cn('code-pre m-0 overflow-x-auto text-sm leading-6', className)}
         {...preProps}
-        style={style}
+        // Panel bg is owned by CSS (light/dark); drop Shiki inline backgrounds.
+        style={stripShikiBackground(style)}
         data-language={language}>
         {children}
       </pre>
@@ -52,10 +53,24 @@ export function Pre(props: PreProps) {
       <pre
         className={cn('code-pre m-0 overflow-x-auto text-sm leading-6', className)}
         {...preProps}
-        style={style}
+        style={stripShikiBackground(style)}
         data-language={language}>
         {children}
       </pre>
     </CodeBlock>
   );
+}
+
+function stripShikiBackground(
+  style: React.CSSProperties | undefined
+): React.CSSProperties | undefined {
+  if (!style) return style;
+  const next = { ...style };
+  delete next.background;
+  delete next.backgroundColor;
+  // Dual-theme CSS vars for bg — clear so our panel colors win
+  const cssVars = next as Record<string, string | undefined>;
+  delete cssVars['--shiki-light-bg'];
+  delete cssVars['--shiki-dark-bg'];
+  return next;
 }

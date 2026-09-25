@@ -131,7 +131,10 @@ export async function getAllPosts(): Promise<BlogPost[]> {
 export const renderMDX = cache(async (content: string): Promise<MDXRemoteSerializeResult> => {
   /** @type {import('rehype-pretty-code').Options} */
   const rehypePrettyCodeOptions = {
-    theme: 'dracula',
+    theme: {
+      light: 'github-light',
+      dark: 'dracula',
+    },
     keepBackground: false,
     transformers: [
       transformerNotationDiff(), // [!code ++] / [!code --]

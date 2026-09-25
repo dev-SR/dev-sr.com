@@ -301,7 +301,7 @@ export function Mermaid({ chart, className }: MermaidProps) {
   const source = chart.trim();
 
   const [mode, setMode] = useState<ViewMode>('preview');
-  const [zoom, setZoom] = useState(3);
+  const [zoom, setZoom] = useState(2);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [maximized, setMaximized] = useState(false);
   const [mounted, setMounted] = useState(false);
