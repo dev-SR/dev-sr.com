@@ -198,15 +198,8 @@ export const renderMDX = cache(async (content: string): Promise<MDXRemoteSeriali
 // Get a single post by slug
 export async function getPostBySlug(slug: string): Promise<BlogPost | undefined> {
   try {
-    const filePath = path.join(contentDirectory, `${slug}.md`);
-    const mdxPath = path.join(contentDirectory, `${slug}.mdx`);
-
-    let fullPath: string;
-    if (fs.existsSync(filePath)) {
-      fullPath = filePath;
-    } else if (fs.existsSync(mdxPath)) {
-      fullPath = mdxPath;
-    } else {
+    const fullPath = await getPostSourcePath(slug);
+    if (!fullPath) {
       return undefined;
     }
 
@@ -232,6 +225,24 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | undefined>
     console.error(`Error reading post ${slug}:`, error);
     return undefined;
   }
+}
+
+/** Absolute path to the on-disk `.md` / `.mdx` for a public blog slug. */
+export async function getPostSourcePath(slug: string): Promise<string | undefined> {
+  if (!slug || slug.includes('..')) {
+    return undefined;
+  }
+
+  const filePath = path.join(contentDirectory, `${slug}.md`);
+  const mdxPath = path.join(contentDirectory, `${slug}.mdx`);
+
+  if (fs.existsSync(filePath)) {
+    return filePath;
+  }
+  if (fs.existsSync(mdxPath)) {
+    return mdxPath;
+  }
+  return undefined;
 }
 
 // Calculate reading time

@@ -10,7 +10,7 @@ import { CodeTabs, MultiFileCodeBlock } from './code-tabs';
 import { PrettyCodeFigure } from './pretty-code-figure';
 import { AuthoringPathDemo } from './authoring-path-demo';
 import { AuthoringFlowDemo } from './authoring-flow-demo';
-import { Mark, Sidenote } from './annotate';
+import { Mark, Sidenote } from './mark';
 import { ComponentPreview } from '@/components/learn/component-preview';
 import { Callout } from '@/components/learn/callout';
 import { CommandBlock } from '@/components/learn/command-block';

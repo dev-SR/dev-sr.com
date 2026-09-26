@@ -2,35 +2,13 @@
 
 import type React from 'react';
 import { Figure, MdxImage, Paragraph } from '@/components/mdx/figure';
+import { createMdxHeadings } from '@/components/mdx/heading';
 import { MdxLink } from '@/components/mdx/mdx-link';
 
+const headings = createMdxHeadings('learn');
+
 export const learnMdxServerComponents = {
-  h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
-    <h1
-      className="mb-6 mt-2 scroll-mt-28 text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
-      {...props}>
-      {children}
-    </h1>
-  ),
-  h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
-    <h2
-      className="mb-4 mt-12 scroll-mt-28 border-b border-border/60 pb-2 text-2xl font-semibold tracking-tight text-foreground"
-      {...props}>
-      {children}
-    </h2>
-  ),
-  h3: ({ children, ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
-    <h3
-      className="mb-3 mt-8 scroll-mt-28 text-lg font-semibold tracking-tight text-foreground"
-      {...props}>
-      {children}
-    </h3>
-  ),
-  h4: ({ children, ...props }: React.ComponentPropsWithoutRef<'h4'>) => (
-    <h4 className="mb-2 mt-6 scroll-mt-28 text-base font-semibold text-foreground" {...props}>
-      {children}
-    </h4>
-  ),
+  ...headings,
   p: Paragraph,
   ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
     <ul className="mb-6 flex list-disc flex-col gap-2 pl-6 text-muted-foreground" {...props}>

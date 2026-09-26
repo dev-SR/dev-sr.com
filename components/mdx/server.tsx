@@ -1,50 +1,12 @@
 import type React from 'react';
 import { Figure, MdxImage, Paragraph } from './figure';
+import { createMdxHeadings } from './heading';
 import { MdxLink } from './mdx-link';
 
+const headings = createMdxHeadings('blog');
+
 export const mdxServerComponents = {
-  h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
-    <h1
-      className="mb-7 mt-16 scroll-mt-24 text-4xl font-bold leading-tight text-foreground sm:text-5xl"
-      {...props}>
-      {children}
-    </h1>
-  ),
-  h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
-    <h2
-      className="mb-5 mt-14 scroll-mt-24 border-b border-border pb-3 text-3xl font-semibold leading-tight text-foreground sm:text-4xl"
-      {...props}>
-      {children}
-    </h2>
-  ),
-  h3: ({ children, ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
-    <h3
-      className="mb-4 mt-10 scroll-mt-24 text-2xl font-semibold leading-snug text-foreground sm:text-3xl"
-      {...props}>
-      {children}
-    </h3>
-  ),
-  h4: ({ children, ...props }: React.ComponentPropsWithoutRef<'h4'>) => (
-    <h4
-      className="mb-3 mt-8 scroll-mt-24 text-xl font-semibold leading-snug text-foreground"
-      {...props}>
-      {children}
-    </h4>
-  ),
-  h5: ({ children, ...props }: React.ComponentPropsWithoutRef<'h5'>) => (
-    <h5
-      className="mb-3 mt-6 scroll-mt-24 text-lg font-semibold leading-snug text-foreground"
-      {...props}>
-      {children}
-    </h5>
-  ),
-  h6: ({ children, ...props }: React.ComponentPropsWithoutRef<'h6'>) => (
-    <h6
-      className="mb-2 mt-5 scroll-mt-24 text-base font-semibold uppercase tracking-wide text-muted-foreground"
-      {...props}>
-      {children}
-    </h6>
-  ),
+  ...headings,
   p: Paragraph,
   ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
     <ul

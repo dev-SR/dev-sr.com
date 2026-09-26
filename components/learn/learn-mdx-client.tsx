@@ -17,7 +17,7 @@ import { Guide, GuideStep } from './guide';
 import { Mermaid } from './mermaid';
 import { FlowDiagram } from './flow-diagram';
 import { CodeTabs, MultiFileCodeBlock } from '@/components/mdx/code-tabs';
-import { Mark, Sidenote } from '@/components/mdx/annotate';
+import { Mark, Sidenote } from '@/components/mdx/mark';
 import { gsapDemoComponents } from './gsap-demos/mdx-registry';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {

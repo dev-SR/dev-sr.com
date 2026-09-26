@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Menu } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileCode2, Menu } from 'lucide-react';
 import type { LearnNavNode, LearnNeighbor, LearnPage } from '@/lib/learn';
 import Header from '@/components/Header';
 import { PageTopGlow } from '@/components/page-top-glow';
@@ -76,15 +76,25 @@ export function LearnArticleClient({
 
           <article className="min-w-0">
             <header className="mb-8 border-b border-border/60 pb-6">
-              <p className="mb-2 text-sm text-muted-foreground">
-                <Link href="/learn" className="hover:text-foreground">
-                  Learn
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  <Link href="/learn" className="hover:text-foreground">
+                    Learn
+                  </Link>
+                  <span className="mx-2">/</span>
+                  <Link href={`/learn/${page.courseSlug}`} className="hover:text-foreground">
+                    {page.courseSlug.replace(/-/g, ' ')}
+                  </Link>
+                </p>
+                <Link
+                  href={`/raw/learn/${page.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+                  <FileCode2 className="size-3.5" />
+                  Raw
                 </Link>
-                <span className="mx-2">/</span>
-                <Link href={`/learn/${page.courseSlug}`} className="hover:text-foreground">
-                  {page.courseSlug.replace(/-/g, ' ')}
-                </Link>
-              </p>
+              </div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                 {page.title}
               </h1>

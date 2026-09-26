@@ -494,6 +494,25 @@ export const getLearnPage = cache(async (slug: string): Promise<LearnPage | unde
   return loadLearnPageFromPath(relativePath);
 });
 
+/** Absolute path to the on-disk `.md` / `.mdx` for a public learn slug. */
+export async function getLearnSourcePath(slug: string): Promise<string | undefined> {
+  if (!slug || slug.includes('..') || !fs.existsSync(learnDirectory)) {
+    return undefined;
+  }
+
+  const relativePath = getSlugPathIndex().get(slug);
+  if (!relativePath || relativePath.includes('..')) {
+    return undefined;
+  }
+
+  const fullPath = path.join(learnDirectory, relativePath);
+  if (!fs.existsSync(fullPath)) {
+    return undefined;
+  }
+
+  return fullPath;
+}
+
 export const getAllLearnPages = cache(async (): Promise<LearnPage[]> => {
   const slugs = await getAllLearnSlugs();
   const pages = await Promise.all(slugs.map((slug) => getLearnPage(slug)));

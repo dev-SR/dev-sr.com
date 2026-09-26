@@ -4,7 +4,7 @@ import type { BlogPost } from '@/lib/mdx';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Eye, Share2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, Eye, Share2, ArrowLeft, ArrowRight, FileCode2 } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -118,6 +118,14 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
                   <Eye className="h-4 w-4" />
                   <span>{post.viewCount || 0} views</span>
                 </div>
+                <Link
+                  href={`/raw/blog/${post.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
+                  <FileCode2 className="h-4 w-4" />
+                  <span>Raw</span>
+                </Link>
               </div>
             </ViewTransition>
 
