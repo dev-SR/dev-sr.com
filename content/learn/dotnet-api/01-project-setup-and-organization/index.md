@@ -483,37 +483,7 @@ dotnet add tests/MyApp.Tests.Integration/MyApp.Tests.Integration.csproj \
     reference src/Services/MyApp.Api/MyApp.Api.csproj
 ```
 
-> Note `dotnet new xunit` generates package <Mark type="highlight" color="accent">versions</Mark> in the .csproj:
-
-```xml title="MyApp/tests/MyApp.Tests.Integration/MyApp.Tests.Integration.csproj"
-  <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
-  </ItemGroup>
-```
-
 In <Mark type="box" color="info">`Directory.Packages.props`</Mark>, we already have added packages for the test project:
-
-```xml title="MyApp/backend/Directory.Packages.props" showLineNumbers {6-15}
-<Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <CentralPackageTransitiveReplacingEnabled>false</CentralPackageTransitiveReplacingEnabled>
-  </PropertyGroup>
-  <ItemGroup>
-    <!-- Testing -->
-    <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
-    <PackageVersion Include="FluentAssertions" Version="8.2.0" />
-    <PackageVersion Include="NSubstitute" Version="5.3.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
-  </ItemGroup>
-</Project>
-```
 
 So you don't have to repeat the package versions in the test project. we can resuse in the `MyApp.Tests.Integration.csproj` file:
 
