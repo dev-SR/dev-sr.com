@@ -103,6 +103,42 @@ export function Button() {
 }
 ```
 
+
+### Focus (`[!code focus]` / `[!code focus:N]`)
+
+`transformerNotationFocus` dims non-focused lines.
+
+**Source**
+
+```mdx
+console.log('Not focused')
+console.log('Not focused')
+console.log('Not focused')
+// [!code focus:2]
+console.log('Focused line 1')
+console.log('Focused line 2')
+console.log('Not focused')
+console.log('Not focused')
+console.log('Not focused')
+```
+
+**Result**
+
+```ts
+console.log('Not focused')
+console.log('Not focused')
+console.log('Not focused')
+// [!code focus:2]
+console.log('Focused line 1')
+console.log('Focused line 2')
+console.log('Not focused')
+console.log('Not focused')
+console.log('Not focused')
+```
+
+Focused lines stay bright; the `<pre>` gains `has-focused`.
+
+
 ---
 
 ## `CodeTabs` (multi-file)

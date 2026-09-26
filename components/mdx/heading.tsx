@@ -34,7 +34,7 @@ const HEADING_MARKS: Partial<Record<MdxHeadingLevel, HeadingMarkConfig>> = {
   h4: {
     type: 'bracket',
     color: SLATE,
-    brackets: 'left',
+    brackets: ['left', 'right'],
     padding: 4,
     strokeWidth: 1.5,
   },

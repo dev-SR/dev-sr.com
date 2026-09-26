@@ -1,8 +1,12 @@
 'use client';
 
-import { createContext, useContext, type ElementType } from 'react';
+import { createContext, useContext } from 'react';
 import type React from 'react';
 import { InlineCode } from '@/components/code/inline-code';
+import {
+  AnnotatedHeading,
+  type MdxHeadingLevel,
+} from '@/components/mdx/heading';
 import { cn } from '@/lib/utils';
 
 export type GuideHeadingLevel = 2 | 3 | 4;
@@ -46,6 +50,10 @@ function renderTitle(text: string): React.ReactNode {
   });
 }
 
+function toHeadingTag(level: GuideHeadingLevel): MdxHeadingLevel {
+  return `h${level}` as MdxHeadingLevel;
+}
+
 function GuideHeading({
   level,
   id,
@@ -57,11 +65,14 @@ function GuideHeading({
   className?: string;
   children: React.ReactNode;
 }) {
-  const Tag = `h${level}` as ElementType;
   return (
-    <Tag id={id} className={className}>
+    <AnnotatedHeading
+      as={toHeadingTag(level)}
+      id={id}
+      mark={false}
+      className={className}>
       {children}
-    </Tag>
+    </AnnotatedHeading>
   );
 }
 
@@ -96,7 +107,7 @@ export function Guide({
           <GuideHeading
             level={headingLevel}
             id={slugifyHeading(title)}
-            className="mb-6 scroll-m-28 text-lg font-semibold tracking-tight text-foreground">
+            className="mb-6 scroll-m-28 tracking-tight">
             {renderTitle(title)}
           </GuideHeading>
         )}
@@ -139,7 +150,7 @@ export function GuideStep({
         <GuideHeading
           level={level}
           id={slugifyHeading(title)}
-          className="scroll-m-28 text-xl font-semibold tracking-tight text-foreground">
+          className="scroll-m-28 tracking-tight">
           {renderTitle(title)}
         </GuideHeading>
       </div>
