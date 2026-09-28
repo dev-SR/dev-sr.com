@@ -1,0 +1,94 @@
+---
+title: "OpenAPI"
+excerpt: "Learn how to implement OpenAPI in a minimal API project in .NET."
+---
+
+
+## 7. OpenAPI in .NET 10
+
+The stack is the **2026 Microsoft-recommended combination**:
+
+| Component | Package | Purpose |
+|-----------|---------|---------|
+| OpenAPI generator | `Microsoft.AspNetCore.OpenApi` (built into .NET 10) | Generates `/openapi/v1.json` |
+| Versioning | `Asp.Versioning.Mvc` + `.ApiExplorer` | URL-segment versioning: `/api/v{version}/...` |
+| UI | `Scalar.AspNetCore` | Modern API reference UI (replaces Swagger UI) |
+
+### Transformers
+
+```csharp
+builder.Services.AddApiVersioning(...)
+    .AddApiExplorer(o => o.GroupNameFormat = "'v'VVV")
+    .AddOpenApi(options =>
+    {
+        options.OpenApiVersion = OpenApiSpecVersion.OpenApi3_1;
+        options.AddDocumentTransformer<DocumentTransformer>();   // info, license, security scheme
+        options.AddOperationTransformer<OperationTransformer>(); // adds 500/429 to every op
+        options.AddSchemaTransformer<SchemaTransformer>();       // example values
+    });
+```
+
+### Per-version docs
+
+```csharp
+app.MapOpenApi().WithDocumentPerVersion(); // generates /openapi/v1.json, /openapi/v2.json, ...
+```
+
+---
+
+## 8. Tests
+
+```bash
+dotnet test
+```
+
+`ProductEndpointsTests` exercises the full HTTP pipeline via `WebApplicationFactory<Program>`:
+
+- Carter routing → CQRS dispatcher → behaviors → handler → AppDbContext (in-memory)
+- Verifies 200/201/400/404 paths
+- Verifies filtering by category actually filters
+
+---
+
+## 9. Adding a new slice
+
+1. Pick a feature, e.g. `Reviews`.
+2. `mkdir -p backend/src/Modules/MyApp.Modules/Reviews/CreateReview`
+3. Create `CreateReviewCommand.cs`, `CreateReviewHandler.cs`, `CreateReviewValidator.cs`,
+   `CreateReviewRequest.cs` in that folder.
+4. Create `Reviews/ReviewsModule.cs` implementing `ICarterModule`.
+5. **Done.** Carter auto-discovers the module on `app.MapCarter()`. The dispatcher
+   auto-discovers the handler on `RegisterRequestHandlers(...)`. FluentValidation auto-discovers
+   the validator. You don't touch `Program.cs`.
+
+This is the whole point of Vertical Slice Architecture — **adding a feature touches one folder.**
+
+---
+
+## 10. Migrations
+
+```bash
+cd backend/src/Services/MyApp.Api
+dotnet ef migrations add InitialCreate
+dotnet ef database update
+```
+
+For the demo we use `EnsureCreatedAsync` + `DatabaseSeeder` so migrations are optional.
+
+---
+
+## 11. References
+
+The patterns in this repo are based on the .NET 10 production guide articles:
+
+- *The .NET Project Setup Every Senior Dev Uses in 2026*
+- *Vertical Slice Architecture: The .NET 10 Project Setup That Cut Our PRs in Half*
+- *I Removed MediatR — Building Your Own CQRS Handlers in .NET 10*
+- *Adding Filtering, Sorting And Pagination To a REST API | .NET 10*
+- *Production OpenAPI in .NET 10: Contracts, Scalar, and Versioned Minimal APIs*
+- *The New Global Error Handling in ASP.NET Core 10*
+- *Get Rid of Exceptions in Your Code With the Result Pattern*
+
+All adapted to a single Vertical-Slice project (no separate Domain/Application/Infrastructure
+assemblies) — the simplest setup that still scales.
+

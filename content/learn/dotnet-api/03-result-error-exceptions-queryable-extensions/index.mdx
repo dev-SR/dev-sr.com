@@ -1,7 +1,7 @@
 ---
-title: "Result Pattern, Error and Exceptions Hnadling"
+title: "Result Pattern, Error and Exceptions Handling"
 date: '2026-09-24'
-excerpt: 'Learn how to implement Result Pattern, Errorand Exceptions Handling in minimal api project in .NET.'
+excerpt: 'Learn how to implement Result Pattern, Error and Exceptions Handling in a minimal API project in .NET.'
 ---
 
 ## Big picture
@@ -324,6 +324,15 @@ dotnet sln MyApp.slnx add src/Shared/Common/Shared.Common.csproj
 dotnet add src/Services/MyApp.Api/MyApp.Api.csproj reference src/Shared/Common/Shared.Common.csproj
 dotnet add src/Shared/Application/Shared.Application.csproj reference src/Shared/Common/Shared.Common.csproj
 ```
+
+`Shared.Common` needs a FrameworkReference so `Errors/Http` can use `HttpContext` / `IResult` / `ProblemDetails` / `TypedResults` (no NuGet package required):
+
+```xml title="src/Shared/Common/Shared.Common.csproj"
+<ItemGroup>
+  <FrameworkReference Include="Microsoft.AspNetCore.App" />
+</ItemGroup>
+```
+
 </GuideStep>
 
 <GuideStep title="The `ErrorType` enum">
@@ -488,7 +497,7 @@ public readonly struct ErrorOr<TValue>
         Func<TValue, Task<TResult>> onValue, Func<IReadOnlyList<Error>, Task<TResult>> onError) =>
         IsError ? await onError(Errors) : await onValue(Value);
 
-    // Chbody: run `next` only on success, short-circuiting on the first failure.
+    // Then: run `next` only on success, short-circuiting on the first failure.
     // This is what lets several fallible steps compose without nested if(IsError) checks.
     public ErrorOr<TNext> Then<TNext>(Func<TValue, ErrorOr<TNext>> next) =>
         IsError ? Errors.ToList() : next(Value);
@@ -775,7 +784,8 @@ internal sealed class CreateProductCommandHandler(
     ILogger<CreateProductCommandHandler> logger)
     : IRequestHandler<CreateProductCommand, ErrorOr<Guid>>
 {
-    public async ValueTask<ErrorOr<Guid>> Handle(
+    // Sync ValueTask — no await here; Add only tracks the entity.
+    public ValueTask<ErrorOr<Guid>> Handle(
         CreateProductCommand command,
         CancellationToken cancellationToken)
     {
@@ -789,11 +799,10 @@ internal sealed class CreateProductCommandHandler(
             CreatedAt = DateTime.UtcNow
         };
         dbContext.Products.Add(product);
-        await dbContext.SaveChangesAsync(cancellationToken);
 
         // SaveChanges is handled by TransactionBehavior
         logger.LogInformation("Product {ProductId} created", product.Id);
-        return product.Id;
+        return ValueTask.FromResult<ErrorOr<Guid>>(product.Id);
     }
 }
 
@@ -1273,7 +1282,7 @@ public ErrorOr<Success> Deactivate()
 No `try/catch` for business rules — `Match` / early return keeps the Result channel intact through to `ToProblem`.
 
 ```csharp title="Application/AddOrderItemHandler.cs"
-public async Task<ErrorOr<Success>> Handle(AddOrderItemCommand cmd, CancellationToken ct)
+public async ValueTask<ErrorOr<Success>> Handle(AddOrderItemCommand cmd, CancellationToken ct)
 {
     var order = await orders.GetByIdAsync(cmd.OrderId, ct);
     if (order is null)
@@ -1285,7 +1294,7 @@ public async Task<ErrorOr<Success>> Handle(AddOrderItemCommand cmd, Cancellation
 
     var added = order.AddItem(product, cmd.Quantity);
     if (added.IsError)
-        return added.Errors;
+        return added; // same ErrorOr<Success> — do not return IReadOnlyList (no implicit conversion)
 
     await unitOfWork.SaveChangesAsync(ct);
     return new Success();

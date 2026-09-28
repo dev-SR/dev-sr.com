@@ -267,10 +267,10 @@ function NoteBody({
   return (
     <span
       className={cn(
-        'block w-max whitespace-nowrap font-hand text-sm leading-none font-medium tracking-wide',
+        'block w-max whitespace-nowrap font-hand text-md leading-none font-medium tracking-wide',
         maxWidth && 'max-w-full overflow-hidden text-ellipsis',
         variant === 'sticky' &&
-          'rounded-sm bg-amber-100 px-2 py-1 shadow-sm -rotate-1 dark:bg-amber-950/60',
+        'rounded-sm bg-amber-100 px-2 py-1 shadow-sm -rotate-1 dark:bg-amber-950/60',
         variant === 'card' && 'rounded-md border border-dashed px-2 py-1',
         className
       )}

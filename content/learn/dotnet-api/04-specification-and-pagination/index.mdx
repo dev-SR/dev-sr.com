@@ -1,0 +1,1824 @@
+---
+title: "Specification and Pagination"
+date: '2026-09-25'
+excerpt: 'Learn how to implement Specification Pattern and Paged Response in minimal api project in .NET.'
+---
+
+
+## Introduction to Specification Design Pattern
+
+The Specification Pattern is a design pattern that allows you to build complex queries using a fluent interface. It is a way to encapsulate the logic of a query so that it can be reused and composed.
+
+### The Repository Trap: Why Your Current Code Is Doomed
+
+Here's the typical evolution. It starts innocent:
+
+```csharp
+// Week 1: Clean and simple
+public class ProductRepository : IProductRepository
+{
+    public async Task<Product?> GetByIdAsync(Guid id) =>
+        await _context.Products.FindAsync(id);
+public async Task<List<Product>> GetAllAsync() =>
+        await _context.Products.ToListAsync();
+}
+```
+
+By month 3, it's a monster:
+
+```csharp
+// Month 3: The repository that ate the codebase
+public class ProductRepository : IProductRepository
+{
+    public async Task<List<Product>> GetActiveAsync() =>
+        await _context.Products.Where(p => p.IsActive).ToListAsync();
+public async Task<List<Product>> GetActiveByCategoryAsync(Guid categoryId) =>
+        await _context.Products.Where(p => p.IsActive && p.CategoryId == categoryId).ToListAsync();
+    public async Task<List<Product>> GetActiveByCategoryUnderPriceAsync(Guid categoryId, decimal maxPrice) =>
+        await _context.Products.Where(p => p.IsActive && p.CategoryId == categoryId && p.Price < maxPrice).ToListAsync();
+    public async Task<List<Product>> GetActiveByCategoryUnderPriceInStockAsync(Guid categoryId, decimal maxPrice, int minStock) =>
+        await _context.Products.Where(p => p.IsActive && p.CategoryId == categoryId && p.Price < maxPrice && p.StockQuantity >= minStock).ToListAsync();
+    public async Task<List<Product>> GetActiveByCategoryUnderPriceInStockSortedAsync(Guid categoryId, decimal maxPrice, int minStock, string sortBy) =>
+        await _context.Products
+            .Where(p => p.IsActive && p.CategoryId == categoryId && p.Price < maxPrice && p.StockQuantity >= minStock)
+            .OrderBy(p => sortBy == "price" ? p.Price : p.Name)
+            .ToListAsync();
+    // ... 40 more methods, each slightly different ...
+}
+```
+
+
+The problems:
+
+1.  **Combinatorial explosion**: N filters create N! possible method combinations.
+2.  **Copy-paste bugs**: That `IsActive` check? You forgot it in 3 methods. Your admin dashboard shows inactive products to customers.
+3.  **Untestable queries**: You can't unit test `Where(p => p.Price < maxPrice)` without hitting the database.
+4.  **No reuse**: The "active" logic exists in 15 methods. Change the business rule? Find and replace across the entire solution.
+
+The Specification Pattern solves this by extracting query logic into named, composable, testable objects. Instead of 47 methods, you have 12 specifications that combine to create any query you need .
+
+### The Architecture: Specifications as Domain Concepts
+
+Now we write specifications that express business concepts, not database filters. This is where the magic happens.
+
+```csharp
+// Domain/Specifications/Products/ActiveProductSpec.cs
+public sealed class ActiveProductSpec : Specification<Product>
+{
+    public ActiveProductSpec()
+    {
+        Criteria = p => p.IsActive && !p.IsDeleted;
+    }
+}
+// Domain/Specifications/Products/InStockSpec.cs
+public sealed class InStockSpec : Specification<Product>
+{
+    public InStockSpec(int minQuantity = 1)
+    {
+        Criteria = p => p.StockQuantity >= minQuantity;
+    }
+}
+// Domain/Specifications/Products/UnderPriceSpec.cs
+public sealed class UnderPriceSpec : Specification<Product>
+{
+    public UnderPriceSpec(decimal maxPrice)
+    {
+        Criteria = p => p.Price <= maxPrice;
+    }
+}
+// Domain/Specifications/Products/ByCategorySpec.cs
+public sealed class ByCategorySpec : Specification<Product>
+{
+    public ByCategorySpec(Guid categoryId)
+    {
+        Criteria = p => p.CategoryId == categoryId;
+        AddInclude(p => p.Category);
+    }
+}
+// Domain/Specifications/Products/CreatedWithinSpec.cs
+public sealed class CreatedWithinSpec : Specification<Product>
+{
+    public CreatedWithinSpec(TimeSpan timeSpan)
+    {
+        var cutoff = DateTime.UtcNow.Subtract(timeSpan);
+        Criteria = p => p.CreatedAt >= cutoff;
+    }
+}
+// Domain/Specifications/Products/HighRatedSpec.cs
+public sealed class HighRatedSpec : Specification<Product>
+{
+    public HighRatedSpec(double minRating = 4.0)
+    {
+        Criteria = p => p.AverageRating >= minRating;
+        AddInclude(p => p.Reviews);
+    }
+}
+// Domain/Specifications/Products/ProductSearchSpec.cs
+public sealed class ProductSearchSpec : Specification<Product>
+{
+    public ProductSearchSpec(string searchTerm)
+    {
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var lowerTerm = searchTerm.ToLower();
+            Criteria = p => p.Name.ToLower().Contains(lowerTerm) ||
+                           (p.Description != null && p.Description.ToLower().Contains(lowerTerm));
+        }
+    }
+}
+// Domain/Specifications/Products/ProductSortingSpec.cs
+public sealed class ProductSortingSpec : Specification<Product>
+{
+    public ProductSortingSpec(string sortBy, bool descending = false)
+    {
+        switch (sortBy?.ToLower())
+        {
+            case "price":
+                if (descending) AddOrderByDescending(p => p.Price);
+                else AddOrderBy(p => p.Price);
+                break;
+            case "name":
+                if (descending) AddOrderByDescending(p => p.Name);
+                else AddOrderBy(p => p.Name);
+                break;
+            case "rating":
+                if (descending) AddOrderByDescending(p => p.AverageRating);
+                else AddOrderBy(p => p.AverageRating);
+                break;
+            case "date":
+            default:
+                if (descending) AddOrderByDescending(p => p.CreatedAt);
+                else AddOrderBy(p => p.CreatedAt);
+                break;
+        }
+    }
+}
+// Domain/Specifications/Products/ProductPagingSpec.cs
+public sealed class ProductPagingSpec : Specification<Product>
+{
+    public ProductPagingSpec(int pageNumber, int pageSize)
+    {
+        ApplyPaging((pageNumber - 1) * pageSize, pageSize);
+    }
+}
+```
+
+
+When you need <Mark type="highlight" color="accent">active products under $50 which are in stock</Mark> you don't write a new repository method. You compose <Mark type="box" color="info">`ActiveProductSpec` + `UnderPriceSpec(50)` + `InStockSpec()`</Mark>. The evaluator translates this into a single optimized SQL query.
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│  YOUR APPLICATION CODE                                        │
+│  var spec = new ActiveProductSpec()                         │
+│           .And(new InStockSpec())                            │
+│           .And(new UnderPriceSpec(50.00m));                  │
+│                                                              │
+│  var products = await _repository.ListAsync(spec);           │
+│                    ↓                                         │
+│  SPECIFICATION EVALUATOR                                     │
+│  Combines expressions:                                        │
+│  p => p.IsActive && p.StockQuantity > 0 && p.Price < 50     │
+│                    ↓                                         │
+│  EF CORE                                                     │
+│  SELECT ... FROM Products                                    │
+│  WHERE IsActive = 1 AND StockQuantity > 0 AND Price < 50    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+A specification is not just a `Where` clause. It's a named domain concept that encapsulates:
+
+-   Criteria: The filter expression (`Expression<Func<T, bool>>`)
+-   Includes: Navigation properties to eager-load
+-   Ordering: Sort expressions
+-   Paging: Skip/Take logic
+
+
+
+Look at your application code now. No raw LINQ. No repository bloat. Just business intent.
+
+```csharp
+// API/Controllers/ProductsController.cs
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly IRepository<Product> _productRepository;
+public ProductsController(IRepository<Product> productRepository)
+    {
+        _productRepository = productRepository;
+    }
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
+        [FromQuery] ProductSearchRequest request)
+    {
+        // Compose specifications like building blocks
+        var spec = new ActiveProductSpec()
+            .And(new InStockSpec(request.MinStock))
+            .And(new UnderPriceSpec(request.MaxPrice));
+        if (request.CategoryId.HasValue)
+        {
+            spec = spec.And(new ByCategorySpec(request.CategoryId.Value));
+        }
+        if (!string.IsNullOrEmpty(request.SearchTerm))
+        {
+            spec = spec.And(new ProductSearchSpec(request.SearchTerm));
+        }
+        if (request.CreatedWithinDays.HasValue)
+        {
+            spec = spec.And(new CreatedWithinSpec(TimeSpan.FromDays(request.CreatedWithinDays.Value)));
+        }
+        // Add sorting and paging
+        spec = spec.And(new ProductSortingSpec(request.SortBy, request.Descending));
+        spec = spec.And(new ProductPagingSpec(request.PageNumber, request.PageSize));
+        // Single repository call, optimized SQL
+        var products = await _productRepository.ListAsync(spec);
+        var totalCount = await _productRepository.CountAsync(new ActiveProductSpec()
+            .And(new InStockSpec(request.MinStock))
+            .And(new UnderPriceSpec(request.MaxPrice)));
+        return Ok(new PagedResult<ProductDto>
+        {
+            Items = products.Select(p => p.ToDto()).ToList(),
+            TotalCount = totalCount,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize
+        });
+    }
+    [HttpGet("featured")]
+    public async Task<ActionResult<List<ProductDto>>> GetFeaturedProducts()
+    {
+        // Complex business rule: Active + In Stock + High Rated + Recent
+        var spec = new ActiveProductSpec()
+            .And(new InStockSpec())
+            .And(new HighRatedSpec(4.5))
+            .And(new CreatedWithinSpec(TimeSpan.FromDays(30)))
+            .And(new ProductSortingSpec("rating", descending: true));
+        var products = await _productRepository.ListAsync(spec);
+        return Ok(products.Select(p => p.ToDto()));
+    }
+    [HttpGet("deals")]
+    public async Task<ActionResult<List<ProductDto>>> GetDeals()
+    {
+        // Business rule: Under $25 OR High Discount
+        var under25Spec = new UnderPriceSpec(25m);
+        var highDiscountSpec = new Specification<Product>
+        {
+            Criteria = p => p.DiscountPercentage > 30
+        };
+        var spec = new ActiveProductSpec()
+            .And(new InStockSpec())
+            .And(under25Spec.Or(highDiscountSpec))
+            .And(new ProductSortingSpec("price"));
+        var products = await _productRepository.ListAsync(spec);
+        return Ok(products.Select(p => p.ToDto()));
+    }
+}
+```
+
+Testing Specifications (The Real Superpower)
+
+Specifications are pure expression trees. You can unit test them against in-memory lists without touching EF Core or a database.
+
+```csharp
+// Tests/Domain/Specifications/ActiveProductSpecTests.cs
+public class ActiveProductSpecTests
+{
+    [Fact]
+    public void Criteria_ActiveProduct_ReturnsTrue()
+    {
+        // Arrange
+        var spec = new ActiveProductSpec();
+        var product = new Product { IsActive = true, IsDeleted = false };
+// Act
+        var result = spec.Criteria!.Compile()(product);
+        // Assert
+        result.Should().BeTrue();
+    }
+    [Fact]
+    public void Criteria_DeletedProduct_ReturnsFalse()
+    {
+        var spec = new ActiveProductSpec();
+        var product = new Product { IsActive = true, IsDeleted = true };
+        var result = spec.Criteria!.Compile()(product);
+        result.Should().BeFalse();
+    }
+    [Fact]
+    public void Criteria_InactiveProduct_ReturnsFalse()
+    {
+        var spec = new ActiveProductSpec();
+        var product = new Product { IsActive = false, IsDeleted = false };
+        var result = spec.Criteria!.Compile()(product);
+        result.Should().BeFalse();
+    }
+}
+// Tests/Domain/Specifications/SpecificationCompositionTests.cs
+public class SpecificationCompositionTests
+{
+    [Fact]
+    public void And_BothSpecsMatch_ReturnsTrue()
+    {
+        // Arrange
+        var activeSpec = new ActiveProductSpec();
+        var inStockSpec = new InStockSpec(5);
+
+        var product = new Product
+        {
+            IsActive = true,
+            IsDeleted = false,
+            StockQuantity = 10
+        };
+// Act
+        var combined = activeSpec.And(inStockSpec);
+        var result = combined.Criteria!.Compile()(product);
+        // Assert
+        result.Should().BeTrue();
+    }
+    [Fact]
+    public void And_SecondSpecFails_ReturnsFalse()
+    {
+        var activeSpec = new ActiveProductSpec();
+        var inStockSpec = new InStockSpec(5);
+
+        var product = new Product
+        {
+            IsActive = true,
+            IsDeleted = false,
+            StockQuantity = 2  // Below minimum
+        };
+        var combined = activeSpec.And(inStockSpec);
+        var result = combined.Criteria!.Compile()(product);
+        result.Should().BeFalse();
+    }
+    [Fact]
+    public void Or_EitherSpecMatches_ReturnsTrue()
+    {
+        var under25 = new UnderPriceSpec(25m);
+        var highDiscount = new Specification<Product>
+        {
+            Criteria = p => p.DiscountPercentage > 30
+        };
+
+        var product = new Product
+        {
+            Price = 50m,  // Over $25
+            DiscountPercentage = 40  // But high discount
+        };
+        var combined = under25.Or(highDiscount);
+        var result = combined.Criteria!.Compile()(product);
+        result.Should().BeTrue();
+    }
+    [Fact]
+    public void Not_NegatesCriteria()
+    {
+        var activeSpec = new ActiveProductSpec();
+        var product = new Product { IsActive = true, IsDeleted = false };
+        var negated = activeSpec.Not();
+        var result = negated.Criteria!.Compile()(product);
+        result.Should().BeFalse();
+    }
+}
+// Tests/Integration/SpecificationIntegrationTests.cs
+public class SpecificationIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly HttpClient _client;
+    private readonly WebApplicationFactory<Program> _factory;
+public SpecificationIntegrationTests(WebApplicationFactory<Program> factory)
+    {
+        _factory = factory;
+        _client = factory.CreateClient();
+    }
+    [Fact]
+    public async Task GetProducts_WithPriceFilter_ReturnsOnlyMatchingProducts()
+    {
+        // Arrange: Seed data
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        context.Products.AddRange(
+            new Product { Name = "Cheap", Price = 10m, IsActive = true, StockQuantity = 5 },
+            new Product { Name = "Expensive", Price = 100m, IsActive = true, StockQuantity = 5 },
+            new Product { Name = "Inactive", Price = 10m, IsActive = false, StockQuantity = 5 }
+        );
+        await context.SaveChangesAsync();
+        // Act
+        var spec = new ActiveProductSpec().And(new UnderPriceSpec(50m));
+        var repo = new Repository<Product>(context);
+        var results = await repo.ListAsync(spec);
+        // Assert
+        results.Should().HaveCount(1);
+        results[0].Name.Should().Be("Cheap");
+    }
+}
+```
+
+<Guide title="Implementing Specification Pattern" numbered headingLevel={3} stepHeadingLevel={4}>
+<GuideStep title="The Core Specification Contracts">
+
+```csharp title="src/Shared/Common/Specifications/ISpecification.cs"
+using System.Linq.Expressions;
+
+namespace Shared.Common.Specifications;
+
+public interface ISpecification<T> where T : class
+{
+    Expression<Func<T, bool>>? Criteria { get; }
+
+    // Each entry is one full Include/ThenInclude chain, written as ordinary EF Core
+    // LINQ. A List<Func<...>> rather than a single delegate because a spec can need
+    // more than one independent chain (Category AND Reviews.ThenInclude(Customer), say) —
+    // see 2.4 for why that specific combination also needs AsSplitQuery.
+    IReadOnlyList<Func<IQueryable<T>, IQueryable<T>>> IncludeChains { get; }
+
+    bool AsNoTracking { get; }
+    bool AsSplitQuery { get; }
+
+    // For checking a rule against an object already in memory (e.g. inside a domain
+    // method — see the DDD appendix), without touching the database at all.
+    bool IsSatisfiedBy(T entity);
+}
+```
+
+*Why `Criteria` and `IncludeChains` and nothing else?* Ordering and paging are deliberately absent — that's owned by `PagedQueryExtensions.ToPagedAsync`, built from scratch in next section. A spec answers exactly two questions: *which rows*, and *what shape*.
+
+</GuideStep>
+
+<GuideStep title="The base class ">
+    
+```csharp title="src/Shared/Common/Specifications/SpecificationBase.cs"
+using System.Linq.Expressions;
+
+namespace Shared.Common.Specifications;
+
+public abstract class SpecificationBase<T> : ISpecification<T> where T : class
+{
+    private readonly List<Func<IQueryable<T>, IQueryable<T>>> _includeChains = [];
+    private Func<T, bool>? _compiled;
+
+    public Expression<Func<T, bool>>? Criteria { get; private set; }
+    public IReadOnlyList<Func<IQueryable<T>, IQueryable<T>>> IncludeChains => _includeChains;
+    public bool AsNoTracking { get; protected init; } = true;   // read specs default to no-tracking
+    public bool AsSplitQuery { get; protected init; }
+
+    // Called from a derived spec's constructor. Combining with AND (not overwriting) lets
+    // a subclass call this more than once for several independent conditions and read
+    // cleanly, rather than building one big && expression by hand.
+    protected void Where(Expression<Func<T, bool>> criteria) =>
+        Criteria = Criteria is null ? criteria : Criteria.And(criteria);
+
+    // Takes a real EF Core Include/ThenInclude chain — e.g.
+    //   Include(q => q.Include(p => p.Category));
+    //   Include(q => q.Include(p => p.Reviews).ThenInclude(r => r.Customer));
+    // Because this is a plain delegate over IQueryable<T> built with normal generic
+    // method calls, .ThenInclude sees the exact TProperty type from the .Include call
+    // before it, so the whole chain is fully typed — no casting to object, no reflection.
+    protected void Include(Func<IQueryable<T>, IQueryable<T>> includeChain) =>
+        _includeChains.Add(includeChain);
+
+    public bool IsSatisfiedBy(T entity) =>
+        (_compiled ??= (Criteria ?? (_ => true)).Compile())(entity);
+}
+```
+
+*Why does `Where` merge with AND instead of throwing if called twice?* Because it lets a spec constructor read as a list of conditions:
+
+```csharp
+public sealed class ActiveInStockUnderPriceSpec : SpecificationBase<Product>
+{
+    public ActiveInStockUnderPriceSpec(decimal maxPrice)
+    {
+        Where(p => p.IsActive && !p.IsDeleted);
+        Where(p => p.StockQuantity > 0);
+        Where(p => p.Price <= maxPrice);
+    }
+}
+```
+
+rather than one long `&&` chain that's harder to diff or comment per-condition. (In practice you'll usually prefer several small specs combined with `.And(...)` at the call site — section 2.5 — over one spec with several `Where` calls; both work, and mixing the two styles is fine.)
+
+</GuideStep>
+
+<GuideStep title="Composition: `And`, `Or`, `Not` — immutable">
+
+
+This is the fix for the article's race condition. Every combinator below returns a **new** `ISpecification<T>`; neither input is touched. A spec with no constructor parameters (`ActiveProductSpec`) is therefore safe to keep as a cached `static readonly` instance and reuse across every concurrent request — nothing about combining it with another spec ever mutates it.
+
+```csharp title="src/Shared/Common/Specifications/SpecificationExtensions.cs"
+using System.Linq.Expressions;
+
+namespace Shared.Common.Specifications;
+
+public static class SpecificationExtensions
+{
+    extension<T>(ISpecification<T> left) where T : class
+    {
+        public ISpecification<T> And(ISpecification<T> right) => new CombinedSpecification<T>(left, right, CombineMode.And);
+        public ISpecification<T> Or(ISpecification<T> right) => new CombinedSpecification<T>(left, right, CombineMode.Or);
+        public ISpecification<T> Not() => new NegatedSpecification<T>(left);
+    }
+}
+
+file enum CombineMode { And, Or }
+
+file sealed class CombinedSpecification<T>(ISpecification<T> left, ISpecification<T> right, CombineMode mode)
+    : ISpecification<T> where T : class
+{
+    private Func<T, bool>? _compiled;
+
+    public Expression<Func<T, bool>>? Criteria => (left.Criteria, right.Criteria) switch
+    {
+        (null, null) => null,
+        (var l, null) => l,
+        (null, var r) => r,
+        var (l, r) => mode == CombineMode.And ? l!.And(r!) : l!.Or(r!),
+    };
+
+    // Merging include chains from both sides means combining a rich, Include-bearing
+    // spec with a plain filter spec (e.g. a detail spec AND a "not deleted" filter) just
+    // works — EF Core silently no-ops a duplicate Include if both sides happen to name
+    // the same navigation, so accidental duplication here is harmless, not a bug.
+    public IReadOnlyList<Func<IQueryable<T>, IQueryable<T>>> IncludeChains =>
+        [.. left.IncludeChains, .. right.IncludeChains];
+
+    public bool AsNoTracking => left.AsNoTracking && right.AsNoTracking;
+    public bool AsSplitQuery => left.AsSplitQuery || right.AsSplitQuery;
+
+    public bool IsSatisfiedBy(T entity) =>
+        (_compiled ??= (Criteria ?? (_ => true)).Compile())(entity);
+}
+
+file sealed class NegatedSpecification<T>(ISpecification<T> inner) : ISpecification<T> where T : class
+{
+    private Func<T, bool>? _compiled;
+    public Expression<Func<T, bool>>? Criteria => inner.Criteria?.Not();
+    public IReadOnlyList<Func<IQueryable<T>, IQueryable<T>>> IncludeChains => inner.IncludeChains;
+    public bool AsNoTracking => inner.AsNoTracking;
+    public bool AsSplitQuery => inner.AsSplitQuery;
+    public bool IsSatisfiedBy(T entity) => (_compiled ??= (Criteria ?? (_ => true)).Compile())(entity);
+}
+```
+
+
+</GuideStep>
+
+<GuideStep title="Helper extensions">
+
+`Expression<Func<T,bool>>.And/Or/Not` are the same expression-tree-merging extension methods from the article (the `ReplaceParameterVisitor` trick) — that part of the article is correct and unchanged:
+
+```csharp title="src/Shared/Common/Specifications/ExpressionExtensions.cs"
+using System.Linq.Expressions;
+
+namespace Shared.Common.Specifications;
+
+public static class ExpressionExtensions
+{
+    public static Expression<Func<T, bool>> And<T>(this Expression<Func<T, bool>> a, Expression<Func<T, bool>> b)
+    {
+        var p = Expression.Parameter(typeof(T));
+        var body = Expression.AndAlso(
+            new ReplaceParameterVisitor(a.Parameters[0], p).Visit(a.Body)!,
+            new ReplaceParameterVisitor(b.Parameters[0], p).Visit(b.Body)!);
+        return Expression.Lambda<Func<T, bool>>(body, p);
+    }
+
+    public static Expression<Func<T, bool>> Or<T>(this Expression<Func<T, bool>> a, Expression<Func<T, bool>> b)
+    {
+        var p = Expression.Parameter(typeof(T));
+        var body = Expression.OrElse(
+            new ReplaceParameterVisitor(a.Parameters[0], p).Visit(a.Body)!,
+            new ReplaceParameterVisitor(b.Parameters[0], p).Visit(b.Body)!);
+        return Expression.Lambda<Func<T, bool>>(body, p);
+    }
+
+    public static Expression<Func<T, bool>> Not<T>(this Expression<Func<T, bool>> e)
+        => Expression.Lambda<Func<T, bool>>(Expression.Not(e.Body), e.Parameters[0]);
+}
+
+file sealed class ReplaceParameterVisitor(ParameterExpression oldParam, ParameterExpression newParam) : ExpressionVisitor
+{
+    protected override Expression VisitParameter(ParameterExpression node) =>
+        node == oldParam ? newParam : base.VisitParameter(node);
+}
+```
+
+
+```csharp title="src/Shared/Common/Specifications/SpecificationEvaluator.cs"
+using Microsoft.EntityFrameworkCore;
+
+namespace Shared.Common.Specifications;
+public static class SpecificationEvaluator
+{
+    public static IQueryable<T> Apply<T>(this IQueryable<T> source, ISpecification<T> spec) where T : class
+    {
+        var query = source;
+
+        if (spec.AsNoTracking) query = query.AsNoTracking();
+        if (spec.Criteria is not null) query = query.Where(spec.Criteria);
+
+        foreach (var include in spec.IncludeChains)
+            query = include(query);
+
+        if (spec.AsSplitQuery) query = query.AsSplitQuery();
+
+        return query;
+    }
+}
+
+```
+
+Make sure `Common` project has EF Core as a dependency.
+
+```xml
+<PackageReference Include="Microsoft.EntityFrameworkCore" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" />
+```
+
+</GuideStep>
+
+<GuideStep title="Usage: Atomic, reusable filter specs">
+    Each class owns **one** filter idea (`IsActive`, in-stock, price range, …). The constructor calls `Where(...)` so the spec is complete the moment you `new` it — no second setup step.
+
+```csharp title="Products/Specifications/ProductSpecs.cs" showLineNumbers {9,17,25-28,34,39,46,54-57}
+using Microsoft.EntityFrameworkCore;
+using Shared.Common.Specifications;
+namespace MyApp.Features.Products.Specifications;
+
+public sealed class ActiveProductSpec : SpecificationBase<Product>
+{
+    public ActiveProductSpec()
+    {
+        Where(p => p.IsActive && !p.IsDeleted);
+    }
+}
+
+public sealed class InStockSpecification : SpecificationBase<Product>
+{
+    public InStockSpecification(int minQuantity = 1)
+    {
+        Where(p => p.StockQuantity >= minQuantity);
+    }
+}
+
+public sealed class PriceRangeSpecification : SpecificationBase<Product>
+{
+    public PriceRangeSpecification(decimal? min, decimal? max)
+    {
+        if (min is { } lo)
+            Where(p => p.Price >= lo);
+        if (max is { } hi)
+            Where(p => p.Price <= hi);
+    }
+}
+
+public sealed class ByCategorySpecification : SpecificationBase<Product>
+{
+    public ByCategorySpecification(Guid categoryId) => Where(p => p.CategoryId == categoryId);
+}
+
+public sealed class ByBrandSpecification : SpecificationBase<Product>
+{
+    public ByBrandSpecification(Guid brandId) => Where(p => p.BrandId == brandId);
+}
+
+public sealed class ByTagSpecification : SpecificationBase<Product>
+{
+    // Tags.Any translates to an EXISTS against the ProductTag join table — normal EF SQL,
+    // not an in-memory filter.
+    public ByTagSpecification(Guid tagId) => Where(p => p.Tags.Any(t => t.Id == tagId));
+}
+
+public sealed class ProductSearchSpecification : SpecificationBase<Product>
+{
+    // MyApp uses SQLite — EF.Functions.Like (core EF). ILike is Npgsql/Postgres-only.
+    public ProductSearchSpecification(string term)
+    {
+        var pattern = $"%{term}%";
+        Where(p =>
+            EF.Functions.Like(p.Name, pattern) ||
+            (p.Description != null && EF.Functions.Like(p.Description, pattern)));
+    }
+}
+
+```
+
+Call site — always `new` for parameterized specs; `new` is fine for parameterless ones too:
+
+```csharp
+ISpecification<Product> spec = new ActiveProductSpec()
+    .And(new InStockSpecification(minQuantity: 1))
+    .And(new PriceRangeSpecification(min, max));
+```
+
+##### Optional optimization: `static Instance` for parameterless specs
+
+Only when a spec has **no constructor parameters** (every instance is identical) and you compose it often. Because section 2.3’s `.And()` / `.Or()` return **new** objects and never mutate the inputs, a shared singleton is safe under concurrent requests:
+
+```csharp showLineNumbers {6,11}
+public sealed class ActiveProductSpec : SpecificationBase<Product>
+{
+    public ActiveProductSpec() => Where(p => p.IsActive && !p.IsDeleted);
+
+    // Optional — skip until the call site is noisy with new ActiveProductSpec().
+    public static readonly ISpecification<Product> Instance = new ActiveProductSpec();
+}
+
+// Then either is fine:
+var a = new ActiveProductSpec().And(new ByCategorySpecification(id));
+var b = ActiveProductSpec.Instance.And(new ByCategorySpecification(id));
+```
+
+| | Use `new Spec(...)` | Optional `static Instance` |
+|---|---|---|
+| Parameterless (`ActiveProductSpec`) | Always correct | Nice reuse; add later if you want |
+| Parameterized (`InStockSpecification(5)`, `ByCategorySpecification(id)`) | Required — values differ per request | **Never** — one shared instance cannot hold every `minQuantity` / `categoryId` |
+
+Later sections that write `ActiveProductSpec.Instance` assume you added this optional field; `new ActiveProductSpec()` is equivalent.
+
+##### A rich spec with `Include`/`ThenInclude` — for a detail endpoint
+
+```csharp title="Products/Specifications/ProductDetailsSpecification.cs"
+using Microsoft.EntityFrameworkCore;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Products.Specifications;
+
+public sealed class ProductDetailsSpecification : SpecificationBase<Product>
+{
+    public ProductDetailsSpecification(Guid productId)
+    {
+        Where(p => p.Id == productId);
+
+        Include(q => q.Include(p => p.Category));
+        Include(q => q.Include(p => p.Brand));
+        Include(q => q.Include(p => p.Tags));
+
+        // Two-level chain: load each Review's Customer too, not just the Review rows.
+        Include(q => q.Include(p => p.Reviews).ThenInclude(r => r.Customer));
+
+        // Reviews AND Tags are BOTH collections loaded on the same root Product. Without
+        // AsSplitQuery, EF Core joins everything into one SQL query, and the result is
+        // effectively #Reviews × #Tags rows for a single product's data — a real cartesian
+        // explosion that gets worse combinatorially as either collection grows. AsSplitQuery
+        // instead issues one SQL query per collection (still 1 root query + 1 per included
+        // collection, not per row) and stitches them together in memory. Use it whenever a
+        // spec includes more than one *collection* navigation at the same level.
+        AsSplitQuery = true;
+    }
+}
+```
+
+A three-level chain, for the order-history example in section 4:
+
+```csharp title="Orders/Specifications/OrderWithItemsSpecification.cs" 
+using Microsoft.EntityFrameworkCore;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Orders.Specifications;
+
+public sealed class OrderWithItemsSpecification : SpecificationBase<Order>
+{
+    public OrderWithItemsSpecification(Guid orderId)
+    {
+        Where(o => o.Id == orderId);
+
+        Include(q => q
+            .Include(o => o.Items)
+                .ThenInclude(i => i.Product)
+                    .ThenInclude(p => p.Category));   // Order → Items → Product → Category
+        Include(q => q.Include(o => o.Customer));
+
+        // Only one collection (Items) at the top level here, so no cartesian-explosion
+        // risk — AsSplitQuery isn't needed. Leave the default (false) unless you add a
+        // second sibling collection later.
+    }
+}
+```
+
+</GuideStep>
+
+
+<GuideStep title="Putting it together: filtered list">
+
+here is the full list-handler shape using only what section 2 already built: compose atomic specs → `.Apply(spec)` → `.Select(...)` → materialize. No sorting/paging specs, no repository.
+
+<CodeTabs>
+
+
+```csharp title="Products/GetProducts/GetProductsQueryHandler.cs" showLineNumbers {10-21}
+internal sealed class GetProductsQueryHandler(AppDbContext dbContext)
+    : IRequestHandler<GetProductsQuery, ErrorOr<List<ProductListItemDto>>>
+{
+    public async ValueTask<ErrorOr<List<ProductListItemDto>>> Handle(
+        GetProductsQuery query,
+        CancellationToken ct)
+    {
+        var f = query.Filter;
+
+        ISpecification<Product> spec = new ActiveProductSpec();
+        if (f.InStockOnly is not null) spec = spec.And(new InStockSpecification());
+        if (f.CategoryId is { } categoryId) spec = spec.And(new ByCategorySpecification(categoryId));
+        if (f.BrandId is { } brandId) spec = spec.And(new ByBrandSpecification(brandId));
+        if (f.TagId is { } tagId) spec = spec.And(new ByTagSpecification(tagId));
+        if (f.MinPrice is not null || f.MaxPrice is not null)
+            spec = spec.And(new PriceRangeSpecification(f.MinPrice, f.MaxPrice));
+        if (!string.IsNullOrWhiteSpace(f.Search))
+            spec = spec.And(new ProductSearchSpecification(f.Search));
+
+        var items = await dbContext.Products
+            .Apply(spec)
+            .Select(p => new ProductListItemDto(
+                p.Id, p.Name, p.Price, p.StockQuantity,
+                p.Category.Name, p.Brand.Name, p.CreatedAt))
+            .ToListAsync(ct);
+
+        return items;
+    }
+}
+```
+
+```csharp title="Products/GetProducts/ProductFilter.cs"
+// Example filter inputs
+public class ProductFilter
+{
+    public Guid? CategoryId { get; init; }
+    public Guid? BrandId { get; init; }
+    public Guid? TagId { get; init; }
+    public decimal? MinPrice { get; init; }
+    public decimal? MaxPrice { get; init; }
+    public bool? InStockOnly { get; init; }
+    public string? Search { get; init; }
+}
+```
+
+```csharp title="Products/GetProducts/GetProductsQuery.cs"
+public sealed record GetProductsQuery(ProductFilter Filter)
+    : IQuery<List<ProductListItemDto>>;
+    
+```
+
+
+```csharp title="Products/GetProducts/ProductListItemDto.cs"
+// Products/GetProducts/ProductListItemDto.cs
+public sealed record ProductListItemDto(
+    Guid Id, string Name, decimal Price, int StockQuantity,
+    string CategoryName, string BrandName, DateTime CreatedAt);
+
+```
+
+
+</CodeTabs>
+
+</GuideStep>
+
+</Guide>
+
+## Pagination
+
+
+### Why pagination sits outside the specification
+
+Specs answer **which rows**; they do not page or sort. Pagination is a **separate pipeline step** on that same `IQueryable` after `Apply` + `Select`:
+
+```text
+DbSet → Apply(spec) → Select(DTO) → ToPagedAsync(PageRequest) → PagedResult / PagedResponse
+                                      ▲
+                                      replaces .ToListAsync() only
+```
+
+The client sends page number, page size, and optional sort (`orderBy` / `desc`). The server returns one page of items plus `totalCount` so the UI can render page controls. Specs and the DTO projection stay unchanged.
+
+### What this section introduces
+
+| Type / API | Role |
+|---|---|
+| `PageRequest` | Input: `Page`, `PageSize`, `OrderBy`, `Desc` (optional `Search` if you nest it here) |
+| `PagedResult<T>` | Internal result after the query runs |
+| `PagedResponse<T>` | Same shape on the wire / API response |
+| `ToPagedAsync` | `CountAsync` + ordered `Skip`/`Take` + `ToListAsync` |
+
+`ToPagedAsync` also hardens the common footguns: clamp `PageSize` to a max, overflow-safe `Skip`, and an `Id` tie-breaker so pages stay stable when many rows share the same sort value. 
+
+
+<Guide numbered headingLevel={3} stepHeadingLevel={4}>
+<GuideStep title="Building the pagination pipeline">
+    
+<CodeTabs>
+
+```csharp title="src/Shared/Common/Pagination/PageRequest.cs"
+public class PageRequest
+{
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
+    public string? OrderBy { get; init; }
+    public bool Desc { get; init; }
+    public string? Search { get; init; }
+}
+```
+```csharp title="src/Shared/Common/Pagination/PagedResult.cs"
+// src/Shared/Common/Pagination/PagedResult.cs — internal, entity/DTO-agnostic result shape
+public sealed record PagedResult<T>(IReadOnlyList<T> Items, int TotalCount, int Page, int PageSize)
+{
+    public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+    public bool HasNext => Page < TotalPages;
+    public bool HasPrevious => Page > 1;
+}
+```
+```csharp title="src/Shared/Common/Pagination/PagedResponse.cs"
+// internal, entity/DTO-agnostic result shape
+public sealed record PagedResponse<T>(IReadOnlyList<T> Items, int TotalCount, int Page, int PageSize)
+{
+    public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+    public bool HasNext => Page < TotalPages;
+    public bool HasPrevious => Page > 1;
+}
+```
+</CodeTabs>
+</GuideStep>
+
+<GuideStep title="The ToPagedAsync extension method">
+
+```csharp title="src/Shared/Common/Pagination/PagedQueryExtensions.cs"
+using System.Linq.Expressions;
+using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+
+namespace Shared.Common.Pagination;
+
+public static class PagedQueryExtensions
+{
+    public const int MaxPageSize = 100;
+    private const BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+
+    public static async Task<PagedResult<T>> ToPagedAsync<T>(
+        this IQueryable<T> source, PageRequest request, CancellationToken ct = default)
+    {
+        // Normalize once; the SAME values are used for Skip/Take and echoed in the result —
+        // a caller who asked for pageSize=99999 gets back a result that honestly says
+        // pageSize: 100, not one that silently clamped the query but claimed otherwise.
+        var page = Math.Max(1, request.Page);
+        var size = Math.Clamp(request.PageSize, 1, MaxPageSize);
+
+        // long arithmetic avoids (page - 1) * size overflowing int and wrapping negative
+        // for a very large page number, which used to throw from Queryable.Skip.
+        var skip = (int)Math.Min((long)(page - 1) * size, int.MaxValue);
+
+        var total = await source.CountAsync(ct);   // COUNT without ORDER BY — sorting first would be wasted work
+
+        IReadOnlyList<T> items = Array.Empty<T>();
+        if (skip < total)   // page number beyond the last page → empty, skip the second query entirely
+            items = await ApplyOrder(source, request.OrderBy, request.Desc).Skip(skip).Take(size).ToListAsync(ct);
+
+        return new PagedResult<T>(items, total, page, size);
+    }
+
+    private static IQueryable<T> ApplyOrder<T>(IQueryable<T> source, string? orderBy, bool desc)
+    {
+        var id = typeof(T).GetProperty("Id", Flags);
+        var first = desc ? nameof(Queryable.OrderByDescending) : nameof(Queryable.OrderBy);
+
+        // No sort requested: order by Id anyway. Skip/Take over an UNORDERED query is
+        // genuinely undefined — two calls for "page 1" and "page 2" can return overlapping
+        // or missing rows without this.
+        if (string.IsNullOrWhiteSpace(orderBy))
+            return id is null ? source : Apply(source, id, first);
+
+        var prop = typeof(T).GetProperty(orderBy.Trim(), Flags)
+            ?? throw new ArgumentException(
+                $"Cannot order by '{orderBy}': no public instance property with that name on {typeof(T).Name}.",
+                nameof(orderBy));
+
+        var ordered = Apply(source, prop, first);
+
+        // Tie-breaker: two rows can share the same sort value. Without a second, unique key,
+        // the database is free to order tied rows differently between two separate queries —
+        // Id as a secondary key makes the overall order unique and stable.
+        return id is null || prop == id ? ordered : Apply(ordered, id, nameof(Queryable.ThenBy));
+    }
+
+    // Builds x => x.Prop and closes Queryable.OrderBy<T, TKey>/ThenBy<T, TKey> via reflection,
+    // because TKey is only known once the property is looked up at runtime from a string —
+    // this is the one legitimate use of reflection here (contrast with ValidationBehavior's
+    // ErrorOrFactory, which caches its MethodInfo for the same reason).
+    private static IQueryable<T> Apply<T>(IQueryable<T> source, PropertyInfo prop, string method)
+    {
+        var x = Expression.Parameter(typeof(T), "x");
+        var lambda = Expression.Lambda(Expression.Property(x, prop), x);
+        var m = typeof(Queryable).GetMethods()
+            .Single(mi => mi.Name == method && mi.GetParameters().Length == 2)
+            .MakeGenericMethod(typeof(T), prop.PropertyType);
+        return (IQueryable<T>)m.Invoke(null, [source, lambda])!;
+    }
+}
+```
+
+*Why does an unrecognized `orderBy` throw `ArgumentException` here rather than fail more gracefully?* Because it shouldn't be reachable in practice — the validator in section 4.2 rejects any `orderBy` outside an explicit allow-list before a handler ever runs. This exception is the safety net for a bug in that allow-list, not the primary defense; it deliberately maps to a 500 (not a 400) in [`ExceptionMapping`](../../src/Shared/Common/Exceptions/Http/ExceptionMapping.cs) for exactly that reason: reaching it means the validator let something through it shouldn't have.
+
+**Sorting is `ApplyOrder`, not a SortingSpec.** `PageRequest.OrderBy` / `Desc` are resolved by reflection inside `ToPagedAsync` onto the **projected DTO** (section 4.4 walks through a concrete example). Do not put `OrderBy` on `ISpecification` or `.And()` a fake paging/sorting spec onto filters (defect #3 in section 0).
+
+</GuideStep>
+</Guide>
+
+## Complex filtering, sorting and pagination — wired to the Result pattern
+
+The article's version returns a raw `PagedResponse<T>` straight from the handler with no validation step and no distinction between "bad request" and "empty result." Here, invalid filters (a bogus `sortBy`, an out-of-range `pageSize`, `minPrice > maxPrice`) go through the exact same `ValidationBehavior` → `ErrorOrFactory` → `ToProblem` path as every other request in this codebase — a list endpoint isn't a special case.
+
+### Updated filter DTO and query
+
+
+```csharp title="GetProducts/ProductFilter.cs" showLineNumbers {1}
+public sealed class ProductFilter: PageRequest
+{
+
+    public Guid? CategoryId { get; init; }
+    public Guid? BrandId { get; init; }
+    public Guid? TagId { get; init; }
+    public decimal? MinPrice { get; init; }
+    public decimal? MaxPrice { get; init; }
+    public bool? InStockOnly { get; init; }
+    // public string? Search { get; init; }  // PageRequest already has this
+}
+```
+
+- Inherit from `PageRequest` to reuse paging/sort fields without repeating them, and all properties bind as top-level query string keys (`?page=1&pageSize=20&orderBy=Price`).
+
+
+```csharp title="GetProducts/GetProductsQuery.cs"
+public sealed record GetProductsQuery(ProductFilter Filter)
+    : IQuery<List<ProductListItemDto>>, IRequest<ErrorOr<PagedResponse<ProductListItemDto>>>;
+```
+
+```csharp title="GetProducts/ProductListItemDto.cs"
+public sealed class ProductListItemDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = "";
+    public decimal Price { get; init; }
+    public int StockQuantity { get; init; }
+    public string CategoryName { get; init; } = "";
+    public string BrandName { get; init; } = "";
+    public DateTime CreatedAt { get; init; }
+}
+
+```
+
+- Return a `PagedResponse<ProductListItemDto>` instead of a `List<ProductListItemDto>` to match the `IRequest<ErrorOr<PagedResponse<ProductListItemDto>>>` interface.
+
+### Validation — every field, allow-listed sort, cross-field checks
+
+```csharp title="GetProducts/GetProductsQueryValidator.cs"
+using FluentValidation;
+using Shared.Common.Pagination;
+
+namespace MyApp.Features.Products.GetProducts;
+
+public sealed class GetProductsQueryValidator : AbstractValidator<GetProductsQuery>
+{
+    // Allow-list against the DTO the client actually receives: sorting the raw entity would
+    // let a caller order by a column that's never exposed in the response at all.
+    private static readonly string[] Sortable =
+    [nameof(ProductListItemDto.Name), nameof(ProductListItemDto.Price),
+        nameof(ProductListItemDto.StockQuantity), nameof(ProductListItemDto.CreatedAt)];
+
+    public GetProductsQueryValidator()
+    {
+        RuleFor(x => x.Filter.Page).GreaterThanOrEqualTo(1).OverridePropertyName("page");
+        RuleFor(x => x.Filter.PageSize)
+            .InclusiveBetween(1, PagedQueryExtensions.MaxPageSize).OverridePropertyName("pageSize");
+        RuleFor(x => x.Filter.OrderBy)
+            .Must(o => Sortable.Contains(o, StringComparer.OrdinalIgnoreCase))
+            .When(x => !string.IsNullOrWhiteSpace(x.Filter.OrderBy))
+            .WithMessage($"orderBy must be one of: {string.Join(", ", Sortable)}.")
+            .OverridePropertyName("orderBy");
+        RuleFor(x => x.Filter.Search).MaximumLength(100).OverridePropertyName("search");
+
+        RuleFor(x => x.Filter.MinPrice).GreaterThanOrEqualTo(0)
+            .When(x => x.Filter.MinPrice.HasValue).OverridePropertyName("minPrice");
+        RuleFor(x => x.Filter.MaxPrice).GreaterThan(0)
+            .When(x => x.Filter.MaxPrice.HasValue).OverridePropertyName("maxPrice");
+
+        // Cross-field rule: FluentValidation isn't limited to one property per rule.
+        RuleFor(x => x.Filter)
+            .Must(f => !f.MinPrice.HasValue || !f.MaxPrice.HasValue || f.MinPrice <= f.MaxPrice)
+            .WithMessage("minPrice must not be greater than maxPrice.")
+            .OverridePropertyName("minPrice");
+    }
+}
+```
+
+`?minPrice=100&maxPrice=10` now returns your standard 400 shape:
+
+```json
+{
+  "type": "https://httpstatuses.io/400",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "instance": "/products",
+  "errors": { "minPrice": ["minPrice must not be greater than maxPrice."] },
+  "traceId": "0HN7…",
+  "errorCode": "VALIDATION",
+  "errorType": "Validation"
+}
+```
+
+### The handler: specs build the `WHERE`, `ToPagedAsync` builds the page
+
+Same composition + `Apply` + `Select`; only the last step changes — `ToListAsync` → `ToPagedAsync`. Validation sits in front.
+
+```csharp title="GetProductsQueryHandler.cs" showLineNumbers {10-21}
+using MyApp.Features.Products.Specifications;
+using MyApp.Persistence;
+using Shared.Common.Pagination;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Products.GetProducts;
+
+internal sealed class GetProductsQueryHandler(AppDbContext dbContext)
+    : IRequestHandler<GetProductsQuery, ErrorOr<PagedResponse<ProductListItemDto>>>
+{
+    public async ValueTask<ErrorOr<PagedResponse<ProductListItemDto>>> Handle(
+        GetProductsQuery query, CancellationToken ct)
+    {
+        var pagedFilter = query.Filter;
+
+        // 1–2. Identical to §2.8 (compose specs → Apply → Select).
+        var spec = ActiveProductSpec.Instance;
+        if (pagedFilter.InStockOnly is not null) spec = spec.And(new InStockSpecification());
+        if (pagedFilter.CategoryId is { } categoryId) spec = spec.And(new ByCategorySpecification(categoryId));
+        if (pagedFilter.BrandId is { } brandId) spec = spec.And(new ByBrandSpecification(brandId));
+        if (pagedFilter.TagId is { } tagId) spec = spec.And(new ByTagSpecification(tagId));
+        if (pagedFilter.MinPrice is not null || pagedFilter.MaxPrice is not null)
+            spec = spec.And(new PriceRangeSpecification(pagedFilter.MinPrice, pagedFilter.MaxPrice));
+        if (!string.IsNullOrWhiteSpace(pagedFilter.Search))
+            spec = spec.And(new ProductSearchSpecification(pagedFilter.Search));
+
+        var projected = dbContext.Products.Apply(spec)
+            .Select(p => new ProductListItemDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Price = p.Price,
+                StockQuantity = p.StockQuantity,
+                CategoryName = p.Category.Name,
+                BrandName = p.Brand.Name,
+                CreatedAt = p.CreatedAt,
+            });
+        var page = await projected.ToPagedAsync(pagedFilter, ct);
+        return new PagedResponse<ProductListItemDto>(page.Items, page.TotalCount, page.Page, page.PageSize);
+    }
+}
+```
+
+<Callout variant="warning" title="Why ProductListItemDto not List<ProductDto>?">
+Because ProductListItemDto is the paged list, not the unbounded one; includes not just the rows, but pagination metadata such as `totalCount`, `page`, `pageSize`, and derived `totalPages`, which the client needs to render pagination. Production list: one page + metadata; unbounded list: all rows + metadata.
+</Callout>
+
+### Sorting with `ApplyOrder` (inside `ToPagedAsync`)
+
+No separate `ProductListOrdering` / `ProductSortingSpec` and **no typed `switch` on sort keys** like:
+
+
+```csharp
+q = (orderBy?.ToLowerInvariant()) switch
+{
+    "price" => desc
+        ? q.OrderByDescending(p => p.Price)
+        : q.OrderBy(p => p.Price),
+
+    "name" => desc
+        ? q.OrderByDescending(p => p.Name)
+        : q.OrderBy(p => p.Name),
+
+    // Computed — must already exist on the DTO from Select; ApplyOrder cannot invent it.
+    "rating" => desc
+        ? q.OrderByDescending(p => p.AverageRating)
+        : q.OrderBy(p => p.AverageRating),
+
+    "date" or "createdat" or null or "" => desc
+        ? q.OrderByDescending(p => p.CreatedAt)
+        : q.OrderBy(p => p.CreatedAt),
+
+    _ => throw new ArgumentException(
+        $"Unsupported orderBy '{orderBy}'.", nameof(orderBy)),
+};
+```
+
+The client sends `page.orderBy` + `page.desc` on `PageRequest`; `ToPagedAsync` calls `ApplyOrder`, which looks up that string as a property on the **projected DTO** and builds `OrderBy` / `ThenBy(Id)` via reflection.
+
+**Rule of thumb:** `orderBy` must equal a public property name on the DTO after `Select` (case-insensitive). There are no aliases like `"date"` → `CreatedAt` or `"rating"` → `AverageRating` — use the property name itself.
+
+With `ApplyOrder`, that entire switch disappears. The **handler stays one line**; each case becomes a query-string value whose name matches the DTO property:
+
+
+```http
+GET /products?page.page=1&page.pageSize=20&page.orderBy=Price&page.desc=true&inStockOnly=true
+```
+
+**What happens**
+
+1. <Mark note="string[] Sortable -> takes care of the allow-list" noteLayout="floating" noteSide="top">**Validator allow-lists**</Mark> `orderBy` against `ProductListItemDto` names (`Price`, `Name`, `CreatedAt`, …) → 400 if bogus.
+2. Handler builds `projected` (`Apply(spec)` + `Select`) — same as §4.3.
+3. `await projected.ToPagedAsync(f.Page, ct)`:
+   - `CountAsync` on the filtered projection (no `ORDER BY`)
+   - `ApplyOrder(..., "Price", desc: true)` → `OrderByDescending(x => x.Price).ThenBy(x => x.Id)`
+   - `Skip` / `Take` / `ToListAsync`
+
+```csharp
+// What ApplyOrder expands to for orderBy=Price, desc=true:
+projected
+    .OrderByDescending(p => p.Price)
+    .ThenBy(p => p.Id)          // stable tie-breaker — always added when sorting by a non-Id column
+    .Skip(...)
+    .Take(...);
+
+// Handler — you do not write the switch or the OrderBy yourself:
+var page = await projected.ToPagedAsync(f.Page, ct);
+```
+
+Keep the validator’s `Sortable` array in sync with every DTO property you expose for sorting (i.e. `nameof(ProductListItemDto.AverageRating)` when you add that field). Specs still only answer “which rows” and “what shape.”
+
+Anything you don't put on the DTO, `ApplyOrder` cannot sort by and will throw an exception.
+
+```json
+{
+  "type": "https://httpstatuses.io/400",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "instance": "/products",
+  "errors": {
+    "orderBy": [
+      "orderBy must be one of: Name, Price, StockQuantity, CreatedAt."
+    ]
+  },
+  "traceId": "0HNOT5NLBM78J:00000001",
+  "errorCode": "VALIDATION",
+  "errorType": "Validation"
+}
+```
+
+### A detail endpoint using the `Include`-bearing spec
+
+```csharp
+// src/Services/MyApp.Api/Features/Products/GetProductDetails/GetProductDetailsQuery.cs
+public sealed record GetProductDetailsQuery(Guid ProductId) : IQuery<ProductDetailsDto>;
+
+public sealed record ReviewDto(string CustomerName, int Rating, string? Comment, DateTime CreatedAt);
+public sealed record ProductDetailsDto(
+    Guid Id, string Name, string? Description, decimal Price, int StockQuantity,
+    string CategoryName, string BrandName, IReadOnlyList<string> Tags, IReadOnlyList<ReviewDto> Reviews);
+
+internal sealed class GetProductDetailsQueryHandler(AppDbContext dbContext)
+    : IRequestHandler<GetProductDetailsQuery, ErrorOr<ProductDetailsDto>>
+{
+    public async ValueTask<ErrorOr<ProductDetailsDto>> Handle(GetProductDetailsQuery query, CancellationToken ct)
+    {
+        // The Include/ThenInclude/AsSplitQuery spec from 2.5 — this DOES need the full
+        // entity graph, not a projection, because the response includes nested
+        // collections (Tags, Reviews with their Customer) that Select would otherwise
+        // have to reconstruct by hand with several separate joins.
+        var product = await dbContext.Products
+            .Apply(new ProductDetailsSpecification(query.ProductId))
+            .FirstOrDefaultAsync(ct);
+
+        if (product is null)
+            return Error.NotFound("PRODUCT.NOT_FOUND", $"Product '{query.ProductId}' was not found.");
+
+        return new ProductDetailsDto(
+            product.Id, product.Name, product.Description, product.Price, product.StockQuantity,
+            product.Category.Name, product.Brand.Name,
+            product.Tags.Select(t => t.Name).ToList(),
+            product.Reviews.Select(r => new ReviewDto(r.Customer.Name, r.Rating, r.Comment, r.CreatedAt)).ToList());
+    }
+}
+```
+
+### Endpoints (Carter)
+
+MyApp already registers one `ICarterModule` per slice (see today's [`GetProductsEndpoint`](../../src/Services/MyApp.Api/Features/Products/GetProducts/GetProductsEndpoint.cs) and [`GetProductEndpoint`](../../src/Services/MyApp.Api/Features/Products/GetProduct/GetProductEndpoint.cs)) — not a single `API/Products/ProductEndpoints.cs`. Extend those modules (or add a sibling file in the same feature folder):
+
+```csharp
+// src/Services/MyApp.Api/Features/Products/GetProducts/GetProductsEndpoint.cs
+// Evolves today's MapGet("/products", ...) to accept ProductFilter via [AsParameters]
+namespace MyApp.Features.Products.GetProducts;
+
+public sealed class GetProductsEndpoint : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        app.MapGet("/products", HandleAsync)
+            .WithName("GetProducts")
+            .WithTags("Products");
+    }
+
+    private static async Task<IResult> HandleAsync(
+        [AsParameters] ProductFilter filter,
+        IMediator mediator,
+        HttpContext http,
+        CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetProductsQuery(filter), ct);
+        return result.MatchOk(http);
+    }
+}
+
+// src/Services/MyApp.Api/Features/Products/GetProductDetails/GetProductDetailsEndpoint.cs
+// New sibling of GetProductEndpoint — detail graph with Includes
+namespace MyApp.Features.Products.GetProductDetails;
+
+public sealed class GetProductDetailsEndpoint : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        app.MapGet("/products/{id:guid}/details", HandleAsync)
+            .WithName("GetProductDetails")
+            .WithTags("Products");
+    }
+
+    private static async Task<IResult> HandleAsync(
+        Guid id,
+        IMediator mediator,
+        HttpContext http,
+        CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetProductDetailsQuery(id), ct);
+        return result.MatchOk(http);
+    }
+}
+```
+
+```
+GET /products?categoryId=...&minPrice=10&maxPrice=200&inStockOnly=true&page.page=1&page.pageSize=20&page.orderBy=Price&page.desc=true
+GET /products/{id}/details
+```
+
+## When NOT to Use the Specification Pattern
+
+The Specification Pattern is powerful, but not universal. Skip it when:
+
+-   Simple CRUD: If your app has 5 entities and basic `GetById`/`GetAll` queries, direct DbContext is simpler.
+-   CQRS with MediatR: If you're using MediatR query handlers, each handler already encapsulates one query. Adding specifications on top creates redundant abstraction .
+-   Heavy reporting: Complex aggregations, window functions, and CTEs are better handled by Dapper or raw SQL. Specifications excel at entity filtering, not analytical queries.
+
+## Final Thoughts
+
+The Specification Pattern transformed how our team writes data access code. We went from repositories with 40+ methods to repositories with 4 methods. We went from integration tests for every query variation to fast in-memory unit tests for specifications. And when the product manager asked us to change what "active" means, we updated one class and redeployed.
+
+Your queries should express business intent, not LINQ syntax. Specifications make that possible.
+
+
+## Appendix: Entities and configurations
+
+### Expanding beyond `Product`: the entity model
+ 
+```csharp
+// Categories/Category.cs
+using MyApp.Features.Products;
+
+namespace MyApp.Features.Categories;
+
+public sealed class Category
+{
+    public Guid Id { get; init; }
+    public required string Name { get; set; }
+    public ICollection<Product> Products { get; init; } = [];
+}
+
+// Brands/Brand.cs
+using MyApp.Features.Products;
+
+namespace MyApp.Features.Brands;
+
+public sealed class Brand
+{
+    public Guid Id { get; init; }
+    public required string Name { get; set; }
+    public string? Country { get; set; }
+    public ICollection<Product> Products { get; init; } = [];
+}
+
+// Tags/Tag.cs
+using MyApp.Features.Products;
+
+namespace MyApp.Features.Tags;
+
+public sealed class Tag
+{
+    public Guid Id { get; init; }
+    public required string Name { get; set; }
+    // Skip navigation — EF Core 5+ manages the join table (ProductTag) implicitly,
+    // so there's no join entity class to write by hand for a plain many-to-many.
+    public ICollection<Product> Products { get; init; } = [];
+}
+
+// Products/Product.cs
+// Replaces the flat Product (string Category / Stock) with a relational shape for this guide.
+using MyApp.Features.Brands;
+using MyApp.Features.Categories;
+using MyApp.Features.Orders;
+using MyApp.Features.Reviews;
+using MyApp.Features.Tags;
+
+namespace MyApp.Features.Products;
+
+public sealed class Product
+{
+    public Guid Id { get; init; }
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public decimal Price { get; set; }
+    public int StockQuantity { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsDeleted { get; set; }
+    public DateTime CreatedAt { get; init; }
+
+    public Guid CategoryId { get; set; }
+    public Category Category { get; init; } = null!;
+
+    public Guid BrandId { get; set; }
+    public Brand Brand { get; init; } = null!;
+
+    public ICollection<Tag> Tags { get; init; } = [];
+    public ICollection<Review> Reviews { get; init; } = [];
+    public ICollection<OrderItem> OrderItems { get; init; } = [];
+}
+
+// Customers/Customer.cs
+using MyApp.Features.Orders;
+using MyApp.Features.Reviews;
+
+namespace MyApp.Features.Customers;
+
+public sealed class Customer
+{
+    public Guid Id { get; init; }
+    public required string Name { get; set; }
+    public required string Email { get; set; }
+    public ICollection<Review> Reviews { get; init; } = [];
+    public ICollection<Order> Orders { get; init; } = [];
+}
+
+// Reviews/Review.cs
+using MyApp.Features.Customers;
+using MyApp.Features.Products;
+
+namespace MyApp.Features.Reviews;
+
+public sealed class Review
+{
+    public Guid Id { get; init; }
+    public Guid ProductId { get; set; }
+    public Product Product { get; init; } = null!;
+    public Guid CustomerId { get; set; }
+    public Customer Customer { get; init; } = null!;
+    public int Rating { get; set; }          // 1–5
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; init; }
+}
+
+// Orders/OrderStatus.cs
+namespace MyApp.Features.Orders;
+
+public enum OrderStatus { Pending, Paid, Shipped, Cancelled }
+
+// Orders/Order.cs
+using MyApp.Features.Customers;
+
+namespace MyApp.Features.Orders;
+
+public sealed class Order
+{
+    public Guid Id { get; init; }
+    public Guid CustomerId { get; set; }
+    public Customer Customer { get; init; } = null!;
+    public OrderStatus Status { get; set; }
+    public DateTime CreatedAt { get; init; }
+    public ICollection<OrderItem> Items { get; init; } = [];
+}
+
+// Orders/OrderItem.cs
+using MyApp.Features.Products;
+
+namespace MyApp.Features.Orders;
+
+public sealed class OrderItem
+{
+    public Guid Id { get; init; }
+    public Guid OrderId { get; set; }
+    public Order Order { get; init; } = null!;
+    public Guid ProductId { get; set; }
+    public Product Product { get; init; } = null!;
+    public int Quantity { get; set; }
+    public decimal UnitPriceAtPurchase { get; set; }   // snapshot — the product's price can change later
+}
+```
+
+*Why snapshot `UnitPriceAtPurchase` on `OrderItem` instead of reading `Product.Price` at render time?* An order is a historical record; if the product's price changes next month, last month's order shouldn't silently reprice itself when displayed. This is a real modelling decision, not incidental — worth keeping even outside a DDD-styled domain.
+
+### EF Core configuration
+
+Today's [`AppDbContext`](../../src/Services/MyApp.Api/Persistence/AppDbContext.cs) only has `DbSet<Product>` and configures that entity **inline** inside `OnModelCreating`. There is **no** `ApplyConfigurationsFromAssembly` call and **no** `IEntityTypeConfiguration<>` classes yet.
+
+With a multi-entity graph, inline configuration gets noisy. Prefer extracting `IEntityTypeConfiguration<>` classes under `Persistence/Configurations/` (same project as `AppDbContext`) and **adding** `ApplyConfigurationsFromAssembly` as a deliberate change — not something already present.
+
+```csharp
+// src/Services/MyApp.Api/Persistence/Configurations/ProductConfiguration.cs
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Products;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
+{
+    public void Configure(EntityTypeBuilder<Product> b)
+    {
+        b.Property(p => p.Name).HasMaxLength(200).IsRequired();
+        b.Property(p => p.Price).HasPrecision(18, 2);
+
+        b.HasOne(p => p.Category).WithMany(c => c.Products).HasForeignKey(p => p.CategoryId);
+        b.HasOne(p => p.Brand).WithMany(br => br.Products).HasForeignKey(p => p.BrandId);
+
+        // Skip navigation both sides — EF Core creates and manages a "ProductTag" join
+        // table with no corresponding C# class. Query it via p.Tags / t.Products directly.
+        b.HasMany(p => p.Tags).WithMany(t => t.Products);
+
+        // Indexes for exactly the columns the filtering/sorting section (3) actually
+        // uses — see the "why" in that section for which ones matter and why.
+        b.HasIndex(p => p.CategoryId);
+        b.HasIndex(p => p.BrandId);
+        b.HasIndex(p => p.Price);
+        b.HasIndex(p => new { p.IsActive, p.IsDeleted });
+    }
+}
+
+// src/Services/MyApp.Api/Persistence/Configurations/OrderConfiguration.cs
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Orders;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
+{
+    public void Configure(EntityTypeBuilder<Order> b)
+    {
+        b.HasOne(o => o.Customer).WithMany(c => c.Orders).HasForeignKey(o => o.CustomerId);
+        b.HasMany(o => o.Items).WithOne(i => i.Order).HasForeignKey(i => i.OrderId);
+    }
+}
+
+// src/Services/MyApp.Api/Persistence/Configurations/OrderItemConfiguration.cs
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Orders;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
+{
+    public void Configure(EntityTypeBuilder<OrderItem> b)
+    {
+        b.Property(i => i.UnitPriceAtPurchase).HasPrecision(18, 2);
+        b.HasOne(i => i.Product).WithMany(p => p.OrderItems).HasForeignKey(i => i.ProductId);
+    }
+}
+
+// src/Services/MyApp.Api/Persistence/Configurations/ReviewConfiguration.cs
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Reviews;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class ReviewConfiguration : IEntityTypeConfiguration<Review>
+{
+    public void Configure(EntityTypeBuilder<Review> b)
+    {
+        b.HasOne(r => r.Product).WithMany(p => p.Reviews).HasForeignKey(r => r.ProductId);
+        b.HasOne(r => r.Customer).WithMany(c => c.Reviews).HasForeignKey(r => r.CustomerId);
+        b.HasIndex(r => r.ProductId);
+    }
+}
+```
+
+Then evolve `AppDbContext` to expose the new sets and pick up those configuration classes (this **replaces** the current inline `Product` block):
+
+```csharp
+// src/Services/MyApp.Api/Persistence/AppDbContext.cs
+using Microsoft.EntityFrameworkCore;
+using MyApp.Features.Brands;
+using MyApp.Features.Categories;
+using MyApp.Features.Customers;
+using MyApp.Features.Orders;
+using MyApp.Features.Products;
+using MyApp.Features.Reviews;
+using MyApp.Features.Tags;
+
+namespace MyApp.Persistence;
+
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Brand> Brands => Set<Brand>();
+    public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        // New: discover IEntityTypeConfiguration<> in this assembly.
+        // Not present on today's AppDbContext — add it when you introduce the config classes above.
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
+}
+```
+
+### The seeder
+
+Uses `Bogus` (`dotnet add src/Services/MyApp.Api/MyApp.Api.csproj package Bogus`) for realistic fake data rather than hand-writing dozens of literal rows — the point of seeding is to exercise filtering/sorting/pagination against a dataset that behaves like production data (varied prices, uneven category distribution, some empty search results), not three hardcoded rows that happen to pass every demo.
+
+*Why check `AnyAsync` before seeding, and why does that matter beyond avoiding duplicate data?* Because `Program.cs` (below) runs the seeder on every application start in Development. Without the guard, restarting the app during a debugging session would double the dataset every time — annoying, and it slowly invalidates whatever page counts and totals you were eyeballing while testing pagination.
+
+```csharp title="src/Services/MyApp.Api/Persistence/Seeding/DataSeeder.cs" 
+using Bogus;
+using Microsoft.EntityFrameworkCore;
+using MyApp.Features.Brands;
+using MyApp.Features.Categories;
+using MyApp.Features.Customers;
+using MyApp.Features.Orders;
+using MyApp.Features.Products;
+using MyApp.Features.Reviews;
+using MyApp.Features.Tags;
+
+namespace MyApp.Persistence.Seeding;
+
+public static class DataSeeder
+{
+    public static async Task SeedAsync(AppDbContext db, CancellationToken ct = default)
+    {
+        if (await db.Products.AnyAsync(ct)) return;   // idempotent — see the "why" above
+
+        var random = new Random(20260927);       // fixed seed: reruns produce the same dataset
+        Randomizer.Seed = random;
+
+        var categories = new Faker<Category>()
+            .RuleFor(c => c.Id, f => f.Random.Guid())
+            .RuleFor(c => c.Name, f => f.Commerce.Categories(1)[0])
+            .Generate(8)
+            .DistinctBy(c => c.Name)
+            .ToList();
+
+        var brands = new Faker<Brand>()
+            .RuleFor(b => b.Id, f => f.Random.Guid())
+            .RuleFor(b => b.Name, f => f.Company.CompanyName())
+            .RuleFor(b => b.Country, f => f.Address.Country())
+            .Generate(10);
+
+        var tags = new Faker<Tag>()
+            .RuleFor(t => t.Id, f => f.Random.Guid())
+            .RuleFor(t => t.Name, f => f.Commerce.ProductAdjective())
+            .Generate(20)
+            .DistinctBy(t => t.Name)
+            .ToList();
+
+        var customers = new Faker<Customer>()
+            .RuleFor(c => c.Id, f => f.Random.Guid())
+            .RuleFor(c => c.Name, f => f.Name.FullName())
+            .RuleFor(c => c.Email, (f, c) => f.Internet.Email(c.Name))
+            .Generate(100);
+
+        var productFaker = new Faker<Product>()
+            .RuleFor(p => p.Id, f => f.Random.Guid())
+            .RuleFor(p => p.Name, f => f.Commerce.ProductName())
+            .RuleFor(p => p.Description, f => f.Commerce.ProductDescription())
+            .RuleFor(p => p.Price, f => f.Random.Decimal(5, 2000))
+            .RuleFor(p => p.StockQuantity, f => f.Random.Int(0, 500))
+            .RuleFor(p => p.IsActive, f => f.Random.Bool(0.9f))     // 90% active — some inactive rows to filter out
+            .RuleFor(p => p.IsDeleted, f => f.Random.Bool(0.03f))   // a few soft-deleted rows
+            .RuleFor(p => p.CreatedAt, f => f.Date.Past(2))
+            .RuleFor(p => p.CategoryId, f => f.PickRandom(categories).Id)
+            .RuleFor(p => p.BrandId, f => f.PickRandom(brands).Id);
+
+        var products = productFaker.Generate(600);
+
+        // Assign 1–4 random tags per product AFTER generation (skip-navigation collections
+        // aren't settable via RuleFor the same way scalar columns are).
+        foreach (var p in products)
+            p.Tags = tags.OrderBy(_ => random.Next()).Take(random.Next(1, 5)).ToList();
+
+        var reviews = new List<Review>();
+        var reviewFaker = new Faker<Review>()
+            .RuleFor(r => r.Id, f => f.Random.Guid())
+            .RuleFor(r => r.Rating, f => f.Random.Int(1, 5))
+            .RuleFor(r => r.Comment, f => f.Random.Bool(0.7f) ? f.Rant.Review() : null)
+            .RuleFor(r => r.CreatedAt, f => f.Date.Past(1));
+
+        // Roughly 0–6 reviews per product, each from a random customer — building this by
+        // hand (rather than one flat Faker<Review>().Generate(N)) is what lets every
+        // review point at a product/customer that actually exists.
+        foreach (var product in products)
+        {
+            var reviewCount = random.Next(0, 7);
+            for (var i = 0; i < reviewCount; i++)
+            {
+                var review = reviewFaker.Generate();
+                review.ProductId = product.Id;
+                review.CustomerId = customers[random.Next(customers.Count)].Id;
+                reviews.Add(review);
+            }
+        }
+
+        var orders = new List<Order>();
+        var orderItems = new List<OrderItem>();
+        var activeProducts = products.Where(p => p.IsActive && !p.IsDeleted).ToList();
+
+        foreach (var customer in customers)
+        {
+            var orderCount = random.Next(0, 4);   // some customers have no orders at all
+            for (var i = 0; i < orderCount; i++)
+            {
+                var order = new Order
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerId = customer.Id,
+                    Status = (OrderStatus)random.Next(0, 4),
+                    CreatedAt = DateTime.UtcNow.AddDays(-random.Next(1, 365)),
+                };
+                orders.Add(order);
+
+                var itemCount = random.Next(1, 5);
+                foreach (var chosen in activeProducts.OrderBy(_ => random.Next()).Take(itemCount))
+                {
+                    orderItems.Add(new OrderItem
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderId = order.Id,
+                        ProductId = chosen.Id,
+                        Quantity = random.Next(1, 4),
+                        UnitPriceAtPurchase = chosen.Price,   // snapshot at "purchase" time — see 1's note
+                    });
+                }
+            }
+        }
+
+        // AddRange in dependency order isn't strictly required (EF Core's change tracker
+        // sorts inserts by FK dependency automatically), but grouping the calls this way
+        // keeps the method readable as "categories, then things that reference them."
+        db.AddRange(categories);
+        db.AddRange(brands);
+        db.AddRange(tags);
+        db.AddRange(customers);
+        db.AddRange(products);
+        db.AddRange(reviews);
+        db.AddRange(orders);
+        db.AddRange(orderItems);
+
+        await db.SaveChangesAsync(ct);
+    }
+}
+
+```
+
+#### Registration — Development only
+
+*Why gate seeding behind `IsDevelopment()`?* Fake Bogus data must not land in production. Hook `DataSeeder` after migrations in [`UseInfrastructure`](../../src/Services/MyApp.Api/Infrastructure/WebApplicationExtensions.cs).
+
+Schema comes from **EF migrations** (`Persistence/Migrations/`), applied on startup with `Database.Migrate()` — not `EnsureCreated()`.
+
+| | `Migrate()` (MyApp now) | `EnsureCreated()` (old demo path) |
+|---|---|---|
+| Needs `dotnet ef migrations add`? | Yes | No |
+| Updates existing DB when model changes | Yes (new migration + restart) | **No** |
+| History table | `__EFMigrationsHistory` | None |
+
+```csharp
+// src/Services/MyApp.Api/Infrastructure/WebApplicationExtensions.cs
+using Microsoft.EntityFrameworkCore;
+using MyApp.Persistence;
+using MyApp.Persistence.Seeding;
+
+namespace MyApp.Infrastructure;
+
+public static class WebApplicationExtensions
+{
+    public static WebApplication UseInfrastructure(this WebApplication app)
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        db.Database.Migrate();
+
+        if (app.Environment.IsDevelopment())
+            DataSeeder.SeedAsync(db).GetAwaiter().GetResult();
+
+        return app;
+    }
+}
+```
+
+Add / update schema:
+
+```bash
+dotnet ef migrations add <Name> --project src/Services/MyApp.Api --output-dir Persistence/Migrations
+```
