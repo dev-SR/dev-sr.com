@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { ViewTransition } from 'react';
 import { ArrowLeft, ArrowRight, FileCode2, Menu } from 'lucide-react';
 import type { LearnNavNode, LearnNeighbor, LearnPage } from '@/lib/learn';
 import Header from '@/components/Header';
@@ -40,13 +41,18 @@ export function LearnArticleClient({
   previous,
   next,
 }: LearnArticleClientProps) {
+  const transitionSlug = page.slug.replace(/[^a-zA-Z0-9_-]/g, '-');
+
   return (
     <div className="relative bg-background">
       <PageTopGlow />
       <Header />
-      <div className="mx-auto mt-28 max-w-420 px-4 pb-16 sm:px-6 lg:px-8">
+      <div className="mx-auto mt-28 px-4 pb-16 sm:px-6 lg:px-16">
         <div className="mb-4 flex items-center justify-between lg:hidden">
-          <Link href="/learn" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            href="/learn"
+            transitionTypes={['nav-back']}
+            className="text-sm text-muted-foreground hover:text-foreground">
             All courses
           </Link>
           {courseNav && (
@@ -69,7 +75,7 @@ export function LearnArticleClient({
           )}
         </div>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[18rem_minmax(0,1fr)_22rem]">
+        <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)_22rem]">
           <div className="sticky top-28 hidden lg:block">
             {courseNav && <DocsSidebar course={courseNav} />}
           </div>
@@ -78,11 +84,17 @@ export function LearnArticleClient({
             <header className="mb-8 border-b border-border/60 pb-6">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
-                  <Link href="/learn" className="hover:text-foreground">
+                  <Link
+                    href="/learn"
+                    transitionTypes={['nav-back']}
+                    className="hover:text-foreground">
                     Learn
                   </Link>
                   <span className="mx-2">/</span>
-                  <Link href={`/learn/${page.courseSlug}`} className="hover:text-foreground">
+                  <Link
+                    href={`/learn/${page.courseSlug}`}
+                    transitionTypes={['nav-back']}
+                    className="hover:text-foreground">
                     {page.courseSlug.replace(/-/g, ' ')}
                   </Link>
                 </p>
@@ -95,13 +107,17 @@ export function LearnArticleClient({
                   Raw
                 </Link>
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                {page.title}
-              </h1>
+              <ViewTransition name={`learn-title-${transitionSlug}`} share="post-title">
+                <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                  {page.title}
+                </h1>
+              </ViewTransition>
               {page.description && (
-                <p className="mt-3 max-w-3xl text-lg leading-relaxed text-muted-foreground">
-                  {page.description}
-                </p>
+                <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
+                  <p className="mt-3 max-w-3xl text-lg leading-relaxed text-muted-foreground">
+                    {page.description}
+                  </p>
+                </ViewTransition>
               )}
             </header>
 
@@ -117,7 +133,10 @@ export function LearnArticleClient({
                       <ArrowLeft className="size-4" />
                       Previous
                     </div>
-                    <Link href={previous.href} className="font-medium group-hover:text-accent">
+                    <Link
+                      href={previous.href}
+                      transitionTypes={['nav-back']}
+                      className="font-medium group-hover:text-accent">
                       {previous.title}
                     </Link>
                   </CardContent>
@@ -134,6 +153,7 @@ export function LearnArticleClient({
                     </div>
                     <Link
                       href={next.href}
+                      transitionTypes={['nav-forward']}
                       className="block text-right font-medium group-hover:text-accent">
                       {next.title}
                     </Link>

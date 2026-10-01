@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, ViewTransition } from 'react';
 import Link from 'next/link';
 import {
   BookOpen,
@@ -28,6 +28,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
+
+function toTransitionSlug(value: string) {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '-');
+}
+
+function learnSlugFromHref(href: string) {
+  return toTransitionSlug(href.replace(/^\/learn\//, ''));
+}
 
 const ICON_MAP: Record<string, LucideIcon> = {
   BookOpen,
@@ -360,8 +368,12 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
 
 function CourseCard({ course }: { course: LearnCatalogCourse }) {
   const Icon = getIcon(course.icon);
+  const transitionSlug = toTransitionSlug(course.slug);
   return (
-    <Link href={course.href} className="reveal-on-scroll group block h-full">
+    <Link
+      href={course.href}
+      transitionTypes={['post-open']}
+      className="reveal-on-scroll group block h-full">
       <Card className="h-full border-border/80 bg-card/80 transition-[box-shadow,border-color] group-hover:border-accent/40 group-hover:shadow-md">
         <CardHeader>
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -374,11 +386,15 @@ function CourseCard({ course }: { course: LearnCatalogCourse }) {
               </Badge>
             )}
           </div>
-          <CardTitle className="text-lg transition-colors group-hover:text-accent">
-            {course.title}
-          </CardTitle>
+          <ViewTransition name={`learn-title-${transitionSlug}`} share="post-title">
+            <CardTitle className="text-lg transition-colors group-hover:text-accent">
+              {course.title}
+            </CardTitle>
+          </ViewTransition>
           {course.description && (
-            <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+            <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
+              <CardDescription className="line-clamp-3">{course.description}</CardDescription>
+            </ViewTransition>
           )}
           {(course.tags?.length ?? 0) > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -422,9 +438,11 @@ function ResultRow({
   tags?: string[];
   active?: boolean;
 }) {
+  const transitionSlug = learnSlugFromHref(href);
   return (
     <Link
       href={href}
+      transitionTypes={['post-open']}
       className={cn(
         'block rounded-xl border px-4 py-3 transition-colors',
         active
@@ -434,7 +452,9 @@ function ResultRow({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium text-foreground">{title}</span>
+            <ViewTransition name={`learn-title-${transitionSlug}`} share="post-title">
+              <span className="font-medium text-foreground">{title}</span>
+            </ViewTransition>
             {badge && (
               <Badge variant="secondary" size="sm">
                 {badge}
@@ -442,7 +462,9 @@ function ResultRow({
             )}
           </div>
           {description && (
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{description}</p>
+            <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{description}</p>
+            </ViewTransition>
           )}
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <p className="text-xs text-muted-foreground">{meta}</p>

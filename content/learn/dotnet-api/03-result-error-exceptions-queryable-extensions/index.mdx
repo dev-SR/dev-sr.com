@@ -455,7 +455,13 @@ namespace Shared.Common.Errors;
 
 public readonly record struct Success;   // marker for ErrorOr<Success> void return types
 
-public readonly struct ErrorOr<TValue>
+/// <summary>Non-generic view so pipeline behaviors can detect ErrorOr failures without reflection.</summary>
+public interface IErrorOr
+{
+    bool IsError { get; }
+}
+
+public readonly struct ErrorOr<TValue> : IErrorOr
 {
     private readonly TValue? _value;
     private readonly List<Error>? _errors;
@@ -508,23 +514,201 @@ public readonly struct ErrorOr<TValue>
 ```
 
 `From` / implicits are also what `ErrorOrFactory` uses from pipeline behaviors (part 4).
+
+`IErrorOr` is the non-generic face of `ErrorOr<T>`. Pipeline behaviors only see `TResponse`; with `IErrorOr` they can check `IsError` without knowing whether `T` is `Guid`, `Success`, or a DTO.
 </GuideStep>
 
 
 <GuideStep title="Explicit command and query contracts">
     
-```csharp
-// Shared.Application/Abstractions/Commands/ICommand.cs
-public interface ICommand<TResponse> : IRequest<ErrorOr<TResponse>> { }
-public interface ICommand : IRequest<ErrorOr<Success>> { }
+```csharp title="src/Shared/Application/Abstractions/Commands/ICommand.cs"
+using Mediator;
+using Shared.Common.Errors;
 
+namespace Shared.Application.Abstractions.Commands;
+
+/// <summary>Marks a Mediator request as a command (eligible for TransactionBehavior).</summary>
+public interface ICommandMarker;
+
+/// <summary>
+/// Opt-in: TransactionBehavior commits even when the handler returns an ErrorOr failure
+/// (intentional failure-path writes such as counters).
+/// </summary>
+public interface IPersistOnFailure;
+
+public interface ICommand<TResponse> : IRequest<ErrorOr<TResponse>>, ICommandMarker { }
+public interface ICommand : IRequest<ErrorOr<Success>>, ICommandMarker { }
+```
+
+```csharp
 // Shared.Application/Abstractions/Queries/IQuery.cs
 public interface IQuery<TResponse> : IRequest<ErrorOr<TResponse>> { }
 ```
 
-`IRequest<TResponse>` comes from `Shared.Mediator`. Wrapping it in `ICommand` / `IQuery` locks every request into returning `ErrorOr<T>`, so handlers and behaviors share one shape.
+`IRequest<TResponse>` comes from `Shared.Mediator`. `ICommand` / `IQuery` fix the response shape to `ErrorOr<T>` so handlers and behaviors share one contract.
 
-**Implication for handlers:** implement `IRequestHandler<TRequest, ErrorOr<TResponse>>`, not `IRequestHandler<TRequest, TResponse>`. Example: `CreateProductCommand : ICommand<Guid>` ⇒ handler returns `ErrorOr<Guid>`.
+| Type | Role |
+|---|---|
+| `ICommand` / `ICommand<T>` | Write use-case; carries `ICommandMarker` for the transaction behavior |
+| `IQuery<T>` | Read use-case; no transaction |
+| `IPersistOnFailure` | Optional on a command: commit even when the handler returns a failure |
+| `IErrorOr` | On `ErrorOr<T>`: let behaviors inspect `IsError` |
+
+#### Usage
+
+```csharp
+public sealed record CreateProductCommand(
+    string Name, string Category, decimal Price, int Stock) : ICommand<Guid>;
+
+public sealed record GetProductQuery(Guid Id) : IQuery<ProductDto>;
+
+// Void command — return default(Success) on success.
+public sealed record DeleteProductCommand(Guid Id) : ICommand;
+
+internal sealed class DeleteProductCommandHandler(...)
+    : IRequestHandler<DeleteProductCommand, ErrorOr<Success>>
+{
+    public async ValueTask<ErrorOr<Success>> Handle(...)
+    {
+        // ...
+        return default(Success);
+    }
+}
+```
+
+Add `IPersistOnFailure` only when a failed handler result must still persist intentional writes (for example an `ExecuteUpdate` that records a failed attempt). Ordinary product commands omit it so failures roll back.
+
+Handlers implement `IRequestHandler<TRequest, ErrorOr<TResponse>>`. Example: `CreateProductCommand : ICommand<Guid>` ⇒ return `ErrorOr<Guid>`.
+
+#### Update to Transaction Behavior
+
+Commands change data. Put a unit of work around them so the handler only **tracks** entities — `SaveChanges` and commit happen in one place.
+
+**How it knows a request is a command:** every `ICommand` / `ICommand<T>` also implements `ICommandMarker`. Queries use `IQuery<T>` and are skipped. You will add those marker interfaces when you introduce `ErrorOr` contracts; until then, treat `ICommandMarker` as “this request may write.”
+
+**When to commit:** after the handler returns, commit only if the result is a success — or if the command opted into `IPersistOnFailure` (needed when a failure response must still keep intentional side effects, such as an audit counter). Otherwise roll back so a failed command leaves no half-written state.
+
+```csharp title="src/Services/MyApp.Api/Persistence/TransactionBehavior.cs"
+using Microsoft.EntityFrameworkCore;
+using Shared.Application.Abstractions.Commands;
+using Shared.Common.Errors;
+
+namespace MyApp.Persistence;
+
+public sealed class TransactionBehavior<TRequest, TResponse>(
+    AppDbContext db,
+    ILogger<TransactionBehavior<TRequest, TResponse>> logger)
+    : IPipelineBehavior<TRequest, TResponse>
+    where TRequest : IRequest<TResponse>
+{
+    private static readonly bool IsCommand = typeof(ICommandMarker).IsAssignableFrom(typeof(TRequest));
+    private static readonly bool PersistOnFailure = typeof(IPersistOnFailure).IsAssignableFrom(typeof(TRequest));
+
+    public async ValueTask<TResponse> Handle(
+        TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+    {
+        // Queries skip; join an ambient transaction if one already exists.
+        if (!IsCommand || db.Database.CurrentTransaction is not null)
+            return await next(ct);
+
+        try
+        {
+            if (!db.Database.IsRelational())
+            {
+                var r = await next(ct);
+                if (ShouldCommit(r)) await db.SaveChangesAsync(ct);
+                return r;
+            }
+
+            var strategy = db.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
+            {
+                db.ChangeTracker.Clear();
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+                var response = await next(ct);
+
+                if (!ShouldCommit(response))
+                {
+                    await tx.RollbackAsync(ct);
+                    db.ChangeTracker.Clear();
+                    return response;
+                }
+
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return response;
+            });
+        }
+        catch (DbUpdateException ex) when (DbErrors.IsUniqueViolation(ex))
+        {
+            logger.LogWarning(ex, "Unique constraint hit in {Request}", typeof(TRequest).Name);
+            return ErrorOrFactory.Failure<TResponse>(
+                [Error.Conflict("DB.CONFLICT", "The resource already exists or was changed by another request.")]);
+        }
+    }
+
+    private static bool ShouldCommit(TResponse response) =>
+        PersistOnFailure || response is not IErrorOr { IsError: true };
+}
+```
+
+`DbErrors.IsUniqueViolation` turns a provider unique-constraint error (SQLite 2067/1555, Postgres `23505`, …) into a conflict result the API can return as Problem Details.
+
+#### Commit rules
+
+| Request | Handler result | Commit? |
+|---|---|---|
+| Query (`IQuery<…>`) | anything | No transaction |
+| `ICommand<…>` | success | Yes — `SaveChanges` + commit |
+| `ICommand<…>` | failure (`IErrorOr.IsError`) | No — rollback |
+| `ICommand<…>, IPersistOnFailure` | failure | Yes — keep intentional side effects |
+
+#### Usage
+
+Most commands need no extra marker. Add the entity and return; the behavior saves on success and rolls back on failure:
+
+```csharp
+public sealed record CreateProductCommand(...) : ICommand<Guid>;
+
+// return product.Id            → commit
+// return Error.Conflict(...)   → rollback
+```
+
+Use `IPersistOnFailure` only when a failed result must still write something (for example an `ExecuteUpdate` that increments a failure counter). Most product commands never need it.
+
+Register **Transaction** last among behaviors (Logging → Validation → Caching → Transaction) so the transaction wraps the inner pipeline.
+
+Handlers **Add** entities and return — no `SaveChangesAsync` in the happy path:
+
+```csharp title="/Features/Products/CreateProduct/CreateProductCommandHandler.cs"
+internal sealed class CreateProductCommandHandler(
+    AppDbContext dbContext,
+    ILogger<CreateProductCommandHandler> logger)
+    : IRequestHandler<CreateProductCommand, ErrorOr<Guid>>
+{
+    public ValueTask<ErrorOr<Guid>> Handle(
+        CreateProductCommand command,
+        CancellationToken cancellationToken)
+    {
+        var product = new Product
+        {
+            Id = Guid.NewGuid(),
+            Name = command.Name,
+            Price = command.Price,
+            Stock = command.Stock,
+            CreatedAt = DateTime.UtcNow,
+            Category = new Category { Name = command.Category },
+            Brand = new Brand { Name = "Generic" },
+        };
+        dbContext.Products.Add(product);
+
+        // SaveChanges is handled by TransactionBehavior
+        logger.LogInformation("Product {ProductId} created", product.Id);
+        return ValueTask.FromResult<ErrorOr<Guid>>(product.Id);
+    }
+}
+```
 
 </GuideStep>
 
@@ -793,10 +977,11 @@ internal sealed class CreateProductCommandHandler(
         {
             Id = Guid.NewGuid(),
             Name = command.Name,
-            Category = command.Category,
             Price = command.Price,
             Stock = command.Stock,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            Category = new Category { Name = command.Category },
+            Brand = new Brand { Name = "Generic" },
         };
         dbContext.Products.Add(product);
 
@@ -976,6 +1161,8 @@ flowchart TD
 |---|---|---|
 | Aborted request | Client navigated away | Swallow when `RequestAborted` — not an incident |
 | Bad HTTP binding | Malformed JSON (`BadHttpRequestException`) | 400 Problem Details, code `BAD_REQUEST` |
+| Optimistic concurrency | `DbUpdateConcurrencyException` | 409 Problem Details, code `CONCURRENCY_CONFLICT` |
+| Unique constraint (write race) | `DbUpdateException` unique violation | Result channel inside `TransactionBehavior` → `DB.CONFLICT` (409) |
 | Programmer mistakes | `ArgumentException`, NRE, bug | **500** — not 400 (user input already filtered by FluentValidation) |
 | Everything else unexpected | Timeout, unknown | 500, hide detail outside Development |
 
@@ -987,12 +1174,16 @@ Maps exception types to HTTP statuses.
 
 ```csharp title="src/Shared/Common/Exceptions/Http/ExceptionMapping.cs"
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+
 namespace Shared.Common.Exceptions.Http;
+
 public static class ExceptionMapping
 {
     public static (int Status, string Code) Map(Exception ex) => ex switch
     {
         BadHttpRequestException e => (e.StatusCode, "BAD_REQUEST"),
+        DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "CONCURRENCY_CONFLICT"),
         OperationCanceledException => (499, "REQUEST_ABORTED"),
         _ => (StatusCodes.Status500InternalServerError, "INTERNAL_ERROR"),
     };
@@ -1004,10 +1195,9 @@ public static class ExceptionMapping
         => ex is OperationCanceledException
            || Map(ex).Status is >= 400 and < 500;
 }
-
 ```
 
-*Note: `ArgumentException` and `NullReferenceException` fall into the `_` (500) bucket. User input is already caught by FluentValidation; if an argument exception reaches the handler, it's a programmer bug.*
+*Note: `ArgumentException` and `NullReferenceException` fall into the `_` (500) bucket. User input is already caught by FluentValidation; if an argument exception reaches the handler, it's a programmer bug. Optimistic concurrency races surface as `DbUpdateConcurrencyException` → 409 `CONCURRENCY_CONFLICT`. Unique violations are handled on the Result channel inside `TransactionBehavior` (`DB.CONFLICT`), not here.*
 </GuideStep>
 
 <GuideStep title="2. Handling Global Exceptions">

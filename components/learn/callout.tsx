@@ -54,7 +54,7 @@ export function Callout({ variant = 'note', title, children, className }: Callou
       )}>
       <Icon className={cn('mt-0.5 size-4 shrink-0', config.iconColor)} aria-hidden />
       <div className="min-w-0 flex-1 text-muted-foreground [&>p]:m-0 [&>p+p]:mt-2">
-        {title && <p className="mb-1 font-medium text-foreground">{title}</p>}
+        {title && <p className="mb-1 text-foreground font-bold">{title}</p>}
         {children}
       </div>
     </div>

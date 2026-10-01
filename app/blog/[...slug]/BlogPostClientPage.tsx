@@ -47,9 +47,8 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
       <PageTopGlow />
       <Header />
       <section
-        className={`relative isolate overflow-hidden border-b border-border ${
-          post.coverImage ? '-mt-14 min-h-[38rem] sm:min-h-[42rem]' : 'mt-28 bg-card/50'
-        }`}>
+        className={`relative isolate overflow-hidden border-b border-border ${post.coverImage ? '-mt-14 min-h-[38rem] sm:min-h-[42rem]' : 'mt-28 bg-card/50'
+          }`}>
         {post.coverImage && (
           <>
             <ViewTransition name={`post-cover-${transitionSlug}`} share="post-cover">
@@ -73,11 +72,10 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
         )}
 
         <div
-          className={`relative z-10 mx-auto flex max-w-7xl px-4 sm:px-6 lg:px-8 ${
-            post.coverImage
+          className={`relative z-10 mx-auto flex max-w-7xl px-4 sm:px-6 lg:px-8 ${post.coverImage
               ? 'min-h-[38rem] items-end pb-12 pt-40 sm:min-h-[42rem] sm:pb-16'
               : 'py-8'
-          }`}>
+            }`}>
           <div className="max-w-4xl">
             {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
@@ -146,8 +144,8 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
       </section>
 
       <>{/* Blog Content */}</>
-      <div className="mx-auto max-w-[88rem] px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[13rem_minmax(0,1fr)] xl:grid-cols-[12rem_minmax(0,1fr)]">
+      <div className="mx-auto max-w-420 px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)_8rem]">
           <aside className="lg:sticky lg:top-28 lg:self-start">
             <TableOfContents className="mb-0 lg:-ml-3" />
           </aside>
@@ -263,6 +261,8 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
               )}
             </div>
           </div>
+
+          <div className="hidden lg:block" aria-hidden="true" />
         </div>
       </div>
     </div>

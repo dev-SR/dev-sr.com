@@ -496,6 +496,71 @@ rather than one long `&&` chain that's harder to diff or comment per-condition. 
 
 </GuideStep>
 
+<GuideStep title="Tracked loads: `ForUpdateSpecification<T>`">
+
+Read specs default to `AsNoTracking = true`. List and detail queries stay cheap and cannot mutate by accident.
+
+Update/delete handlers need a **tracked** entity so property changes are picked up by `SaveChanges`. Keep filter specs no-tracking by default; opt into tracking by composing `ForUpdateSpecification<T>`.
+
+#### How `.And(ForUpdate…)` flips tracking
+
+`CombinedSpecification.AsNoTracking` is `left.AsNoTracking && right.AsNoTracking`:
+
+| Left (filter) | Right (`ForUpdate`) | Combined | EF behavior |
+|---|---|---|---|
+| `true` (default) | `false` | **false** | Tracked — safe to mutate |
+| `true` | `true` | `true` | No-tracking read |
+| `false` | `false` | `false` | Tracked |
+
+```csharp title="src/Shared/Common/Specifications/ForUpdateSpecification.cs"
+namespace Shared.Common.Specifications;
+
+/// <summary>
+/// Marks a composed query as tracked so the handler can mutate entities.
+/// Combine with filter/include specs via <c>.And(ForUpdateSpecification&lt;T&gt;.Instance)</c>.
+/// Combined <see cref="ISpecification{T}.AsNoTracking"/> is AND of both sides, so this flips tracking on.
+/// </summary>
+public sealed class ForUpdateSpecification<T> : SpecificationBase<T> where T : class
+{
+    private ForUpdateSpecification() => AsNoTracking = false;
+
+    public static readonly ISpecification<T> Instance = new ForUpdateSpecification<T>();
+}
+```
+
+#### Usage
+
+Load for update, then change properties:
+
+```csharp
+var product = await db.Products
+    .Apply(new ProductByIdSpecification(id)
+        .And(ForUpdateSpecification<Product>.Instance))
+    .SingleOrDefaultAsync(ct);
+
+if (product is null)
+    return Error.NotFound("PRODUCT.NOT_FOUND", $"Product '{id}' was not found.");
+
+product.Name = command.Name;
+product.Price = command.Price;
+// SaveChanges via TransactionBehavior
+return default(Success);
+```
+
+Compose filter + include + tracking as separate pieces:
+
+```csharp
+var product = await db.Products
+    .Apply(new ProductByIdSpecification(id)
+        .And(ProductWithCategorySpecification.Instance)
+        .And(ForUpdateSpecification<Product>.Instance))
+    .SingleOrDefaultAsync(ct);
+```
+
+When the write is a single SQL statement (`ExecuteUpdateAsync`), you do not need `ForUpdate` — there is no tracked entity.
+
+</GuideStep>
+
 <GuideStep title="Composition: `And`, `Or`, `Not` — immutable">
 
 

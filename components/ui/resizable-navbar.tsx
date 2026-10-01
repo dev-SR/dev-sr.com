@@ -87,18 +87,33 @@ export const NavbarLogo = () => {
 
   useGSAP(
     () => {
+      const left = sharukh.current;
+      const right = rahman.current;
+      const container = logoContainer.current;
+      const logo = mark.current;
+      if (!left || !right || !container || !logo) return;
+
+      // CRITICAL: measure the *inner* text node. The outer clip wrapper often has a
+      // GSAP-locked width; reading scrollWidth on it would return that clipped value
+      // (wrong start → names get cut off after font load / resize).
+      const contentWidth = (el: HTMLSpanElement) =>
+        (el.firstElementChild as HTMLElement | null)?.scrollWidth ?? el.scrollWidth;
+
       const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: document.body,
           start: 'top top',
           end: '+=180',
           scrub: 0.7,
+          // CRITICAL: re-run function-based `width` from-values on refresh
+          // (fonts.ready, viewport / sm:text-2xl breakpoint).
+          invalidateOnRefresh: true,
         },
       });
 
       timeline
         .to(
-          sharukh.current,
+          left,
           {
             autoAlpha: 0,
             x: -28,
@@ -110,7 +125,7 @@ export const NavbarLogo = () => {
           0
         )
         .to(
-          rahman.current,
+          right,
           {
             autoAlpha: 0,
             x: 28,
@@ -122,7 +137,7 @@ export const NavbarLogo = () => {
           0
         )
         .to(
-          logoContainer.current,
+          container,
           {
             gap: 0,
             duration: 0.42,
@@ -131,7 +146,7 @@ export const NavbarLogo = () => {
           0.08
         )
         .to(
-          mark.current,
+          logo,
           {
             scale: 0.9,
             rotation: 8,
@@ -140,15 +155,26 @@ export const NavbarLogo = () => {
           },
           0.08
         )
-        .to(
-          [sharukh.current, rahman.current],
-          {
-            width: 0,
-            duration: 0.42,
-            ease: 'power2.inOut',
-          },
+        // CRITICAL: fromTo + () => width — do NOT `.to({ width: 0 })` alone.
+        // A plain `.to` samples start width once at setup (often pre-font) and locks
+        // a too-small px inline style that clips "Sharukh"/"Rahman".
+        .fromTo(
+          left,
+          { width: () => contentWidth(left) },
+          { width: 0, duration: 0.42, ease: 'power2.inOut' },
+          0.16
+        )
+        .fromTo(
+          right,
+          { width: () => contentWidth(right) },
+          { width: 0, duration: 0.42, ease: 'power2.inOut' },
           0.16
         );
+
+      // CRITICAL: first paint may use fallback metrics; refresh after Greycliff loads.
+      void document.fonts?.ready.then(() => {
+        ScrollTrigger.refresh();
+      });
     },
     { scope: logoContainer }
   );
@@ -159,16 +185,21 @@ export const NavbarLogo = () => {
       transitionTypes={['nav-back']}
       className="relative z-20 mr-3 flex items-center px-2 py-1 text-sm font-normal text-foreground">
       <span ref={logoContainer} className="flex items-center gap-1.5">
-        <span
-          ref={sharukh}
-          className="overflow-hidden whitespace-nowrap font-heading text-xl font-semibold tracking-tight text-[#F08F87] sm:text-2xl">
-          Sharukh
+        {/*
+          CRITICAL: outer = clip box (min-w-0 + overflow-hidden). Flex items default
+          to min-width:auto, which blocks width→0 unless overflow is not visible.
+          Inner = natural text width source for contentWidth() / fromTo.
+        */}
+        <span ref={sharukh} className="min-w-0 overflow-hidden">
+          <span className="inline-block whitespace-nowrap font-heading text-xl font-semibold tracking-tight text-[#F08F87] sm:text-2xl">
+            Sharukh
+          </span>
         </span>
         <img ref={mark} src="/logo.svg" alt="Sharukh Rahman logo" width={40} height={40} />
-        <span
-          ref={rahman}
-          className="overflow-hidden whitespace-nowrap font-heading text-xl font-semibold tracking-tight text-[#ACC5D3] sm:text-2xl">
-          Rahman
+        <span ref={rahman} className="min-w-0 overflow-hidden">
+          <span className="inline-block whitespace-nowrap font-heading text-xl font-semibold tracking-tight text-[#ACC5D3] sm:text-2xl">
+            Rahman
+          </span>
         </span>
       </span>
     </Link>

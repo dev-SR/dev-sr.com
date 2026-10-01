@@ -1,0 +1,1497 @@
+---
+
+title: "Authentication and Authorization"
+date: '2026-09-29'
+excerpt: "Learn how to implement authentication and authorization in your .NET API."
+
+
+---
+
+
+## Introduction
+
+Authentication and authorization are two related but distinct concepts used to secure an API.
+
+
+- **Authentication** answers: "Who are you?"
+- **Authorization** answers: "What are you allowed to do?"
+
+## Authentication
+
+### User object and `ClaimsPrincipal`
+
+ASP.NET Core represents the authenticated user using the `ClaimsPrincipal` class.
+
+The `ClaimsPrincipal` is a container for one or more identities. Each identity is represented by a `ClaimsIdentity`, which contains information about how the user was authenticated and the claims associated with that identity.
+
+<Figure
+  src="/learn/dotnet-api/05-auth/claimprinciple.png"
+  alt="ClaimsPrincipal Internal Structure"
+  caption="Fig 1. ClaimsPrincipal Internal Structure"
+  width="960"
+/>
+
+The `ClaimsPrincipal` represents the **current security principal** — in other words, the person or system making the request.
+
+You can think of it as the application's representation of the current caller:
+
+```csharp
+ClaimsPrincipal user
+```
+
+It provides convenient APIs for accessing:
+
+* the current identity;
+* claims;
+* the user's name;
+* roles;
+* authentication state.
+
+For example:
+
+```csharp
+var name = user.Identity?.Name;
+
+var email = user.FindFirst("email")?.Value;
+
+var isAdmin = user.IsInRole("admin");
+```
+
+The `ClaimsPrincipal` itself does not authenticate the user. Instead, an authentication handler creates or populates the identity and claims. The principal is then made available to the rest of the ASP.NET Core request pipeline.
+
+---
+
+### `ClaimsIdentity`
+
+A `ClaimsIdentity` represents a particular identity of a user.
+
+A `ClaimsPrincipal` can contain multiple identities, although most applications commonly work with a single primary identity.
+
+```csharp
+var identity = user.Identity as ClaimsIdentity;
+```
+
+The identity contains information such as:
+
+* whether authentication succeeded;
+* which authentication mechanism was used;
+* the claims associated with the identity;
+* the user's name.
+
+ `IsAuthenticated`
+
+The `IsAuthenticated` property indicates whether the identity considers the user authenticated.
+
+```csharp
+var isAuthenticated = identity?.IsAuthenticated ?? false;
+```
+
+It is important to distinguish this from authorization.
+
+A user can be authenticated but still not be authorized to access a particular resource.
+
+---
+
+The `AuthenticationType` identifies the authentication mechanism associated with the identity.
+
+```csharp
+var authenticationType = identity?.AuthenticationType;
+```
+
+The value depends on the authentication scheme being used by the application.
+
+For example, an application using JWT bearer authentication may have:
+
+```text
+AuthenticationType = "Bearer"
+```
+
+The exact value should not be hard-coded in application logic unless there is a specific reason to depend on it.
+
+---
+
+The `Name` property
+
+The following code retrieves the name associated with the identity:
+
+```csharp
+var name = identity?.Name;
+```
+
+`Identity.Name` is typically populated from a claim configured as the name claim.
+
+
+
+### Claims
+
+A **claim** is a piece of information about the authenticated user.
+
+A useful way to think about claims is as **facts or attributes associated with an identity**.
+
+For example:
+
+```text
+User
+ │
+ ├── sub = "12345"
+ ├── name = "Jane Doe"
+ ├── email = "jane@example.com"
+ ├── department = "engineering"
+ └── role = "developer"
+```
+
+The exact claims available depend on the authentication mechanism and identity provider.
+
+Claims are represented by the `Claim` class:
+
+```csharp
+using System.Security.Claims;
+```
+
+You can retrieve all claims from the principal:
+
+```csharp
+var claims = user.Claims.ToList();
+```
+
+You can also retrieve an individual claim:
+
+```csharp
+var email = user.FindFirst("email")?.Value;
+var subject = user.FindFirst("sub")?.Value;
+```
+
+
+### Roles
+
+Roles are commonly used to represent groups of permissions.
+
+For example:
+
+```text
+developer
+admin
+manager
+support
+```
+
+ASP.NET Core provides the `IsInRole` method to check whether the current principal belongs to a role:
+
+```csharp
+var isDeveloper = user.IsInRole("developer");
+var isAdmin = user.IsInRole("admin");
+```
+
+This allows application code to make authorization decisions based on roles.
+
+For example:
+
+```csharp
+if (user.IsInRole("admin"))
+{
+    // Perform an administrator-only operation
+}
+```
+
+However, authorization is generally better expressed through ASP.NET Core's authorization system rather than manually checking roles inside every endpoint.
+
+For example:
+
+```csharp
+app.MapGet("/admin", () =>
+{
+    return Results.Ok();
+})
+.RequireAuthorization(policy => policy.RequireRole("admin"));
+```
+
+This keeps security requirements close to the endpoint definition and allows the framework to enforce them consistently.
+
+---
+
+### Claims vs. Roles
+
+Roles are effectively a specialized way of representing authorization-related information, while claims can contain much broader information.
+
+For example:
+
+```text
+Claims
+├── name = "Jane Doe"
+├── email = "jane@example.com"
+├── department = "engineering"
+└── role = "developer"
+```
+
+The `role` claim can be used by ASP.NET Core to determine role membership.
+
+A role answers a question such as:
+
+```text
+Is this user an administrator?
+```
+
+A claim can answer more general questions:
+
+```text
+What is the user's department?
+What is the user's email address?
+What tenant does the user belong to?
+What permissions does the user have?
+```
+
+This makes claims useful for implementing more fine-grained authorization policies.
+
+---
+
+### Inspecting the Current User
+
+```csharp
+using System.Security.Claims;
+
+public class UserInfoModule : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        app.MapGet("/info", (ClaimsPrincipal user) =>
+        {
+            // Get the identity
+            var identity = user.Identity as ClaimsIdentity;
+
+            // Authentication status
+            var isAuthenticated = identity?.IsAuthenticated ?? false;
+
+            // Authentication scheme/type
+            var authenticationType = identity?.AuthenticationType;
+
+            // All claims
+            var claims = user.Claims?.ToList() ?? [];
+
+            // User name
+            var name = identity?.Name;
+
+            // Role checks
+            var isDeveloper = user.IsInRole("developer");
+            var isAdmin = user.IsInRole("admin");
+
+            return Results.Ok(new UserInfoModel
+            {
+                IsAuthenticated = isAuthenticated,
+                AuthenticationType = authenticationType,
+                Claims = claims,
+                Name = name,
+                IsDeveloper = isDeveloper,
+                IsAdmin = isAdmin
+            });
+        });
+    }
+}
+
+public class UserInfoModel
+{
+    public bool IsAuthenticated { get; set; }
+    public string? AuthenticationType { get; set; }
+    public List<Claim> Claims { get; set; } = new();
+    public string? Name { get; set; }
+    public bool IsDeveloper { get; set; }
+    public bool IsAdmin { get; set; }
+}
+```
+
+The response will look like this:
+
+```json
+{
+  "isAuthenticated": false,
+  "authenticationType": null,
+  "claims": [],
+  "name": null,
+  "isDeveloper": false,
+  "isAdmin": false
+}
+```
+
+
+### Creating a ClaimsPrincipal
+
+You can create a `ClaimsPrincipal` manually by creating a new `ClaimsIdentity` and adding claims to it.
+
+```csharp showLineNumbers {3-12}
+app.MapGet("/info", () =>
+{
+    var myClaims = new List<Claim>
+    {
+        new Claim("sub", "1234"),
+        new Claim("name", "John Doe"),
+        new Claim("email", "jhon@doe.com"),
+        new Claim("role", "admin"),
+    };
+
+    var myIdentity = new ClaimsIdentity(myClaims);
+    var user = new ClaimsPrincipal(myIdentity);
+
+    var identity = user.Identity as ClaimsIdentity;
+
+    var isAuthenticated = identity?.IsAuthenticated ?? false;
+    var authenticationType = identity?.AuthenticationType;
+
+    var claims = user.Claims
+        .Select(c => new ClaimModel
+        {
+            Type = c.Type,
+            Value = c.Value
+        })
+        .ToList();
+
+    var name = identity?.Name;
+
+    var isDeveloper = user.IsInRole("developer");
+    var isAdmin = user.IsInRole("admin");
+
+    return Results.Ok(new UserInfoModel
+    {
+        IsAuthenticated = isAuthenticated,
+        AuthenticationType = authenticationType,
+        Claims = claims,
+        Name = name,
+        IsDeveloper = isDeveloper,
+        IsAdmin = isAdmin
+    });
+});
+public class UserInfoModel
+{
+    public bool IsAuthenticated { get; set; }
+    public string? AuthenticationType { get; set; }
+    public List<ClaimModel> Claims { get; set; } = new();
+    public string? Name { get; set; }
+    public bool IsDeveloper { get; set; }
+    public bool IsAdmin { get; set; }
+}
+
+public class ClaimModel
+{
+    public string Type { get; set; } = string.Empty;
+    public string Value { get; set; } = string.Empty;
+}
+```
+
+The response will look like this:
+
+```json showLineNumbers {4,6}
+{
+  "isAuthenticated": false,
+  "authenticationType":  null,
+  "name": null,
+  "isDeveloper": false,
+  "isAdmin": false,
+  "claims": [
+    {
+      "type": "sub",
+      "value": "1234"
+    },
+    {
+      "type": "name",
+      "value": "John Doe"
+    },
+    {
+      "type": "email",
+      "value": "jhon@doe.com"
+    },
+    {
+      "type": "role",
+      "value": "admin"
+    }
+  ]
+}
+```
+
+Note that `name` is still null and `role` is not set to admin.
+
+We need to specify identity option `nameType` and `roleType` along with `authenticationType` to the `ClaimsIdentity` constructor.
+
+```csharp
+var myIdentity = new ClaimsIdentity(myClaims,
+    authenticationType: "test",
+    nameType: "name",
+    roleType: "role");
+```
+
+Now the response will look like this:
+
+
+```json showLineNumbers {4,6}
+{
+  "isAuthenticated": true,
+  "authenticationType": "test",
+  "name": "John Doe",
+  "isDeveloper": false,
+  "isAdmin": true,
+  "claims": [
+    {
+      "type": "sub",
+      "value": "1234"
+    },
+    {
+      "type": "name",
+      "value": "John Doe"
+    },
+    {
+      "type": "email",
+      "value": "jhon@doe.com"
+    },
+    {
+      "type": "role",
+      "value": "admin"
+    }
+  ]
+}
+```
+
+
+## JWT Authentication with ASP.NET Core
+
+JWT (JSON Web Token) is a compact, URL-safe means of representing claims to be transferred between two parties. The claims in a JWT are encoded as a JSON object that is used as the payload of the token, which is then signed using a secret key or a public/private key pair.
+
+
+JWT or JSON Web Tokens is an open standard for securely transmitting information between two parties. They are widely used for authentication and authorization.
+
+A JWT consists of three main components:
+
+1.  **Header**: Every JWT carries a header specifying the algorithms for signing the JWT. It’s written in JSON format.
+2.  **Payload**: The payload consists of the claims and the user data. There are different types of claims such as registered, public, and private claims.
+3.  **Signature**: The signature is what makes the JWT secure. It is created by taking the encoded header, encoded payload, secret key, and the algorithm and signing it.
+
+JWTs can be signed in two different ways:
+
+-   **Symmetric Signatures**: It uses a single secret key for both signing the token and verifying it. The same key must be shared between the server that signs the JWT and the system that verifies it.
+    
+-   **Asymmetric Signatures**: In this case, a private key is used to sign the token, and a public key to verify it. The private key is kept secure on the server, while the public key can be distributed to anyone who needs to verify the token.
+
+<Figure
+  src="/learn/dotnet-api/05-auth/0244-jwt-101-key-to-stateless-authentication.png"
+  alt="JWT Key to Stateless Authentication"
+  caption="Fig 2. JWT Key to Stateless Authentication"
+  width="960"
+/>
+
+
+<Guide numbered headingLevel={2} stepHeadingLevel={3}>
+  <GuideStep title="Configuration with `.env` and the Options pattern">
+
+####  `.env`  
+
+```ini title="src/Services/MyApp.Api/.env"
+Jwt__Secret=REPLACE_WITH_A_LONG_RANDOM_SECRET_AT_LEAST_32_CHARS
+Jwt__Issuer=myapp-api
+Jwt__Audience=myapp-clients
+Jwt__AccessTokenMinutes=10
+Jwt__RefreshTokenDays=7
+ConnectionStrings__Default=Data Source=app.db
+RateLimit__GlobalPerMinute=120
+RateLimit__AuthPerMinute=5
+Seed__AdminEmail=admin@example.com
+Seed__AdminPassword=ChangeMe-12345
+```
+
+Generate secret: `openssl rand -base64 48`.
+
+
+#### Options classes
+
+```csharp title="src/Services/MyApp.Api/Config/Options.cs" showLineNumbers {8,19,27,33-42}
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.Options;
+
+namespace MyApp.Config;
+
+public sealed class JwtOptions
+{
+    public const string Section = "Jwt";
+
+    [Required, MinLength(32)] public string Secret { get; set; } = "";
+    [Required] public string Issuer { get; set; } = "";
+    [Required] public string Audience { get; set; } = "";
+    [Range(1, 60)] public int AccessTokenMinutes { get; set; } = 10;
+    [Range(1, 90)] public int RefreshTokenDays { get; set; } = 7;
+}
+
+public sealed class RateLimitOptions
+{
+    public const string Section = "RateLimit";
+
+    [Range(1, 10_000)] public int GlobalPerMinute { get; set; } = 120;
+    [Range(1, 100)] public int AuthPerMinute { get; set; } = 5;
+}
+
+public sealed class SeedOptions
+{
+    public const string Section = "Seed";
+
+    public string? AdminEmail { get; set; }
+    public string? AdminPassword { get; set; }
+}
+
+public static class OptionsExtensions
+{
+    /// Bind + validate + fail fast at startup (a weak or missing secret should crash the app, not ship).
+    public static OptionsBuilder<T> AddValidatedOptions<T>(this IServiceCollection services, string section)
+        where T : class =>
+        services.AddOptions<T>()
+            .BindConfiguration(section)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+}
+```
+
+
+
+#### Load DotNetEnv before `CreateBuilder`
+
+Double-underscore keys become nested configuration (`Jwt:Secret`, …). Load `.env` **before** `WebApplication.CreateBuilder`:
+
+```csharp title="src/Services/MyApp.Api/Program.cs"
+using DotNetEnv;
+using MyApp.Application;
+using MyApp.Infrastructure;
+using MyApp.Presentation;
+
+// [!code focus]
+Env.TraversePath().Load(); // before CreateBuilder so Jwt__* bind into IConfiguration
+
+var builder = WebApplication.CreateBuilder(args);
+
+//...
+```
+
+Register validated options in Infrastructure (Step 10): `AddValidatedOptions<JwtOptions>(JwtOptions.Section)`, same for `RateLimitOptions` / `SeedOptions`.
+</GuideStep>
+
+<GuideStep title="Data model (custom IAM)">
+
+#### Entities
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Entities.cs"
+namespace MyApp.Features.Auth;
+
+public sealed class User
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public required string Email { get; set; }
+    public required string NormalizedEmail { get; set; }
+    public required string PasswordHash { get; set; }
+    public bool IsBanned { get; set; }
+    /// <summary>Bumped on ban / sign-out-everywhere. JWT claim <c>token_version</c>.</summary>
+    public int PermissionVersion { get; set; } = 1;
+    public int AccessFailedCount { get; set; }
+    public DateTimeOffset? LockoutEnd { get; set; }
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public List<UserRole> UserRoles { get; set; } = [];
+    public List<RefreshToken> RefreshTokens { get; set; } = [];
+}
+
+public sealed class Role
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public required string Name { get; set; }
+    public required string NormalizedName { get; set; }
+    public List<UserRole> UserRoles { get; set; } = [];
+}
+
+public sealed class UserRole
+{
+    public Guid UserId { get; init; }
+    public User User { get; set; } = null!;
+    public Guid RoleId { get; init; }
+    public Role Role { get; set; } = null!;
+}
+
+public sealed class RefreshToken
+{
+    public Guid Id { get; init; } = Guid.NewGuid();
+    public Guid UserId { get; init; }
+    public User User { get; set; } = null!;
+    public required string TokenHash { get; init; }
+    public Guid FamilyId { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime ExpiresAt { get; init; }
+    public DateTime? RevokedAt { get; set; }
+}
+```
+
+#### EF configurations
+
+```csharp title="src/Services/MyApp.Api/Persistence/Configurations/UserConfiguration.cs"
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Auth;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class UserConfiguration : IEntityTypeConfiguration<User>
+{
+    public void Configure(EntityTypeBuilder<User> b)
+    {
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Email).HasMaxLength(256).IsRequired();
+        b.Property(x => x.NormalizedEmail).HasMaxLength(256).IsRequired();
+        b.Property(x => x.PasswordHash).IsRequired();
+        b.HasIndex(x => x.NormalizedEmail).IsUnique();
+        b.HasMany(x => x.UserRoles).WithOne(x => x.User).HasForeignKey(x => x.UserId);
+        b.HasMany(x => x.RefreshTokens).WithOne(x => x.User).HasForeignKey(x => x.UserId);
+    }
+}
+```
+
+```csharp title="src/Services/MyApp.Api/Persistence/Configurations/RoleConfiguration.cs"
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Auth;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
+{
+    // Fixed GUIDs so HasData is stable across every environment (not Dev-only seeding).
+    public static readonly Guid UserRoleId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    public static readonly Guid AdminRoleId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+    public void Configure(EntityTypeBuilder<Role> b)
+    {
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Name).HasMaxLength(64).IsRequired();
+        b.Property(x => x.NormalizedName).HasMaxLength(64).IsRequired();
+        b.HasIndex(x => x.NormalizedName).IsUnique();
+        b.HasMany(x => x.UserRoles).WithOne(x => x.Role).HasForeignKey(x => x.RoleId);
+
+        b.HasData(
+            new Role { Id = UserRoleId, Name = Roles.User, NormalizedName = "USER" },
+            new Role { Id = AdminRoleId, Name = Roles.Admin, NormalizedName = "ADMIN" });
+    }
+}
+```
+
+```csharp title="src/Services/MyApp.Api/Persistence/Configurations/UserRoleConfiguration.cs"
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Auth;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
+{
+    public void Configure(EntityTypeBuilder<UserRole> b)
+    {
+        b.HasKey(x => new { x.UserId, x.RoleId });
+    }
+}
+```
+
+```csharp title="src/Services/MyApp.Api/Persistence/Configurations/RefreshTokenConfiguration.cs"
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using MyApp.Features.Auth;
+
+namespace MyApp.Persistence.Configurations;
+
+public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
+{
+    public void Configure(EntityTypeBuilder<RefreshToken> b)
+    {
+        b.HasKey(x => x.Id);
+        b.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+        b.HasIndex(x => x.TokenHash).IsUnique();
+        b.HasIndex(x => x.FamilyId);
+        b.HasIndex(x => x.UserId);
+        b.HasOne(x => x.User).WithMany(u => u.RefreshTokens).HasForeignKey(x => x.UserId);
+    }
+}
+```
+
+#### AppDbContext
+
+Plain `DbContext` (not `IdentityDbContext`). Discover configs via `ApplyConfigurationsFromAssembly`:
+
+```csharp title="src/Services/MyApp.Api/Persistence/AppDbContext.cs"
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    //...
+// [!code focus:4]
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+// [!code focus]
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
+}
+```
+
+#### Migrations and seed (later in Step 10)
+
+- Add migration after entities/configs exist `dotnet ef migrations add Auth --project src/Services/MyApp.Api --output-dir Persistence/Migrations` in the backend project; apply 
+- Development seeder: ensure roles `User` / `Admin`; optional admin user via `PasswordHasher<User>` + `SeedOptions`.
+
+---
+
+</GuideStep>
+
+<GuideStep title="TokenService">
+
+
+#### Auth constants
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/AuthConstants.cs"
+using System.Security.Claims;
+using Microsoft.IdentityModel.JsonWebTokens;
+
+namespace MyApp.Features.Auth;
+
+public static class Roles
+{
+    public const string User = "User";
+    public const string Admin = "Admin";
+}
+
+public static class Policies
+{
+    public const string AdminOnly = "AdminOnly";
+}
+
+public static class AuthClaims
+{
+    public const string Role = "role";
+    public const string TokenVersion = "token_version";
+
+    public static Guid GetUserId(this ClaimsPrincipal p) =>
+        Guid.Parse(p.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
+}
+```
+
+#### Token response DTO
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/TokenResponse.cs"
+using System.Text.Json.Serialization;
+
+namespace MyApp.Features.Auth;
+
+public sealed record TokenResponse(
+    [property: JsonPropertyName("access_token")] string AccessToken,
+    [property: JsonPropertyName("token_type")] string TokenType,
+    [property: JsonPropertyName("expires_in")] int ExpiresIn,
+    [property: JsonPropertyName("refresh_token")] string RefreshToken);
+```
+
+#### Token service (interface + implementation)
+
+Creating a JWT in .NET follows the following steps:
+1. Create a key
+2. Create a credentials
+3. Create a descriptor
+4. Create a token
+5. Write the token
+
+```csharp
+var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your-secret-key"));
+var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        
+var descriptor = new SecurityTokenDescriptor(
+    issuer: "your-issuer",
+    audience: "your-audience",
+    claims: new List<Claim>
+    {
+        new Claim("sub", "12345"),
+        new Claim("name", "John Doe"),
+        new Claim("email", "jhon@doe.com"),
+        new Claim("role", "admin"),
+        //........
+    },
+    expires: DateTime.UtcNow.AddHours(1),
+    signingCredentials: _creds
+);  
+
+var jwt = new JsonWebTokenHandler().WriteToken(descriptor);
+```
+
+Let define token service interface and implementation to manage the token creation and issuance.:
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/IssuedTokens.cs"
+namespace MyApp.Features.Auth;
+
+public sealed record IssuedTokens(
+    string AccessToken,
+    int AccessTokenExpiresInSeconds,
+    string RawRefreshToken,
+    RefreshToken RefreshToken);
+```
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/ITokenService.cs"
+namespace MyApp.Features.Auth;
+
+public interface ITokenService
+{
+    string CreateAccessToken(User user, IEnumerable<string> roles);
+    (string Raw, string Hash, DateTime ExpiresAt) GenerateRefreshToken();
+    string Hash(string raw);
+    int AccessTokenExpiresInSeconds { get; }
+
+    /// <summary>
+    /// Creates access + refresh entity (caller Adds the entity and maps to TokenResponse;
+    /// SaveChanges via TransactionBehavior).
+    /// </summary>
+    IssuedTokens IssueTokens(User user, IEnumerable<string> roles, Guid familyId);
+}
+```
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/TokenService.cs"
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
+using MyApp.Config;
+
+namespace MyApp.Features.Auth;
+
+public sealed class TokenService : ITokenService
+{
+    private readonly JwtOptions _jwt;
+    private readonly TimeProvider _clock;
+    private readonly SigningCredentials _creds;
+
+    public TokenService(IOptions<JwtOptions> jwt, TimeProvider clock)
+    {
+        _jwt = jwt.Value;
+        _clock = clock;
+        // Cache key + credentials once — do not rebuild per request.
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwt.Secret));
+        _creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+    }
+
+    public string CreateAccessToken(User user, IEnumerable<string> roles)
+    {
+        var now = _clock.GetUtcNow();
+        var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(now.UtcDateTime).ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(AuthClaims.TokenVersion, user.PermissionVersion.ToString()),
+        };
+        // Short name "role" — JwtBearer RoleClaimType must match (see Step 6).
+        claims.AddRange(roles.Select(r => new Claim(AuthClaims.Role, r)));
+
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(claims),
+            Issuer = _jwt.Issuer,
+            Audience = _jwt.Audience,
+            NotBefore = now.UtcDateTime,
+            Expires = expires.UtcDateTime,
+            SigningCredentials = _creds,
+        };
+
+        return new JsonWebTokenHandler().CreateToken(descriptor);
+    }
+
+    public (string Raw, string Hash, DateTime ExpiresAt) GenerateRefreshToken()
+    {
+        var bytes = RandomNumberGenerator.GetBytes(64);
+        var raw = Base64UrlEncoder.Encode(bytes); // URL-safe; avoid + / =
+        var expires = _clock.GetUtcNow().UtcDateTime.AddDays(_jwt.RefreshTokenDays);
+        return (raw, Hash(raw), expires);
+    }
+
+    public string Hash(string raw)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    public int AccessTokenExpiresInSeconds => _jwt.AccessTokenMinutes * 60;
+
+    public IssuedTokens IssueTokens(
+        User user, IEnumerable<string> roles, Guid familyId)
+    {
+        var accessToken = CreateAccessToken(user, roles);
+        var (rawRefreshToken, hash, expiresAt) = GenerateRefreshToken();
+        var now = _clock.GetUtcNow().UtcDateTime;
+
+        var refreshToken = new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = hash,       // store hash only — never the raw token
+            FamilyId = familyId,    // same family across rotations; reuse kills the family
+            CreatedAt = now,
+            ExpiresAt = expiresAt,
+        };
+
+        return new IssuedTokens(
+            accessToken,
+            AccessTokenExpiresInSeconds,
+            rawRefreshToken,
+            refreshToken);
+    }
+}
+```
+
+</GuideStep>
+
+
+<GuideStep title="Vertical slices (Command + Validator + Handler)">
+  
+#### How `TransactionBehavior` decides to commit
+
+| Request implements | Handler returns | Commit? | Typical use |
+|---|---|---|---|
+| `IQuery<T>` (no `ICommandMarker`) | anything | N/A — no transaction | Reads |
+| `ICommand` / `ICommand<T>` | success `ErrorOr` | **Yes** | CreateProduct, Register, Ban |
+| `ICommand` / `ICommand<T>` | `IsError: true` | **No** (rollback) | Duplicate email, validation already stopped earlier |
+| `ICommand` + **`IPersistOnFailure`** | `IsError: true` | **Yes** | Login lockout, refresh family kill on reuse |
+
+**Why `IPersistOnFailure` exists:** lockout counters and “kill the refresh family” must hit the DB even though the HTTP response is still `401`. Without the marker, `TransactionBehavior` would roll those `ExecuteUpdate`s back with the ErrorOr failure.
+
+**Usage — mark only the commands that need it:**
+
+```csharp showLineNumbers {2,5,8}
+public sealed record LoginCommand(string Email, string Password)
+    : ICommand<TokenResponse>, IPersistOnFailure;
+
+public sealed record RefreshTokenCommand(string RefreshToken)
+    : ICommand<TokenResponse>, IPersistOnFailure;
+
+// Ordinary commands — failed ErrorOr rolls back; do NOT add IPersistOnFailure.
+public sealed record CreateProductCommand(...) : ICommand<Guid>;
+```
+
+#### Specifications for auth reads (compose like Products)
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Specifications/AuthSpecs.cs"
+using Microsoft.EntityFrameworkCore;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Auth.Specifications;
+
+// Atomic Criteria filters — compose with .And() like ProductSpecs.
+// Default AsNoTracking = true. Mutating handlers add ForUpdateSpecification<T>.Instance.
+
+public sealed class UserByIdSpecification : SpecificationBase<User>
+{
+    public UserByIdSpecification(Guid userId) => Where(u => u.Id == userId);
+}
+
+public sealed class UserByNormalizedEmailSpecification : SpecificationBase<User>
+{
+    public UserByNormalizedEmailSpecification(string normalizedEmail) =>
+        Where(u => u.NormalizedEmail == normalizedEmail);
+}
+
+public sealed class RoleByNormalizedNameSpecification : SpecificationBase<Role>
+{
+    public RoleByNormalizedNameSpecification(string normalizedName) =>
+        Where(r => r.NormalizedName == normalizedName);
+}
+
+public sealed class RefreshTokenByHashSpecification : SpecificationBase<RefreshToken>
+{
+    public RefreshTokenByHashSpecification(string tokenHash) =>
+        Where(t => t.TokenHash == tokenHash);
+}
+
+public sealed class UserRolesByUserIdSpecification : SpecificationBase<UserRole>
+{
+    public UserRolesByUserIdSpecification(Guid userId) => Where(ur => ur.UserId == userId);
+}
+
+// Include graphs only — no Criteria. And() with a filter above.
+
+public sealed class UserWithRolesSpecification : SpecificationBase<User>
+{
+    public UserWithRolesSpecification()
+    {
+        Include(q => q.Include(u => u.UserRoles).ThenInclude(ur => ur.Role));
+    }
+
+    public static readonly ISpecification<User> Instance = new UserWithRolesSpecification();
+}
+
+public sealed class RefreshTokenWithUserRolesSpecification : SpecificationBase<RefreshToken>
+{
+    public RefreshTokenWithUserRolesSpecification()
+    {
+        Include(q => q.Include(t => t.User)
+            .ThenInclude(u => u!.UserRoles)
+            .ThenInclude(ur => ur.Role));
+    }
+
+    public static readonly ISpecification<RefreshToken> Instance = new RefreshTokenWithUserRolesSpecification();
+}
+```
+
+| Use case | Composition |
+|----------|-------------|
+| Register — email taken? | `UserByNormalizedEmailSpecification` → `.AnyAsync` |
+| Register — default role | `RoleByNormalizedNameSpecification` → `.SingleAsync` |
+| Login | email filter `.And(ForUpdate)`; roles via `UserRolesByUserIdSpecification` → `.Select(Name)` |
+| Refresh | hash filter `.And(RefreshTokenWithUserRoles).And(ForUpdate)` → pass role names into `IssueTokens` |
+| Ban / LogoutAll | `UserById` `.And(ForUpdate)` |
+| `OnTokenValidated` | `UserById` alone (no-tracking) |
+
+`ExecuteUpdate` revoke paths stay without a spec — no query graph.
+
+#### RegisterUser
+
+**`RegisterUserCommand.cs`**
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/RegisterUser/RegisterUserCommand.cs"
+using Shared.Application.Abstractions.Commands;
+
+namespace MyApp.Features.Auth.RegisterUser;
+
+public sealed record RegisterUserCommand(string Email, string Password) : ICommand;
+```
+
+**`RegisterUserCommandValidator.cs`** — replaces any manual `ValidatePassword`:
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/RegisterUser/RegisterUserCommandValidator.cs"
+using FluentValidation;
+
+namespace MyApp.Features.Auth.RegisterUser;
+
+public sealed class RegisterUserCommandValidator : AbstractValidator<RegisterUserCommand>
+{
+    public RegisterUserCommandValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Password)
+            .NotEmpty()
+            .MinimumLength(10)
+            .MaximumLength(128)
+            .Matches("[0-9]").WithMessage("Password must contain a digit.")
+            .Matches("[a-z]").WithMessage("Password must contain a lowercase letter.")
+            .Matches("[A-Z]").WithMessage("Password must contain an uppercase letter.")
+            .Matches("[^a-zA-Z0-9]").WithMessage("Password must contain a non-alphanumeric character.");
+    }
+}
+```
+
+**`RegisterUserCommandHandler.cs`**
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/RegisterUser/RegisterUserCommandHandler.cs"
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using MyApp.Features.Auth;
+using MyApp.Features.Auth.Specifications;
+using MyApp.Persistence;
+using Shared.Common.Errors;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Auth.RegisterUser;
+
+internal sealed class RegisterUserCommandHandler(
+    AppDbContext db,
+    IPasswordHasher<User> passwordHasher)
+    : IRequestHandler<RegisterUserCommand, ErrorOr<Success>>
+{
+    public async ValueTask<ErrorOr<Success>> Handle(RegisterUserCommand command, CancellationToken ct)
+    {
+        var normalized = command.Email.Trim().ToUpperInvariant();
+        if (await db.Users
+                .Apply(new UserByNormalizedEmailSpecification(normalized))
+                .AnyAsync(ct))
+            return Error.Conflict("AUTH.EMAIL_TAKEN", "Email is already taken.");
+
+        var userRole = await db.Roles
+            .Apply(new RoleByNormalizedNameSpecification(Roles.User.ToUpperInvariant()))
+            .SingleAsync(ct);
+
+        var user = new User
+        {
+            Email = command.Email.Trim(),
+            NormalizedEmail = normalized,
+            PasswordHash = "",
+        };
+        user.PasswordHash = passwordHasher.HashPassword(user, command.Password);
+
+        db.Users.Add(user);
+        db.UserRoles.Add(new UserRole { UserId = user.Id, RoleId = userRole.Id });
+        // SaveChanges via TransactionBehavior
+        return default(Success);
+    }
+}
+```
+
+#### Login
+
+**`LoginCommand.cs`**
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Login/LoginCommand.cs" showLineNumbers {7}
+using Shared.Application.Abstractions.Commands;
+using MyApp.Features.Auth;
+
+namespace MyApp.Features.Auth.Login;
+
+public sealed record LoginCommand(string Email, string Password)
+    : ICommand<TokenResponse>, IPersistOnFailure;
+```
+
+**`LoginCommandValidator.cs`** — presence/shape only (complexity is register-only):
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Login/LoginCommandValidator.cs"
+using FluentValidation;
+
+namespace MyApp.Features.Auth.Login;
+
+public sealed class LoginCommandValidator : AbstractValidator<LoginCommand>
+{
+    public LoginCommandValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.Password).NotEmpty().MaximumLength(128);
+    }
+}
+```
+
+**`LoginCommandHandler.cs`**
+
+**Why `IPersistOnFailure`:** wrong-password paths return `Error.Unauthorized` *and* must persist `AccessFailedCount` / `LockoutEnd`. Default TransactionBehavior would roll those writes back.
+
+**Why DummyHash on early exits:** missing / banned / locked users still run a password verify against a fixed hash so timing does not leak whether the email exists.
+
+**Why `ExecuteUpdate` for failures (not tracked mutate):** lockout increments must not mix with a later failed `SaveChanges` of a tracked entity graph. Atomic SQL updates + `IPersistOnFailure` commit them.
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Login/LoginCommandHandler.cs"
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using MyApp.Features.Auth.Specifications;
+using MyApp.Persistence;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Auth.Login;
+
+internal sealed class LoginCommandHandler(
+    AppDbContext db,
+    IPasswordHasher<User> passwordHasher,
+    ITokenService tokens,
+    TimeProvider clock)
+    : IRequestHandler<LoginCommand, ErrorOr<TokenResponse>>
+{
+    private const int MaxFailed = 5;
+    private static readonly TimeSpan LockoutFor = TimeSpan.FromMinutes(15);
+
+    private static readonly string DummyHash = new PasswordHasher<User>().HashPassword(
+        new User { Email = "x", NormalizedEmail = "X", PasswordHash = "" },
+        Guid.NewGuid().ToString());
+
+    public async ValueTask<ErrorOr<TokenResponse>> Handle(LoginCommand command, CancellationToken ct)
+    {
+        var normalized = command.Email.Trim().ToUpperInvariant();
+        var user = await db.Users
+            .Apply(new UserByNormalizedEmailSpecification(normalized)
+                .And(ForUpdateSpecification<User>.Instance))
+            .SingleOrDefaultAsync(ct);
+
+        if (user is null || user.IsBanned)
+        {
+            BurnPasswordVerify(command.Password);
+            return Error.Unauthorized("AUTH.INVALID_CREDENTIALS", "Invalid credentials.");
+        }
+
+        if (user.LockoutEnd is { } until && until > clock.GetUtcNow())
+        {
+            BurnPasswordVerify(command.Password);
+            return Error.Unauthorized("AUTH.INVALID_CREDENTIALS", "Invalid credentials.");
+        }
+
+        var verify = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, command.Password);
+        if (verify == PasswordVerificationResult.Failed)
+        {
+            await db.Users.Where(u => u.Id == user.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(u => u.AccessFailedCount, u => u.AccessFailedCount + 1), ct);
+
+            var lockUntil = clock.GetUtcNow().Add(LockoutFor);
+            await db.Users.Where(u => u.Id == user.Id && u.AccessFailedCount >= MaxFailed)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(u => u.LockoutEnd, lockUntil)
+                    .SetProperty(u => u.AccessFailedCount, 0), ct);
+
+            return Error.Unauthorized("AUTH.INVALID_CREDENTIALS", "Invalid credentials.");
+        }
+
+        if (verify == PasswordVerificationResult.SuccessRehashNeeded)
+            user.PasswordHash = passwordHasher.HashPassword(user, command.Password);
+
+        user.AccessFailedCount = 0;
+        user.LockoutEnd = null;
+
+        var roles = await db.UserRoles
+            .Apply(new UserRolesByUserIdSpecification(user.Id))
+            .Select(ur => ur.Role.Name)
+            .ToListAsync(ct);
+
+        var issued = tokens.IssueTokens(user, roles, Guid.NewGuid());
+        db.RefreshTokens.Add(issued.RefreshToken);
+        return new TokenResponse(
+            issued.AccessToken,
+            "Bearer",
+            issued.AccessTokenExpiresInSeconds,
+            issued.RawRefreshToken);
+    }
+
+    private void BurnPasswordVerify(string password) =>
+        passwordHasher.VerifyHashedPassword(
+            new User { Email = "x", NormalizedEmail = "X", PasswordHash = DummyHash },
+            DummyHash,
+            password);
+}
+```
+
+
+<Callout variant="note" title="IPersistOnFailure">
+
+Note that the `IPersistOnFailure` interface is used to persist the entity on failure.
+
+```csharp
+public sealed record LoginCommand(string Email, string Password)
+    : ICommand<TokenResponse>, IPersistOnFailure;
+```
+
+This is used to persist the entity on failure.
+
+```csharp
+if (verify == PasswordVerificationResult.Failed)
+{
+    await db.Users.Where(u => u.Id == user.Id)
+        .ExecuteUpdateAsync(s => s.SetProperty(u => u.AccessFailedCount, u => u.AccessFailedCount + 1), ct);
+
+    var lockUntil = clock.GetUtcNow().Add(LockoutFor);
+    await db.Users.Where(u => u.Id == user.Id && u.AccessFailedCount >= MaxFailed)
+        .ExecuteUpdateAsync(s => s
+            .SetProperty(u => u.LockoutEnd, lockUntil)
+            .SetProperty(u => u.AccessFailedCount, 0), ct);
+
+    return Error.Unauthorized("AUTH.INVALID_CREDENTIALS", "Invalid credentials.");
+}
+```
+</Callout>
+
+
+<Callout variant="tip" title="`BurnPasswordVerify` — Why?">
+When a login email doesn't exist, returning immediately is much faster than verifying a password hash.
+
+An attacker could measure this timing difference to discover which emails are registered.
+
+So we perform a **dummy password-hash verification** even when the user doesn't exist:
+
+```csharp
+VerifyDummyPassword(command.Password);
+```
+
+This makes both paths perform expensive password hashing:
+
+* **User exists** → verify real password hash
+* **User doesn't exist** → verify dummy password hash
+
+**Goal:** reduce user/email enumeration through timing attacks.
+
+> The dummy verification doesn't authenticate anyone; it only makes the invalid-user path take roughly the same computational work as a real login attempt.
+
+</Callout>
+
+Business error codes:
+
+| Case | Factory |
+|------|---------|
+| Wrong / unknown / banned / lockout (login) | `Error.Unauthorized("AUTH.INVALID_CREDENTIALS", ...)` — one message |
+| Duplicate email (register) | `Error.Conflict("AUTH.EMAIL_TAKEN", ...)` |
+| Bad refresh | `Error.Unauthorized("AUTH.INVALID_TOKEN", ...)` |
+| Banned on refresh | `Error.Forbidden("AUTH.ACCOUNT_DISABLED", ...)` |
+| Ban target missing | `Error.NotFound("AUTH.USER_NOT_FOUND", ...)` |
+| Missing / failed bearer (Challenge) | `Error.Unauthorized("AUTH.UNAUTHORIZED", ...)` |
+| Expired access JWT | `Error.Unauthorized("AUTH.TOKEN_EXPIRED", ...)` |
+| Invalid access JWT | `Error.Unauthorized("AUTH.TOKEN_INVALID", ...)` |
+| Policy deny (Forbidden) | `Error.Forbidden("AUTH.FORBIDDEN", ...)` |
+
+#### RefreshToken
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Refresh/RefreshTokenCommand.cs"
+using Shared.Application.Abstractions.Commands;
+using MyApp.Features.Auth;
+
+namespace MyApp.Features.Auth.Refresh;
+
+public sealed record RefreshTokenCommand(string RefreshToken)
+    : ICommand<TokenResponse>, IPersistOnFailure;
+```
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Refresh/RefreshTokenCommandValidator.cs"
+using FluentValidation;
+
+namespace MyApp.Features.Auth.Refresh;
+
+public sealed class RefreshTokenCommandValidator : AbstractValidator<RefreshTokenCommand>
+{
+    public RefreshTokenCommandValidator()
+    {
+        RuleFor(x => x.RefreshToken).NotEmpty();
+    }
+}
+```
+
+**Why `IPersistOnFailure` here:** presenting an already-rotated refresh must revoke the **entire** `FamilyId` and still return `401`. That revoke is an `ExecuteUpdate` that must commit on the ErrorOr failure path.
+
+**Reuse detection vs rotation**
+
+```text
+Client sends refresh R1
+  → server rotates → R1.RevokedAt set, issues R2 (same FamilyId)
+Attacker (or buggy client) replays R1
+  → R1.RevokedAt != null → ExecuteUpdate revoke all FamilyId rows → 401
+  → R2 is now dead too (family kill)
+```
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Refresh/RefreshTokenCommandHandler.cs"
+using Microsoft.EntityFrameworkCore;
+using MyApp.Features.Auth.Specifications;
+using MyApp.Persistence;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Auth.Refresh;
+
+internal sealed class RefreshTokenCommandHandler(
+    AppDbContext db,
+    ITokenService tokens,
+    TimeProvider clock)
+    : IRequestHandler<RefreshTokenCommand, ErrorOr<TokenResponse>>
+{
+    public async ValueTask<ErrorOr<TokenResponse>> Handle(RefreshTokenCommand command, CancellationToken ct)
+    {
+        var hash = tokens.Hash(command.RefreshToken);
+        var stored = await db.RefreshTokens
+            .Apply(new RefreshTokenByHashSpecification(hash)
+                .And(RefreshTokenWithUserRolesSpecification.Instance))
+            .SingleOrDefaultAsync(ct);
+
+        var now = clock.GetUtcNow().UtcDateTime;
+
+        if (stored is null)
+            return Error.Unauthorized("AUTH.INVALID_TOKEN", "Invalid refresh token.");
+
+        // Reuse: already-rotated token presented → kill the whole family.
+        if (stored.RevokedAt is not null)
+        {
+            await db.RefreshTokens
+                .Where(t => t.FamilyId == stored.FamilyId && t.RevokedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), ct);
+            return Error.Unauthorized("AUTH.INVALID_TOKEN", "Invalid refresh token.");
+        }
+
+        if (stored.ExpiresAt <= now)
+            return Error.Unauthorized("AUTH.INVALID_TOKEN", "Invalid refresh token.");
+
+        if (stored.User is null || stored.User.IsBanned)
+            return Error.Forbidden("AUTH.ACCOUNT_DISABLED", "Account is locked or disabled.");
+
+        var revoked = await db.RefreshTokens
+            .Where(t => t.Id == stored.Id && t.RevokedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), ct);
+
+        if (revoked == 0)
+        {
+            await db.RefreshTokens
+                .Where(t => t.FamilyId == stored.FamilyId && t.RevokedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), ct);
+            return Error.Unauthorized("AUTH.INVALID_TOKEN", "Invalid refresh token.");
+        }
+
+        var roles = stored.User.UserRoles.Select(ur => ur.Role.Name);
+        var issued = tokens.IssueTokens(stored.User, roles, stored.FamilyId);
+        db.RefreshTokens.Add(issued.RefreshToken);
+        return new TokenResponse(
+            issued.AccessToken,
+            "Bearer",
+            issued.AccessTokenExpiresInSeconds,
+            issued.RawRefreshToken);
+    }
+}
+```
+
+Expiry uses `UtcDateTime` (not the `DateTimeOffset` from `GetUtcNow()` directly) so comparison matches the stored `DateTime` column.
+
+#### Logout / LogoutAll / Ban
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/Logout/LogoutCommand.cs"
+using Shared.Application.Abstractions.Commands;
+
+namespace MyApp.Features.Auth.Logout;
+
+public sealed record LogoutCommand(string RefreshToken) : ICommand;
+```
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/LogoutAll/LogoutAllCommand.cs"
+using Shared.Application.Abstractions.Commands;
+
+namespace MyApp.Features.Auth.LogoutAll;
+
+public sealed record LogoutAllCommand(Guid UserId) : ICommand;
+```
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/AdminUsers/BanUserCommand.cs"
+using Shared.Application.Abstractions.Commands;
+
+namespace MyApp.Features.Auth.AdminUsers;
+
+public sealed record BanUserCommand(Guid UserId) : ICommand;
+```
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/AdminUsers/BanUserCommandHandler.cs"
+using Microsoft.EntityFrameworkCore;
+using MyApp.Features.Auth.Specifications;
+using MyApp.Persistence;
+using Shared.Common.Errors;
+using Shared.Common.Specifications;
+
+namespace MyApp.Features.Auth.AdminUsers;
+
+internal sealed class BanUserCommandHandler(AppDbContext db, TimeProvider clock)
+    : IRequestHandler<BanUserCommand, ErrorOr<Success>>
+{
+    public async ValueTask<ErrorOr<Success>> Handle(BanUserCommand command, CancellationToken ct)
+    {
+        var user = await db.Users
+            .Apply(new UserByIdSpecification(command.UserId)
+                .And(ForUpdateSpecification<User>.Instance))
+            .SingleOrDefaultAsync(ct);
+
+        if (user is null)
+            return Error.NotFound("AUTH.USER_NOT_FOUND", "User was not found.");
+
+        user.IsBanned = true;
+        user.PermissionVersion++;
+
+        var now = clock.GetUtcNow().UtcDateTime;
+        await db.RefreshTokens
+            .Where(t => t.UserId == user.Id && t.RevokedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, now), ct);
+
+        return default(Success);
+    }
+}
+
+// Also: UnbanUserCommand; Ban requires caller id ≠ target (self-ban guard).
+// See AdminUsers/BanUserCommands.cs + BanUserCommandHandlers.cs.
+```
+
+`LogoutAllCommandHandler` is the same pattern without `IsBanned = true` (bump `PermissionVersion` + revoke refresh). `LogoutCommandHandler` hashes the refresh and `ExecuteUpdate`s the family — no specification required.
+
+</GuideStep>
+
+</Guide>
+
