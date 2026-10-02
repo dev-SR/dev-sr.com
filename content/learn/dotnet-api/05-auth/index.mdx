@@ -1908,57 +1908,48 @@ public sealed class ConfigureJwtBearer(IOptions<JwtOptions> jwt) : IConfigureNam
 
 #### Register JwtBearer + policies (Presentation)
 
+
+Authentication only in this step — fallback policy and `AdminOnly` come in **Step 7**.
+
 `ConfigureJwtBearer` needs `JwtOptions` already registered (Step 2 classes). Bind them in Infrastructure if you have not yet:
 
 ```csharp
 services.AddValidatedOptions<JwtOptions>(JwtOptions.Section);
 ```
 
-Then wire authentication **inside `AddApi`**, not in `Program.cs`. `AddJwtBearer()` creates the scheme; `ConfigureOptions<ConfigureJwtBearer>()` attaches your class so options/events are applied:
+Wire JwtBearer **inside `AddApi`**, not in `Program.cs`. `AddJwtBearer()` creates the scheme; `ConfigureOptions<ConfigureJwtBearer>()` attaches your class so options/events are applied:
 
 ```csharp title="MyApp/backend/src/Services/MyApp.Api/Presentation/DependencyInjection.cs"
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using MyApp.Features.Auth;
 
 // Inside AddApi(...):
-services.AddAuthenticationAndAuthorization();
+services.AddJwtAuthentication();
 
-private static IServiceCollection AddAuthenticationAndAuthorization(this IServiceCollection services)
+private static IServiceCollection AddJwtAuthentication(this IServiceCollection services)
 {
     services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(); // options come from ConfigureJwtBearer
 
     services.ConfigureOptions<ConfigureJwtBearer>();
-
-    services.AddAuthorization(options =>
-    {
-        options.FallbackPolicy = new AuthorizationPolicyBuilder()
-            .RequireAuthenticatedUser()
-            .Build();
-
-        options.AddPolicy(Policies.AdminOnly, p => p.RequireRole(Roles.Admin));
-    });
-
     return services;
 }
 ```
 
-Pipeline order (auth after rate limiter when you add Step 7):
+Pipeline (rate limiter from Step 8 goes **before** this):
 
 ```csharp
 app.UseAuthentication();
-app.UseAuthorization();
 ```
 
-When fallback policy is on, mark public product GETs `.AllowAnonymous()` or accept that cutover. OpenAPI/Scalar/health also need `.AllowAnonymous()` (Step 9).
+`UseAuthorization()` is added in Step 7 with the policies.
 
-**ErrorOr vs JwtBearer**
+**ErrorOr vs JwtBearer (authentication failures)**
 
 | Path | Mechanism |
 |------|-----------|
 | Login / refresh / register / ban | `ErrorOr` → `Match*` / `ToProblem` |
-| Missing/bad/expired JWT, ban/`token_version` on API call, policy deny | JwtBearer events → `Error` + `ToProblem` + `ExecuteAsync` |
+| Missing/bad/expired JWT, ban/`token_version` on API call | JwtBearer events → `Error` + `ToProblem` + `ExecuteAsync` |
 
 Same Problem Details fields (`status`, `title`, `detail`, `errorCode`, `errorType`, `traceId`) either way.
 
