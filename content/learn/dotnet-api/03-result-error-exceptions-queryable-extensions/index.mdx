@@ -588,6 +588,24 @@ Commands change data. Put a unit of work around them so the handler only **track
 
 **When to commit:** after the handler returns, commit only if the result is a success — or if the command opted into `IPersistOnFailure` (needed when a failure response must still keep intentional side effects, such as an audit counter). Otherwise roll back so a failed command leaves no half-written state.
 
+```csharp title="src/Services/MyApp.Api/Persistence/DbErrors.cs"
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+
+namespace MyApp.Persistence;
+
+internal static class DbErrors
+{
+    public static bool IsUniqueViolation(DbUpdateException ex) => ex.InnerException switch
+    {
+        SqliteException { SqliteErrorCode: 19, SqliteExtendedErrorCode: 2067 or 1555 } => true,
+        // Npgsql:     PostgresException { SqlState: "23505" } => true,
+        // SQL Server: SqlException { Number: 2601 or 2627 } => true,
+        _ => false,
+    };
+}
+```
+
 ```csharp title="src/Services/MyApp.Api/Persistence/TransactionBehavior.cs"
 using Microsoft.EntityFrameworkCore;
 using Shared.Application.Abstractions.Commands;
