@@ -1,13 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ViewTransition } from 'react';
-import { ArrowLeft, ArrowRight, FileCode2, Menu } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileCode2, List, Menu } from 'lucide-react';
 import type { LearnNavNode, LearnNeighbor, LearnPage } from '@/lib/learn';
 import Header from '@/components/Header';
 import { PageTopGlow } from '@/components/page-top-glow';
-import { TableOfContents } from '@/components/table-of-contents';
+import { CompactTableOfContents, TableOfContents } from '@/components/table-of-contents';
 import { DocsSidebar } from '@/components/learn/docs-sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,41 +43,63 @@ export function LearnArticleClient({
   next,
 }: LearnArticleClientProps) {
   const transitionSlug = page.slug.replace(/[^a-zA-Z0-9_-]/g, '-');
+  const [tocOpen, setTocOpen] = useState(false);
 
   return (
     <div className="relative bg-background">
       <PageTopGlow />
       <Header />
       <div className="mx-auto mt-28 px-4 pb-16 sm:px-6 lg:px-16">
-        <div className="mb-4 flex items-center justify-between lg:hidden">
+        <div className="mb-4 flex items-center justify-between gap-3 2xl:hidden">
           <Link
             href="/learn"
             transitionTypes={['nav-back']}
             className="text-sm text-muted-foreground hover:text-foreground">
             All courses
           </Link>
-          {courseNav && (
-            <Sheet>
+          <div className="flex shrink-0 items-center gap-2">
+            {courseNav && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Menu className="size-4" />
+                    Chapters
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[min(100vw-2rem,20rem)] p-0">
+                  <SheetHeader className="border-b border-border px-4 py-3 text-left">
+                    <SheetTitle className="text-base">{courseNav.title}</SheetTitle>
+                  </SheetHeader>
+                  <div className="h-[calc(100vh-4rem)] p-3">
+                    <DocsSidebar course={courseNav} />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
+            <Sheet open={tocOpen} onOpenChange={setTocOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
-                  <Menu className="size-4" />
-                  Chapters
+                  <List className="size-4" />
+                  On this page
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[min(100vw-2rem,20rem)] p-0">
+              <SheetContent side="right" className="w-[min(100vw-2rem,20rem)] p-0">
                 <SheetHeader className="border-b border-border px-4 py-3 text-left">
-                  <SheetTitle className="text-base">{courseNav.title}</SheetTitle>
+                  <SheetTitle className="text-base">On this page</SheetTitle>
                 </SheetHeader>
-                <div className="h-[calc(100vh-4rem)] p-3">
-                  <DocsSidebar course={courseNav} />
+                <div className="h-[calc(100vh-4rem)] overflow-y-auto p-4" data-lenis-prevent>
+                  <CompactTableOfContents
+                    className="mb-0 [&_h3]:hidden [&_[role=navigation]]:max-h-[calc(100vh-8rem)]"
+                    onNavigate={() => setTocOpen(false)}
+                  />
                 </div>
               </SheetContent>
             </Sheet>
-          )}
+          </div>
         </div>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)_22rem]">
-          <div className="sticky top-28 hidden lg:block">
+        <div className="grid items-start gap-8 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]">
+          <div className="sticky top-28 hidden 2xl:block">
             {courseNav && <DocsSidebar course={courseNav} />}
           </div>
 
@@ -163,7 +186,7 @@ export function LearnArticleClient({
             </div>
           </article>
 
-          <aside className="sticky top-28 hidden lg:block">
+          <aside className="sticky top-28 hidden 2xl:block">
             <TableOfContents className="mb-0" />
           </aside>
         </div>

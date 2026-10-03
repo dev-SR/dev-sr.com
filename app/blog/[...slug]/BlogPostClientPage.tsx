@@ -145,9 +145,9 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
 
       <>{/* Blog Content */}</>
       <div className="mx-auto max-w-420 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid items-start gap-8 lg:grid-cols-[20rem_minmax(0,1fr)_8rem]">
-          <aside className="lg:sticky lg:top-28 lg:self-start">
-            <TableOfContents className="mb-0 lg:-ml-3" />
+        <div className="grid items-start gap-8 2xl:grid-cols-[20rem_minmax(0,1fr)_8rem]">
+          <aside className="2xl:sticky 2xl:top-28 2xl:self-start">
+            <TableOfContents className="mb-0 2xl:-ml-3" />
           </aside>
 
           <div className="min-w-0">
@@ -262,7 +262,7 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
             </div>
           </div>
 
-          <div className="hidden lg:block" aria-hidden="true" />
+          <div className="hidden 2xl:block" aria-hidden="true" />
         </div>
       </div>
     </div>

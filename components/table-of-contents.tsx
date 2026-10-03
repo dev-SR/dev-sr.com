@@ -26,6 +26,8 @@ interface TableOfContentsProps {
   contentSelector?: string;
   className?: string;
   variant?: 'default' | 'compact';
+  /** Called after a heading is selected (e.g. to close a sheet). */
+  onNavigate?: (id: string) => void;
 }
 
 const SCROLL_OFFSET = HASH_SCROLL_OFFSET;
@@ -297,6 +299,7 @@ function TocPanel({
   variant = 'default',
   className,
   collapsible = true,
+  onNavigate,
 }: {
   tree: TocTreeNode[];
   tocItems: TocItem[];
@@ -305,11 +308,20 @@ function TocPanel({
   variant?: 'default' | 'compact';
   className?: string;
   collapsible?: boolean;
+  onNavigate?: (id: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const ancestorIds = useMemo(() => collectAncestorIds(tree, activeId), [tree, activeId]);
   const activeIndex = findActiveIndex(tocItems, activeId);
+
+  const handleNavigate = useCallback(
+    (id: string) => {
+      scrollToHeading(id);
+      onNavigate?.(id);
+    },
+    [onNavigate, scrollToHeading]
+  );
 
   useEffect(() => {
     const viewport = scrollViewportRef.current;
@@ -343,7 +355,7 @@ function TocPanel({
           nodes={tree}
           activeId={activeId}
           ancestorIds={ancestorIds}
-          onNavigate={scrollToHeading}
+          onNavigate={handleNavigate}
           variant={variant}
         />
       </nav>
@@ -394,6 +406,7 @@ export function TableOfContents({
   contentSelector = '.mdx-content',
   className,
   variant = 'default',
+  onNavigate,
 }: TableOfContentsProps) {
   const { tocItems, tree } = useTocHeadings(contentSelector);
   const { activeId, scrollToHeading } = useTocSpy(tocItems);
@@ -407,6 +420,7 @@ export function TableOfContents({
       variant={variant}
       className={className}
       collapsible
+      onNavigate={onNavigate}
     />
   );
 }
@@ -414,6 +428,7 @@ export function TableOfContents({
 export function CompactTableOfContents({
   contentSelector = '.mdx-content',
   className,
+  onNavigate,
 }: TableOfContentsProps) {
   const { tocItems, tree } = useTocHeadings(contentSelector);
   const { activeId, scrollToHeading } = useTocSpy(tocItems);
@@ -427,6 +442,7 @@ export function CompactTableOfContents({
       variant="compact"
       className={className}
       collapsible={false}
+      onNavigate={onNavigate}
     />
   );
 }
