@@ -377,6 +377,16 @@ function marginNotePositionClass() {
   return 'absolute top-0 left-[calc(100%+1.75rem)] z-20 w-max';
 }
 
+/**
+ * Column flex/grid parents (Guide steps) stretch items. `inline` is blockified
+ * there, so the annotated node must not be that item — otherwise every mark
+ * type (underline, circle, box, …) traces the full column.
+ * `w-fit` applies only after blockification; inside a paragraph the frame
+ * stays inline and rough-notation still measures each line.
+ */
+const markFrameClass = 'inline w-fit max-w-full self-start align-baseline';
+const markTargetClass = 'relative inline';
+
 export function Mark({
   children,
   type = 'underline',
@@ -417,16 +427,18 @@ export function Mark({
 
   if (!hasNote) {
     return (
-      <span ref={markRef} className={cn('relative inline', className)}>
-        {children}
+      <span className={cn(markFrameClass, className)}>
+        <span ref={markRef} className={markTargetClass}>
+          {children}
+        </span>
       </span>
     );
   }
 
   if (noteLayout === 'inline') {
     return (
-      <span className={cn('inline', className)}>
-        <span ref={markRef} className="relative inline" aria-describedby={noteId}>
+      <span className={cn(markFrameClass, className)}>
+        <span ref={markRef} className={markTargetClass} aria-describedby={noteId}>
           {children}
         </span>
         <span
@@ -458,7 +470,7 @@ export function Mark({
   }
 
   const markEl = (
-    <span ref={markRef} className="relative inline" aria-describedby={noteId}>
+    <span ref={markRef} className={markTargetClass} aria-describedby={noteId}>
       {children}
     </span>
   );
@@ -482,7 +494,7 @@ export function Mark({
   if (noteLayout === 'floating') {
     if (noteSide === 'left') {
       return (
-        <span className={cn('inline-flex items-center gap-1.5 align-baseline', className)}>
+        <span className={cn('inline-flex w-fit max-w-full items-center gap-1.5 self-start align-baseline', className)}>
           {floatingNoteEl}
           {arrow ? <FloatingArrow side="left" color={ink} /> : null}
           {markEl}
@@ -491,7 +503,7 @@ export function Mark({
     }
     if (noteSide === 'right') {
       return (
-        <span className={cn('inline-flex items-center gap-1.5 align-baseline', className)}>
+        <span className={cn('inline-flex w-fit max-w-full items-center gap-1.5 self-start align-baseline', className)}>
           {markEl}
           {arrow ? <FloatingArrow side="right" color={ink} /> : null}
           {floatingNoteEl}
@@ -504,7 +516,7 @@ export function Mark({
     return (
       <span
         className={cn(
-          'relative inline-block align-baseline',
+          'relative inline-block w-fit max-w-full self-start align-baseline',
           isTop ? 'mt-8' : 'mb-8',
           className
         )}>
@@ -533,7 +545,7 @@ export function Mark({
 
   // Margin: absolute note in the desktop gutter; stacked fallback on small screens.
   return (
-    <span className={cn('relative inline-block align-baseline lg:mr-0', className)}>
+    <span className={cn('relative inline-block w-fit max-w-full self-start align-baseline lg:mr-0', className)}>
       {markEl}
 
       <span

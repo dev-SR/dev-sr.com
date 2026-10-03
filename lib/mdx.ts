@@ -19,6 +19,7 @@ import {
 } from '@shikijs/transformers';
 import { visit } from 'unist-util-visit';
 import { rehypeDefaultLineNumbers } from '@/lib/rehype-default-line-numbers';
+import { rehypeSkipPlainCode } from '@/lib/rehype-skip-plain-code';
 
 const contentDirectory = path.join(process.cwd(), 'content');
 
@@ -171,6 +172,7 @@ export const renderMDX = cache(async (content: string): Promise<MDXRemoteSeriali
           });
         },
         rehypeDefaultLineNumbers,
+        rehypeSkipPlainCode,
         [rehypePrettyCode, rehypePrettyCodeOptions],
 
         () => (tree) => {

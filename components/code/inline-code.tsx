@@ -5,9 +5,18 @@ import { cn } from '@/lib/utils';
 
 export function InlineCode(props: React.HTMLAttributes<HTMLElement>) {
   const { className, children, ...rest } = props;
+  const classNames = typeof className === 'string' ? className : '';
+  const dataLanguage =
+    typeof (rest as { 'data-language'?: string })['data-language'] === 'string'
+      ? (rest as { 'data-language'?: string })['data-language']
+      : undefined;
+  // Fenced blocks (incl. plain `text`/`txt` after language-* is stripped).
   const isBlockCode =
-    typeof className === 'string' &&
-    (className.includes('language-') || className.includes('hljs') || className.includes('shiki'));
+    classNames.includes('language-') ||
+    classNames.includes('code-fence') ||
+    classNames.includes('hljs') ||
+    classNames.includes('shiki') ||
+    Boolean(dataLanguage);
 
   if (isBlockCode) {
     return (

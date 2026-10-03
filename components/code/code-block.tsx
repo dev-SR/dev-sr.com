@@ -10,7 +10,8 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
-import { CodeCopyButton } from './code-copy-button';
+import { isPlainCodeLanguage } from '@/lib/plain-code-language';
+import { CodeCopyMenu } from './code-copy-menu';
 import { LanguageBadge } from './language-badge';
 import { useInFileTabs } from './code-block-context';
 import {
@@ -19,7 +20,6 @@ import {
   CodeContainerHeader,
   CodeContainerIcon,
 } from './code-container';
-import { CopyableFilename } from './copyable-filename';
 
 interface CodeBlockProps {
   language?: string;
@@ -72,24 +72,28 @@ export function CodeBlock({
   const lineCount = useMemo(() => (rawString ? rawString.split('\n').length : 0), [rawString]);
   const shouldCollapse = lineCount > collapseAfterLines;
   const isCollapsed = shouldCollapse && !expanded;
+  const isPlain = isPlainCodeLanguage(language);
+  // `text` / `txt` / … → simple panel, no chrome. A filename still gets a header.
+  const showHeader = !inFileTabs && (!isPlain || Boolean(filename));
 
   const headerLabel =
-    filename ?? (language.toLowerCase() === 'text' ? 'code' : language.toLowerCase());
+    filename ?? (isPlain ? 'code' : language.toLowerCase());
 
-  const header = !inFileTabs && (
+  const header = showHeader && (
     <CodeContainerHeader>
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <CodeContainerIcon>
           <FileCode className="size-3.5 text-muted-foreground" />
         </CodeContainerIcon>
-        {filename ? (
-          <CopyableFilename filename={filename} />
-        ) : (
-          <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-            {headerLabel}
-          </span>
-        )}
-        {language.toLowerCase() !== 'text' && <LanguageBadge language={language} />}
+        <span
+          className={cn(
+            'min-w-0 truncate font-mono text-xs text-muted-foreground',
+            !filename && 'uppercase tracking-wide'
+          )}
+          title={filename}>
+          {headerLabel}
+        </span>
+        {!isPlain && <LanguageBadge language={language} />}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         {shouldCollapse && (
@@ -106,7 +110,12 @@ export function CodeBlock({
             </Button>
           </CollapsibleTrigger>
         )}
-        <CodeCopyButton text={rawString} label={copyLabel} showCopyLabel={showCopyLabel} />
+        <CodeCopyMenu
+          code={rawString}
+          filename={filename}
+          label={copyLabel}
+          showCopyLabel={showCopyLabel}
+        />
       </div>
     </CodeContainerHeader>
   );
@@ -157,7 +166,12 @@ export function CodeBlock({
   if (inFileTabs) {
     return (
       <div
-        className={cn('code-block not-prose', isCollapsed && 'code-block--collapsed', className)}>
+        className={cn(
+          'code-block not-prose',
+          isPlain && 'code-block--plain',
+          isCollapsed && 'code-block--collapsed',
+          className
+        )}>
         {shell}
       </div>
     );
@@ -167,6 +181,7 @@ export function CodeBlock({
     <CodeContainer
       className={cn(
         'code-block not-prose my-6',
+        isPlain && 'code-block--plain',
         isCollapsed && 'code-block--collapsed',
         className
       )}>

@@ -336,6 +336,11 @@
     line-height: 1.5rem;
   }
 
+  /* Plain `text` / `txt` fences have no line-number gutter — match that inset. */
+  .code-block--plain .code-pre code {
+    padding-left: 2.5rem;
+  }
+
   .code-block [data-rehype-pretty-code-figure] > figcaption {
     display: none;
   }

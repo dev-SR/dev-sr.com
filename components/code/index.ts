@@ -14,10 +14,12 @@ export {
   useInDocsFileTabs,
 } from './code-block-context';
 export { CodeCopyButton, CopyButton, DocsCopyButton } from './code-copy-button';
+export { CodeCopyMenu, splitFilePath } from './code-copy-menu';
 export { LanguageBadge } from './language-badge';
 export {
   collectFileTabItems,
   collectCodeTabItems,
+  extractCodeContent,
   extractFigureTitle,
   extractFigureTitleFromChildren,
   extractPreMeta,

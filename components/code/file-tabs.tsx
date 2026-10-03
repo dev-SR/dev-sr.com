@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { FileCode } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { CodeCopyButton } from './code-copy-button';
+import { isPlainCodeLanguage } from '@/lib/plain-code-language';
+import { CodeCopyMenu } from './code-copy-menu';
 import { FileTabsProvider } from './code-block-context';
 import {
   CodeContainer,
@@ -13,7 +14,6 @@ import {
   editorTabTriggerClass,
   editorTabsListClass,
 } from './code-container';
-import { CopyableFilename } from './copyable-filename';
 import { collectFileTabItems } from './figure-utils';
 import { LanguageBadge } from './language-badge';
 
@@ -37,6 +37,7 @@ export function FileTabs({
   const [activeTab, setActiveTab] = useState(items[0]?.id ?? '');
 
   const activeItem = items.find((item) => item.id === activeTab) ?? items[0];
+  const activeFilename = activeItem?.hasFilename ? activeItem.label : undefined;
 
   if (items.length === 0) {
     if (!emptyMessage) return null;
@@ -96,13 +97,19 @@ export function FileTabs({
               </TabsList>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              {activeItem?.language && activeItem.language !== 'text' && (
+              {activeItem?.language &&
+                !isPlainCodeLanguage(activeItem.language) && (
                 <LanguageBadge language={activeItem.language} />
               )}
               {showGroupCopy && (
-                <CodeCopyButton
-                  text={activeItem?.rawString ?? ''}
-                  label={activeItem?.label ? `Copy ${activeItem.label}` : 'Copy code'}
+                <CodeCopyMenu
+                  code={activeItem?.rawString ?? ''}
+                  filename={activeFilename}
+                  label={
+                    activeItem?.label
+                      ? `Copy options for ${activeItem.label}`
+                      : 'Copy options'
+                  }
                 />
               )}
             </div>

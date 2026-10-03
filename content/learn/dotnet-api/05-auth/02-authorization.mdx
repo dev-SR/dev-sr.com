@@ -1,0 +1,1089 @@
+--- 
+
+title: "Authorization"
+date: '2026-09-29'
+excerpt: "Learn how to implement authorization in your .NET API."
+---
+
+
+Previous step answered *“who is this?”* (authentication). This step answers *“are they allowed?”* (authorization).
+
+Types of authorization in ASP.NET Core:
+- Simple Authorization
+- Role-based Authorization
+- Policy-based Authorization
+- Reuirements & Handlers
+- Resouce-based Authorization
+- View-based Authorization
+- Authorzation Filters
+- .....
+
+<Figure
+  src="/learn/dotnet-api/05-auth/authorization-specturm.png"
+  alt="Types of authorization in ASP.NET Core"
+  caption="Types of authorization in ASP.NET Core"
+  width="800"
+/>
+
+<Guide title="Setups for Simple Authorization" numbered headingLevel={2} stepHeadingLevel={3}>
+  <GuideStep title="1. Register Authorization Services">
+
+```csharp title="src/Services/MyApp.Api/Presentation/DependencyInjection.cs" showLineNumbers {3,5-12}
+// Inside AddApi(...):
+services.AddJwtAuthentication();       // Previously
+services.AddAuthorizationPolicies();   // this step 
+
+private static IServiceCollection AddAuthorizationPolicies(this IServiceCollection services)
+{
+    services.AddAuthorization(); 
+    return services;
+}
+```
+
+  </GuideStep>
+  
+  <GuideStep title="2. Enable authorization middleware">
+    
+
+
+Pipeline — after `UseAuthentication`:
+
+```csharp title="src/Services/MyApp.Api/Infrastructure/WebApplicationExtensions.cs" showLineNumbers {2}
+app.UseAuthentication();   // Previously
+app.UseAuthorization();    // this step
+```
+
+  </GuideStep>
+  
+<GuideStep title="3. Protect public endpoints">
+
+```csharp title="src/Services/MyApp.Api/Features/Auth/AdminUsers/AdminUsersEndpoint.cs" showLineNumbers {7}
+public sealed class AdminUsersEndpoint : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/auth/admin/users")
+            .WithTags("AuthAdmin")
+            .RequireAuthorization();
+    }
+}
+```
+
+Now when we call the endpoint, we will get a 401 Unauthorized response.
+
+<Figure
+  src="/learn/dotnet-api/05-auth/authorization-onchallange.png"
+    alt="OnChallenge event getting called"
+    caption="OnChallenge event getting called"
+  width="800"
+/>
+
+
+</GuideStep>
+
+</Guide>
+
+<Guide title="Role-based Authorization" numbered headingLevel={2} stepHeadingLevel={3}>
+
+<Figure
+  src="/learn/dotnet-api/05-auth/role-based-auth-1.png"
+  alt="Role-based authorization"
+  caption="Role-based authorization"
+  width="800"
+/>
+
+Exactly. `RequireAuthorization()` gives you **basic authentication-based authorization**. For **role-based authorization**, you tell ASP.NET Core which role is required.
+
+
+<GuideStep title="1. Define the role requirement (demo)">
+  First, define the `admin` role requirement  to your Carter route:
+
+```csharp showLineNumbers {7-8}
+public sealed class AdminUsersEndpoint : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/auth/admin/users")
+            .WithTags("AuthAdmin")
+            //.RequireAuthorization() 
+            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
+        group.MapGet("/", () =>
+        {
+            return Results.Ok("Admin users");
+        });
+    }
+}
+```
+
+Now the request must contain an authenticated user **with the `admin` role**.
+
+</GuideStep>
+
+
+<GuideStep title="2. Where does the role come from? - claims (demo)">
+
+The role needs to be added to the claims of the JWT token for a user to be authorized:
+  
+```csharp showLineNumbers {5}
+var claims = new[]
+{
+    new Claim(ClaimTypes.Name, user.UserName!),
+    new Claim(ClaimTypes.Email, user.Email!),
+    new Claim(ClaimTypes.Role, "Admin")
+};
+```
+
+Then ASP.NET Core can evaluate:
+
+```csharp
+user.IsInRole("Admin")
+```
+
+**Request flow**
+
+```text
+JWT
+ │
+ ├── name = John
+ ├── email = john@example.com
+ └── role = Admin
+       │
+       ▼
+ClaimsPrincipal
+       │
+       ▼
+RequireRole("Admin")
+       │
+   ┌───┴────┐
+   │        │
+ Admin    not Admin
+   │        │
+   ▼        ▼
+ 200       403
+```
+
+→ User must be **authenticated + have the `Admin` role**.
+</GuideStep>
+
+### Multiple roles
+
+<Figure
+  src="/learn/dotnet-api/05-auth/multi-role-based-auth-1.png"
+  alt="Multiple roles"
+  caption="Multiple roles"
+  width="800"
+/>
+
+For multiple roles, you can do:
+
+
+<Mark type="circle">**OR**</Mark> — user can have either role
+
+```csharp
+.RequireAuthorization(policy =>
+    policy.RequireRole(Roles.Admin, Roles.Manager));
+```
+
+This means:
+
+```text
+Admin OR Manager
+```
+
+So:
+
+| User            | Access |
+| --------------- | ------ |
+| Admin           | ✅      |
+| Manager         | ✅      |
+| Admin + Manager | ✅      |
+| User            | ❌      |
+
+---
+
+<Mark type="circle">**AND**</Mark> — user must have both roles
+
+If you need:
+
+```text
+Admin AND Manager
+```
+
+add two role requirements:
+
+```csharp
+.RequireAuthorization(policy =>
+{
+    policy.RequireRole(Roles.Admin);
+    policy.RequireRole(Roles.Manager);
+});
+```
+
+Now:
+
+| User            | Access |
+| --------------- | ------ |
+| Admin only      | ❌      |
+| Manager only    | ❌      |
+| Admin + Manager | ✅      |
+| User            | ❌      |
+
+<Mark type="underline">Easy rule to remember</Mark>
+
+```csharp
+RequireRole("Admin", "Manager")
+```
+
+➡️ **OR**
+
+```csharp
+RequireRole("Admin");
+RequireRole("Manager");
+```
+
+### How our TokenService creates the token
+     
+```csharp title="src/Services/MyApp.Api/Features/Auth/TokenService.cs" showLineNumbers {15-16}
+//....
+    public string CreateAccessToken(User user, IEnumerable<string> roles)
+    {
+        var now = _clock.GetUtcNow();
+        var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
+
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),//~sub = userId
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(now.UtcDateTime).ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(AuthClaims.TokenVersion, user.PermissionVersion.ToString()),
+        };
+        claims.AddRange(roles.Select(r => new Claim(AuthClaims.Role, r))); 
+        //~new Claim("role", "X"), new Claim("role", "Y")....
+        
+
+        //...
+    }
+//....
+```    
+    
+
+</Guide>
+
+
+## Policy-based Authorization
+
+Policy-based authorization is where you combine `roles` + `claims` + `authentication requirements `into a named policy.
+
+<Figure
+  src="/learn/dotnet-api/05-auth/policy-based-auth-0.png"
+  alt="Policy-based authorization"
+  caption="Policy-based authorization"
+  width="800"
+/>
+
+<Guide numbered headingLevel={2} stepHeadingLevel={3}>
+
+<Figure
+  src="/learn/dotnet-api/05-auth/policy-based-auth-1.png"
+  alt="Policy-based authorization steps"
+  caption="Policy-based authorization steps"
+  width="800"
+/>
+
+    <GuideStep title="1. Define the policy">
+    
+```csharp
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("management", policy =>
+    {
+        policy
+            .RequireRole("management")
+            .RequireClaim("email")
+            .RequireClaim("country", "Sweden", "Denmark")
+            .RequireClaim("JobTitle", "Manager");
+    });
+
+    options.AddPolicy("sales", policy =>
+    {
+        policy.RequireRole("management", "sales");
+    });
+
+    options.AddPolicy("customer", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+    });
+});
+```     
+
+   
+<Mark type="underline">**Management policy**</Mark>
+
+Different requirements are combined with **AND**:
+
+```text
+Authenticated
+     AND
+Role = management
+     AND
+email claim exists
+     AND
+country = Sweden OR Denmark
+     AND
+JobTitle = Manager
+```
+
+<Mark type="underline">**Sales policy**</Mark>
+
+Here the roles are **OR**:
+
+```text
+management OR sales
+```
+
+So either role satisfies the requirement.
+
+
+<Mark type="underline" color="default">**Customer policy**</Mark>
+
+ 
+This simply means:
+
+```text
+User must be authenticated
+```
+
+No specific role or claim is required.
+
+---
+
+</GuideStep>
+
+
+<GuideStep title="2. Adding the claims to your JWT">
+            
+We need to add the claims that our policies actually check.
+
+For example:
+
+```csharp showLineNumbers {17-19}
+var claims = new List<Claim>
+{
+    // Identity
+    new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+    // JWT ID
+    new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+    // Issued-at
+    new(
+        JwtRegisteredClaimNames.Iat,
+        EpochTime.GetIntDate(now.UtcDateTime).ToString(),
+        ClaimValueTypes.Integer64
+    ),
+    // User information
+    new(JwtRegisteredClaimNames.Email, user.Email!),
+    
+    // Authorization
+    new(ClaimTypes.Role, "management"),
+    new("country", "Sweden"),
+    new("JobTitle", "Manager"),
+
+};
+```
+
+Now your JWT effectively contains:
+
+
+
+```text
+sub          = 123
+email        = john@example.com
+role         = management
+country      = Sweden
+JobTitle     = Manager
+TokenVersion = 5
+```
+
+And the `management` policy can evaluate those values.
+
+---
+
+One important detail: role claim
+
+For:
+
+```csharp
+.RequireRole("management")
+```
+
+you should normally put the role into the JWT using:
+
+```csharp
+new Claim(ClaimTypes.Role, "management")
+```
+
+not:
+
+```csharp
+new Claim("role", "management")
+```
+
+unless you've explicitly configured the JWT handler's `RoleClaimType` to `"role"`.
+
+
+</GuideStep>
+
+<GuideStep title="3. Applying the policy">
+
+
+Once the policies are registered, attach them to routes by name.
+
+
+```csharp showLineNumbers {5,11,17}
+group.MapGet("/management", () =>
+{
+    return Results.Ok("Management area");
+})
+.RequireAuthorization("management");
+
+group.MapGet("/sales", () =>
+{
+    return Results.Ok("Sales area");
+})
+.RequireAuthorization("sales");
+
+group.MapGet("/customer", () =>
+{
+    return Results.Ok("Customer area");
+})
+.RequireAuthorization("customer");
+```
+
+The important distinction is:
+
+```csharp
+.RequireAuthorization("management")
+```
+
+means:
+
+> **Use the policy named `management`.**
+
+It does **not** mean the string `"management"` is automatically a role.
+
+The policy itself determines what `"management"` means.
+
+---
+
+</GuideStep>
+</Guide>
+
+
+## Custom Requirements & Authorization Handlers
+
+Sometimes you need to add custom requirements to your policies.
+
+For example:
+
+```csharp showLineNumbers {6-8}
+options.AddPolicy("amdin", policy =>
+{
+    // built-in requirement (automically handled by ASP.NET Core)
+    policy.RequireRole("admin", "management");
+
+    // custom requirement (you need to create and register)
+    policy.Requirements.Add(new EnhancedSecurityRequirement());
+    policy.Requirements.Add(new WorkingHoursRequirement(9, 18));
+});
+```
+
+Here you have **three requirements**:
+
+1. User must have `admin` or `management` role.
+2. `EnhancedSecurityRequirement` must pass.
+3. `WorkingHoursRequirement(9, 18)` must pass.
+
+Because they are separate requirements, they are effectively **AND** conditions.
+
+---
+
+<Guide title="Steps to create a custom requirement" numbered headingLevel={3} stepHeadingLevel={4}>
+
+ASP.NET Core's policy-based authorization framework rests on three interfaces:
+
+| Building Block | Interface | Description |
+| --- | --- | --- |
+| **Requirement** | `IAuthorizationRequirement` | A marker interface representing "what must be true" |
+| **Handler** | `IAuthorizationHandler` | The logic that evaluates whether a requirement is met |
+| **Dynamic Policy** | `IAuthorizationPolicyProvider` | Dynamically builds policies from requirements |
+
+The flow is elegant: a policy contains requirements. Requirements have handlers. Handlers inspect the user, the resource, and the context, then call context.Succeed(requirement) if access should be granted.
+
+<GuideStep title="1. Implement `IAuthorizationRequirement`">
+ A requirement is usually a small class implementing `IAuthorizationRequirement`.
+
+<Figure
+  src="/learn/dotnet-api/05-auth/custom-req.png"
+  alt="Custom requirement"
+  caption="Custom requirement"
+  width="800"
+/>
+
+WorkingHoursRequirement class:
+
+```csharp showLineNumbers {1}
+public sealed class WorkingHoursRequirement : IAuthorizationRequirement
+{
+    public int StartHour { get; }
+    public int EndHour { get; }
+
+    public WorkingHoursRequirement(int startHour, int endHour)
+    {
+        StartHour = startHour;
+        EndHour = endHour;
+    }
+}
+```
+
+</GuideStep>
+
+<GuideStep title="2. Create the handler">
+
+The handler contains the actual authorization logic.
+
+For a given requirement, each handler can:
+
+* **Approve** — call `context.Succeed(requirement)`.
+* **Fail** — call `context.Fail()`.
+* **Ignore** — do nothing.
+
+<Figure
+  src="/learn/dotnet-api/05-auth/custom-handler.png"
+  alt="Custom handler"
+  caption="Custom handler"
+  width="600"
+/>
+
+A single requirement can have **multiple handlers**.
+
+For example, `EnhancedSecurityRequirement` can be satisfied by checking both MFA and the client's IP address:
+
+<CodeTabs>
+
+```csharp title="MfaHandler.cs" showLineNumbers {1,5,11,13}
+public sealed class MfaHandler: AuthorizationHandler<EnhancedSecurityRequirement>
+{
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        EnhancedSecurityRequirement requirement)
+    {
+        var hasMfa = context.User.HasClaim("mfa", "true");
+
+        if (hasMfa)
+        {
+            context.Succeed(requirement);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+```csharp title="IpAddressHandler.cs" showLineNumbers {1,5}
+public sealed class IpAddressHandler: AuthorizationHandler<EnhancedSecurityRequirement>
+{
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        EnhancedSecurityRequirement requirement)
+    {
+        var ipAddress = context.Resource switch
+        {
+            HttpContext httpContext =>
+                httpContext.Connection.RemoteIpAddress?.ToString(),
+
+            _ => null
+        };
+
+        if (ipAddress == "192.168.1.100")
+        {
+            context.Succeed(requirement);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+```csharp title="WorkingHoursHandler.cs" showLineNumbers {1,12,16,18}
+public sealed class WorkingHoursHandler : AuthorizationHandler<WorkingHoursRequirement>
+{
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        WorkingHoursRequirement requirement)
+    {
+        var hour = DateTime.UtcNow.Hour;
+
+        if (hour >= requirement.StartHour &&
+            hour < requirement.EndHour)
+        {
+            context.Succeed(requirement);
+        }
+        else
+        {
+            context.Fail();
+        }
+        return Task.CompletedTask;
+    }
+}
+```
+</CodeTabs>
+</GuideStep>
+
+<GuideStep title="3. Register the handler">
+
+
+Register the handler with DI:
+
+```csharp
+// single shared instance
+builder.Services.AddSingleton<IAuthorizationHandler,IpAddressHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler,MfaHandler>();
+```
+
+Or:
+
+```csharp
+// fresh instance for each request
+builder.Services.Transient<IAuthorizationHandler,WorkingHoursHandler>();
+```
+
+Which lifetime you use depends on what the handler depends on.
+
+---
+
+</GuideStep>
+
+
+</Guide>
+
+
+## Permission-based Authorization (with custom requirements & handlers)
+
+<Guide title="Level 1: Simple Permission Handler" numbered headingLevel={3} stepHeadingLevel={4}>
+Start with a basic permission system where permissions are stored as claims in the JWT token.
+
+<GuideStep title="The Requirement">
+
+```csharp
+public sealed class PermissionRequirement : IAuthorizationRequirement
+{
+    public string Permission { get; }
+    public PermissionRequirement(string permission)
+    {
+        if (string.IsNullOrWhiteSpace(permission))
+            throw new ArgumentException("Permission cannot be empty", nameof(permission));
+
+        Permission = permission;
+    }
+}
+```  
+
+</GuideStep>
+
+<GuideStep title="The Handler">
+
+
+```csharp
+public sealed class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
+{
+    private readonly ILogger<PermissionAuthorizationHandler> _logger;
+    public PermissionAuthorizationHandler(ILogger<PermissionAuthorizationHandler> logger)
+    {
+        _logger = logger;
+    }
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        PermissionRequirement requirement)
+    {
+        // Check if user has the required permission claim
+        var hasPermission = context.User.HasClaim(c =>
+            c.Type == "Permission" &&
+            c.Value.Equals(requirement.Permission, StringComparison.OrdinalIgnoreCase));
+        if (hasPermission)
+        {
+            _logger.LogInformation(
+                "User {UserId} granted permission {Permission}",
+                context.User.FindFirstValue(ClaimTypes.NameIdentifier),
+                requirement.Permission);
+
+            context.Succeed(requirement);
+        }
+        else
+        {
+            _logger.LogWarning(
+                "User {UserId} denied permission {Permission}",
+                context.User.FindFirstValue(ClaimTypes.NameIdentifier),
+                requirement.Permission);
+        }
+        return Task.CompletedTask;
+    }
+}
+```
+
+</GuideStep>
+
+<GuideStep title="Registration">
+
+
+```csharp
+// Program.cs
+builder.Services.AddAuthorization(options =>
+{
+    // Define policies as named permission combinations
+    options.AddPolicy("CanReadPosts", policy =>
+        policy.Requirements.Add(new PermissionRequirement("posts:read")));
+
+    options.AddPolicy("CanCreatePosts", policy =>
+        policy.Requirements.Add(new PermissionRequirement("posts:create")));
+
+    options.AddPolicy("CanManagePosts", policy =>
+    {
+        policy.Requirements.Add(new PermissionRequirement("posts:read"));
+        policy.Requirements.Add(new PermissionRequirement("posts:update"));
+        policy.Requirements.Add(new PermissionRequirement("posts:delete"));
+    });
+});
+// Register the handler (singleton because it's stateless)
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
+```
+    
+</GuideStep>
+
+<GuideStep title="Usage">
+
+```csharp
+app.MapGet("/api/posts", async (IPostService posts) =>
+    await posts.GetAllAsync())
+    .RequireAuthorization("CanReadPosts");
+app.MapPost("/api/posts", async (CreatePostRequest request, IPostService posts) =>
+    await posts.CreateAsync(request))
+    .RequireAuthorization("CanCreatePosts");
+app.MapDelete("/api/posts/{id:int}", async (int id, IPostService posts) =>
+    await posts.DeleteAsync(id))
+    .RequireAuthorization("CanManagePosts");
+```  
+
+</GuideStep>
+</Guide>
+
+<Guide title="Level 2: Database-Driven Permissions" numbered headingLevel={3} stepHeadingLevel={4}>
+Storing permissions in JWT claims works until you need to change them without forcing every user to re-login. The next step: load permissions from the database at authorization time.
+<GuideStep title="Permission Entity">
+
+```csharp
+public sealed class Permission
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty; // e.g., "posts:delete"
+    public string Description { get; set; } = string.Empty;
+    public string ResourceType { get; set; } = string.Empty; // "posts", "users", etc.
+    public string Action { get; set; } = string.Empty; // "create", "read", "update", "delete"
+}
+public sealed class Role
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public List<Permission> Permissions { get; set; } = new();
+}
+public sealed class User
+{
+    public Guid Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public List<Role> Roles { get; set; } = new();
+    public List<Permission> DirectPermissions { get; set; } = new(); // Override roles
+}
+```
+    
+</GuideStep>
+<GuideStep title="Database-Backed Handler">
+
+```csharp
+public sealed class DatabasePermissionHandler : AuthorizationHandler<PermissionRequirement>
+{
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<DatabasePermissionHandler> _logger;
+    public DatabasePermissionHandler(
+        IServiceProvider serviceProvider,
+        ILogger<DatabasePermissionHandler> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+    }
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        PermissionRequirement requirement)
+    {
+        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+        {
+            _logger.LogWarning("No valid user ID found in claims");
+            return;
+        }
+        // Create scope for scoped DbContext
+        await using var scope = _serviceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        // Aggregate permissions from roles + direct permissions
+        var userPermissions = await db.Users
+            .Where(u => u.Id == userGuid)
+            .Select(u => new
+            {
+                RolePermissions = u.Roles.SelectMany(r => r.Permissions).Select(p => p.Name),
+                DirectPermissions = u.DirectPermissions.Select(p => p.Name)
+            })
+            .FirstOrDefaultAsync();
+        if (userPermissions is null)
+        {
+            _logger.LogWarning("User {UserId} not found in database", userGuid);
+            return;
+        }
+        var allPermissions = userPermissions.RolePermissions
+            .Union(userPermissions.DirectPermissions)
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        if (allPermissions.Contains(requirement.Permission))
+        {
+            _logger.LogInformation(
+                "User {UserId} granted permission {Permission} via database lookup",
+                userGuid, requirement.Permission);
+            context.Succeed(requirement);
+        }
+    }
+}
+```
+Critical: Authorization handlers registered as singletons cannot consume scoped services directly. Use `IServiceProvider.CreateAsyncScope()` to resolve `AppDbContext` safely.
+   
+</GuideStep>
+
+</Guide>
+
+
+
+## Resource-based Authorization
+
+Resource-based authorization is where you authorize access to a specific resource.
+For **resource-based authorization**, the decision depends on the **specific resource being accessed**.
+
+For an invoice, the question is not only:
+
+> "Is this user in Finance?"
+
+It can also be:
+
+> "Does this Finance user have permission to access *this particular invoice*?"
+
+A good example is **invoice ownership**.
+
+## Resource-Based Authorization
+
+Resource-based authorization is used when the authorization decision depends on the **resource being accessed**.
+
+For example, suppose a Finance user wants to access an invoice:
+
+```http
+GET /invoices/123
+```
+
+The authorization decision might depend on:
+
+* Is the user authenticated?
+* Is the user in the `finance` role?
+* Does this invoice belong to the user's department?
+* Is the user the owner of the invoice?
+
+Unlike policy-only authorization, the handler needs access to the actual resource.
+
+### Example: Invoice ownership
+
+Consider this invoice:
+
+```csharp
+public sealed class Invoice
+{
+    public Guid Id { get; set; }
+
+    public Guid OwnerId { get; set; }
+
+    public decimal Amount { get; set; }
+
+    public string Status { get; set; } = default!;
+}
+```
+
+The requirement:
+
+```csharp
+public sealed class InvoiceOwnerRequirement
+    : IAuthorizationRequirement
+{
+}
+```
+
+The handler can compare the invoice owner with the current user:
+
+```csharp
+public sealed class InvoiceOwnerHandler
+    : AuthorizationHandler<InvoiceOwnerRequirement, Invoice>
+{
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        InvoiceOwnerRequirement requirement,
+        Invoice invoice)
+    {
+        var userId = context.User
+            .FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId is not null &&
+            invoice.OwnerId.ToString() == userId)
+        {
+            context.Succeed(requirement);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+```
+
+Register the handler:
+
+```csharp
+builder.Services.AddScoped<
+    IAuthorizationHandler,
+    InvoiceOwnerHandler>();
+```
+
+### Finance policy
+
+We can combine a Finance role requirement with the ownership requirement:
+
+```csharp
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("finance", policy =>
+    {
+        policy.RequireRole("finance");
+
+        policy.Requirements.Add(
+            new InvoiceOwnerRequirement());
+    });
+});
+```
+
+However, because the ownership requirement needs the **actual invoice**, the endpoint must perform resource-based authorization.
+
+### Endpoint
+
+First load the invoice:
+
+```csharp
+app.MapGet("/invoices/{id:guid}",
+    async (
+        Guid id,
+        ClaimsPrincipal user,
+        IInvoiceRepository repository,
+        IAuthorizationService authorization) =>
+    {
+        var invoice = await repository.GetByIdAsync(id);
+
+        if (invoice is null)
+            return Results.NotFound();
+
+        var result = await authorization.AuthorizeAsync(
+            user,
+            invoice,
+            new InvoiceOwnerRequirement());
+
+        if (!result.Succeeded)
+            return Results.Forbid();
+
+        return Results.Ok(invoice);
+    })
+    .RequireAuthorization();
+```
+
+The important part is:
+
+```csharp
+await authorization.AuthorizeAsync(
+    user,
+    invoice,
+    new InvoiceOwnerRequirement());
+```
+
+Here, `invoice` is the **resource** being authorized.
+
+The handler receives both:
+
+```text
+Current User
+     +
+Invoice
+     ↓
+InvoiceOwnerHandler
+     ↓
+Does user own this invoice?
+     ↓
+Allow / Deny
+```
+
+### Finance + ownership
+
+If the endpoint should require both **Finance membership** and **invoice ownership**, the authorization flow becomes:
+
+```text
+Request
+   ↓
+Authentication
+   ↓
+Is user authenticated?
+   ↓
+Finance role?
+   ↓
+Load Invoice
+   ↓
+Does user own Invoice?
+   ↓
+Allow
+```
+
+This is different from a normal policy such as:
+
+```csharp
+policy.RequireRole("finance");
+```
+
+because a normal role policy doesn't know **which invoice** is being accessed.
+
+### Why resource-based authorization?
+
+Consider:
+
+```text
+User A → Finance
+User B → Finance
+
+Invoice 1 → Owner = User A
+Invoice 2 → Owner = User B
+```
+
+Both users have the same role, but:
+
+```text
+User A → Invoice 1 ✅
+User A → Invoice 2 ❌
+User B → Invoice 1 ❌
+User B → Invoice 2 ✅
+```
+
+The authorization decision depends on the **relationship between the user and the resource**.
+
+That's the main purpose of resource-based authorization.

@@ -113,7 +113,7 @@ export function Guide({
         )}
         <div
           className={cn(
-            'ml-4 flex flex-col gap-10 border-l border-border/70 pl-10 [--guide-line-offset:2.5rem]',
+            'ml-4 flex flex-col gap-5 border-l border-border/70 pl-10 [--guide-line-offset:2.5rem]',
             numbered && '[counter-reset:guide-step]'
           )}>
           {children}

@@ -5,6 +5,8 @@ export type FileTabItem = {
   label: string;
   language: string;
   rawString: string;
+  /** True when label came from a fence title / figcaption (copyable as filename). */
+  hasFilename: boolean;
   element: ReactElement;
 };
 
@@ -12,10 +14,43 @@ function readProp<T>(element: ReactElement, key: string): T | undefined {
   return (element.props as Record<string, unknown>)[key] as T | undefined;
 }
 
+function isCodeTitleNode(node: ReactElement): boolean {
+  const tag = node.type;
+  return (
+    tag === 'figcaption' ||
+    readProp(node, 'data-rehype-pretty-code-title') !== undefined
+  );
+}
+
+/** Prefer pre/`__rawstring__`/`rawString` so figcaption filenames are never included. */
+export function extractCodeContent(node: ReactNode): string {
+  if (!isValidElement(node)) return '';
+
+  const fromProp =
+    readProp<string>(node, '__rawstring__') ?? readProp<string>(node, 'rawString');
+  if (fromProp) return fromProp;
+
+  const children = readProp<ReactNode>(node, 'children');
+  if (!children) return '';
+
+  const fromPre = extractPreMeta(children).rawString;
+  if (fromPre) return fromPre;
+
+  let nested = '';
+  Children.forEach(children, (child) => {
+    if (nested || !isValidElement(child) || isCodeTitleNode(child)) return;
+    nested = extractCodeContent(child);
+  });
+  return nested;
+}
+
 export function extractRawString(node: ReactNode): string {
   if (!isValidElement(node)) return '';
 
-  const raw = readProp<string>(node, '__rawstring__');
+  if (isCodeTitleNode(node)) return '';
+
+  const raw =
+    readProp<string>(node, '__rawstring__') ?? readProp<string>(node, 'rawString');
   if (raw) return raw;
 
   const children = readProp<ReactNode>(node, 'children');
@@ -27,6 +62,7 @@ export function extractRawString(node: ReactNode): string {
       result += child;
       return;
     }
+    if (!isValidElement(child) || isCodeTitleNode(child)) return;
     result += extractRawString(child);
   });
   return result;
@@ -165,24 +201,28 @@ export function collectFileTabItems(children: ReactNode): FileTabItem[] {
     if (!isValidElement(child)) return;
 
     if (isPrettyCodeFigure(child)) {
-      const label = extractFigureTitle(child) ?? `file-${index + 1}`;
+      const title = extractFigureTitle(child);
+      const label = title ?? `file-${index + 1}`;
       items.push({
         id: `${label}-${index}`,
         label,
         language: extractLanguage(child),
-        rawString: extractRawString(child),
+        rawString: extractCodeContent(child),
+        hasFilename: Boolean(title),
         element: child,
       });
       return;
     }
 
     if (isCodeBlockWrapper(child)) {
-      const label = extractFigureTitle(child) ?? extractLanguage(child) ?? `file-${index + 1}`;
+      const title = extractFigureTitle(child);
+      const label = title ?? extractLanguage(child) ?? `file-${index + 1}`;
       items.push({
         id: `${label}-${index}`,
         label,
         language: extractLanguage(child),
-        rawString: extractRawString(child),
+        rawString: extractCodeContent(child),
+        hasFilename: Boolean(title),
         element: child,
       });
       return;
@@ -191,12 +231,14 @@ export function collectFileTabItems(children: ReactNode): FileTabItem[] {
     const figure = findPrettyFigure(child);
     if (!figure) return;
 
-    const label = extractFigureTitle(figure) ?? `file-${index + 1}`;
+    const title = extractFigureTitle(figure);
+    const label = title ?? `file-${index + 1}`;
     items.push({
       id: `${label}-${index}`,
       label,
       language: extractLanguage(figure),
-      rawString: extractRawString(child),
+      rawString: extractCodeContent(figure),
+      hasFilename: Boolean(title),
       element: child,
     });
   });
