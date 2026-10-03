@@ -80,11 +80,20 @@ export function resolveMarkColor(value?: string): string {
   return value;
 }
 
-/** Highlight fills look better slightly transparent when given a solid hex. */
+/**
+ * Soften fill/overstrike ink so text stays readable underneath.
+ * Highlight fills use ~40% opacity; strike / crossed-off strokes use ~55%.
+ */
 export function strokeColorForType(type: MarkType, color: string): string {
-  if (type !== 'highlight') return color;
+  const alphaByType: Partial<Record<MarkType, string>> = {
+    highlight: '66',
+    'strike-through': '8c',
+    'crossed-off': '8c',
+  };
+  const alpha = alphaByType[type];
+  if (!alpha) return color;
   if (color.length === 7 && color.startsWith('#') && /^#[0-9a-fA-F]{6}$/.test(color)) {
-    return `${color}66`;
+    return `${color}${alpha}`;
   }
   return color;
 }

@@ -828,6 +828,7 @@ public static class Policies
 public static class AuthClaims
 {
     public const string Role = "role";
+    public const string Permission = "permission";
     public const string TokenVersion = "token_version";
 
     public static Guid GetUserId(this ClaimsPrincipal p) =>

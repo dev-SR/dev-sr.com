@@ -548,7 +548,7 @@ public sealed class WorkingHoursRequirement : IAuthorizationRequirement
 
 </GuideStep>
 
-<GuideStep title="2. Create the handler">
+<GuideStep title="2. Create the `AuthorizationHandler` handler">
 
 The handler contains the actual authorization logic.
 
@@ -670,12 +670,50 @@ Which lifetime you use depends on what the handler depends on.
 
 ## Permission-based Authorization (with custom requirements & handlers)
 
+Roles answer "what group is this user in?" Permissions answer "what can this user *do*?" — `Permissions.Products.View`, `Permissions.Users.Ban`, and so on.
+
+The pattern we'll use:
+
+1. Store permissions in the database (assigned via roles).
+2. Embed those permissions as claims when `TokenService` creates the JWT.
+3. On every request, the authorization handler checks claims only — **no DB hit**.
+
 <Guide title="Level 1: Simple Permission Handler" numbered headingLevel={3} stepHeadingLevel={4}>
-Start with a basic permission system where permissions are stored as claims in the JWT token.
+Start with a basic permission system where permissions are already present as claims on the JWT.
+
+<GuideStep title="Designing a Permission System">
+
+Define all permissions as constants in a static class — these strings are what you store in the DB, embed in the JWT, and check in policies:
+
+```csharp
+public static class Permissions
+{
+    public static class Products
+    {
+        public const string View = "Permissions.Products.View";
+        public const string Create = "Permissions.Products.Create";
+        public const string Edit = "Permissions.Products.Edit";
+        public const string Delete = "Permissions.Products.Delete";
+    }
+    public static class Users
+    {
+        public const string View = "Permissions.Users.View";
+        public const string Ban = "Permissions.Users.Ban";
+    }
+    public static class Invoices
+    {
+        public const string View = "Permissions.Invoices.View";
+        public const string Edit = "Permissions.Invoices.Edit";
+        public const string Delete = "Permissions.Invoices.Delete";
+    }
+}
+```
+
+</GuideStep>
 
 <GuideStep title="The Requirement">
 
-```csharp
+```csharp showLineNumbers {1}
 public sealed class PermissionRequirement : IAuthorizationRequirement
 {
     public string Permission { get; }
@@ -693,39 +731,24 @@ public sealed class PermissionRequirement : IAuthorizationRequirement
 
 <GuideStep title="The Handler">
 
+The handler never touches the database. Auth middleware has already decoded the JWT into `context.User` — we just read the `AuthClaims.Permission` claims.
 
-```csharp
+```csharp showLineNumbers {1,7-9}
 public sealed class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
 {
-    private readonly ILogger<PermissionAuthorizationHandler> _logger;
-    public PermissionAuthorizationHandler(ILogger<PermissionAuthorizationHandler> logger)
-    {
-        _logger = logger;
-    }
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
-        // Check if user has the required permission claim
         var hasPermission = context.User.HasClaim(c =>
-            c.Type == "Permission" &&
+            c.Type == AuthClaims.Permission &&
             c.Value.Equals(requirement.Permission, StringComparison.OrdinalIgnoreCase));
-        if (hasPermission)
-        {
-            _logger.LogInformation(
-                "User {UserId} granted permission {Permission}",
-                context.User.FindFirstValue(ClaimTypes.NameIdentifier),
-                requirement.Permission);
 
+        if (hasPermission)
             context.Succeed(requirement);
-        }
         else
-        {
-            _logger.LogWarning(
-                "User {UserId} denied permission {Permission}",
-                context.User.FindFirstValue(ClaimTypes.NameIdentifier),
-                requirement.Permission);
-        }
+            context.Fail(); // hard fail — fine for a single-requirement policy
+
         return Task.CompletedTask;
     }
 }
@@ -736,25 +759,20 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
 <GuideStep title="Registration">
 
 
-```csharp
+```csharp showLineNumbers {4-5,7-8,10-11,14}
 // Program.cs
 builder.Services.AddAuthorization(options =>
 {
-    // Define policies as named permission combinations
-    options.AddPolicy("CanReadPosts", policy =>
-        policy.Requirements.Add(new PermissionRequirement("posts:read")));
+    options.AddPolicy(Permissions.Products.View, policy =>
+        policy.Requirements.Add(new PermissionRequirement(Permissions.Products.View)));
 
-    options.AddPolicy("CanCreatePosts", policy =>
-        policy.Requirements.Add(new PermissionRequirement("posts:create")));
+    options.AddPolicy(Permissions.Products.Create, policy =>
+        policy.Requirements.Add(new PermissionRequirement(Permissions.Products.Create)));
 
-    options.AddPolicy("CanManagePosts", policy =>
-    {
-        policy.Requirements.Add(new PermissionRequirement("posts:read"));
-        policy.Requirements.Add(new PermissionRequirement("posts:update"));
-        policy.Requirements.Add(new PermissionRequirement("posts:delete"));
-    });
+    options.AddPolicy(Permissions.Products.Delete, policy =>
+        policy.Requirements.Add(new PermissionRequirement(Permissions.Products.Delete)));
 });
-// Register the handler (singleton because it's stateless)
+// Register the handler (singleton because it's stateless — no DbContext)
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
 ```
     
@@ -762,106 +780,273 @@ builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHand
 
 <GuideStep title="Usage">
 
-```csharp
-app.MapGet("/api/posts", async (IPostService posts) =>
-    await posts.GetAllAsync())
-    .RequireAuthorization("CanReadPosts");
-app.MapPost("/api/posts", async (CreatePostRequest request, IPostService posts) =>
-    await posts.CreateAsync(request))
-    .RequireAuthorization("CanCreatePosts");
-app.MapDelete("/api/posts/{id:int}", async (int id, IPostService posts) =>
-    await posts.DeleteAsync(id))
-    .RequireAuthorization("CanManagePosts");
+```csharp showLineNumbers {3,6,9}
+app.MapGet("/api/products", async (IProductService products) =>
+    await products.GetAllAsync())
+    .RequireAuthorization(Permissions.Products.View);
+app.MapPost("/api/products", async (CreateProductRequest request, IProductService products) =>
+    await products.CreateAsync(request))
+    .RequireAuthorization(Permissions.Products.Create);
+app.MapDelete("/api/products/{id:int}", async (int id, IProductService products) =>
+    await products.DeleteAsync(id))
+    .RequireAuthorization(Permissions.Products.Delete);
 ```  
 
 </GuideStep>
 </Guide>
 
-<Guide title="Level 2: Database-Driven Permissions" numbered headingLevel={3} stepHeadingLevel={4}>
-Storing permissions in JWT claims works until you need to change them without forcing every user to re-login. The next step: load permissions from the database at authorization time.
+<Guide title="Level 2: Database-Driven & JWT-Embedded Permissions" numbered headingLevel={3} stepHeadingLevel={4}>
+
+In production, we usually keep <Mark type="underline" color="tip">roles and permissions in the database</Mark> (source of truth for admins), load them when <Mark type="underline" color="tip">issuing a token, and embed them in the JWT as claims</Mark>. After that, authorization stays claim-based — no per-request DB lookup.
+
 <GuideStep title="Permission Entity">
 
 ```csharp
 public sealed class Permission
 {
     public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty; // e.g., "posts:delete"
+    public string Name { get; set; } = string.Empty; // e.g. "Permissions.Products.Delete"
     public string Description { get; set; } = string.Empty;
-    public string ResourceType { get; set; } = string.Empty; // "posts", "users", etc.
-    public string Action { get; set; } = string.Empty; // "create", "read", "update", "delete"
 }
+
 public sealed class Role
 {
     public Guid Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public List<Permission> Permissions { get; set; } = new();
+    public string Name { get; set; } = string.Empty; // e.g. "Admin", "Finance"
 }
+
 public sealed class User
 {
     public Guid Id { get; set; }
     public string Email { get; set; } = string.Empty;
-    public List<Role> Roles { get; set; } = new();
-    public List<Permission> DirectPermissions { get; set; } = new(); // Override roles
+    public int PermissionVersion { get; set; } = 1;
+}
+
+// Join tables (many-to-many)
+public sealed class UserRole
+{
+    public Guid UserId { get; set; }
+    public Guid RoleId { get; set; }
+}
+
+public sealed class RolePermission
+{
+    public Guid RoleId { get; set; }
+    public Guid PermissionId { get; set; }
 }
 ```
     
 </GuideStep>
-<GuideStep title="Database-Backed Handler">
+
+<GuideStep title="Admin management endpoints">
+
+Those entities only matter if admins can assign them. Expose small management endpoints (Admin-only) that write `UserRoles` / `RolePermissions`. The next login (or token refresh) will pick up the new grants when `TokenService` embeds permissions.
 
 ```csharp
-public sealed class DatabasePermissionHandler : AuthorizationHandler<PermissionRequirement>
+public sealed class AdminPermissionsEndpoint : ICarterModule
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<DatabasePermissionHandler> _logger;
-    public DatabasePermissionHandler(
-        IServiceProvider serviceProvider,
-        ILogger<DatabasePermissionHandler> logger)
+    public void AddRoutes(IEndpointRouteBuilder app)
     {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
-    protected override async Task HandleRequirementAsync(
-        AuthorizationHandlerContext context,
-        PermissionRequirement requirement)
-    {
-        var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var userGuid))
+        var group = app.MapGroup("/auth/admin")
+            .WithTags("AuthAdmin")
+            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+
+        group.MapPost("/assign-permission", async (
+            AssignPermissionRequest request,
+            AppDbContext db) =>
         {
-            _logger.LogWarning("No valid user ID found in claims");
-            return;
-        }
-        // Create scope for scoped DbContext
-        await using var scope = _serviceProvider.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        // Aggregate permissions from roles + direct permissions
-        var userPermissions = await db.Users
-            .Where(u => u.Id == userGuid)
-            .Select(u => new
+            var role = await db.Roles.FindAsync(request.RoleId);
+            var permission = await db.Permissions
+                .FirstOrDefaultAsync(p => p.Name == request.Permission);
+
+            if (role is null || permission is null)
+                return Results.NotFound("Role or permission not found");
+
+            db.RolePermissions.Add(new RolePermission
             {
-                RolePermissions = u.Roles.SelectMany(r => r.Permissions).Select(p => p.Name),
-                DirectPermissions = u.DirectPermissions.Select(p => p.Name)
-            })
-            .FirstOrDefaultAsync();
-        if (userPermissions is null)
+                RoleId = role.Id,
+                PermissionId = permission.Id
+            });
+            await db.SaveChangesAsync();
+
+            return Results.Ok("Permission assigned");
+        });
+
+        group.MapPost("/assign-role", async (
+            AssignRoleRequest request,
+            AppDbContext db) =>
         {
-            _logger.LogWarning("User {UserId} not found in database", userGuid);
-            return;
-        }
-        var allPermissions = userPermissions.RolePermissions
-            .Union(userPermissions.DirectPermissions)
-            .Distinct(StringComparer.OrdinalIgnoreCase);
-        if (allPermissions.Contains(requirement.Permission))
+            var user = await db.Users.FindAsync(request.UserId);
+            var role = await db.Roles.FindAsync(request.RoleId);
+
+            if (user is null || role is null)
+                return Results.NotFound("User or role not found");
+
+            db.UserRoles.Add(new UserRole
+            {
+                UserId = user.Id,
+                RoleId = role.Id
+            });
+            await db.SaveChangesAsync();
+
+            return Results.Ok("Role assigned");
+        });
+    }
+}
+
+public sealed record AssignPermissionRequest(Guid RoleId, string Permission);
+public sealed record AssignRoleRequest(Guid UserId, Guid RoleId);
+```
+
+Flow:
+
+1. Admin calls `POST /auth/admin/assign-permission` or `assign-role` → DB updated.
+2. User logs in / refreshes → `TokenService` loads roles + permissions into the JWT.
+3. Protected endpoints authorize from those claims (no DB on every request).
+
+</GuideStep>
+
+<GuideStep title="Embed permissions in TokenService">
+
+When you create the access token, query the user's permissions and add each one as an `AuthClaims.Permission` claim — same idea as embedding roles earlier.
+
+```csharp title="TokenService.cs" showLineNumbers {15-16}
+public string CreateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string> permissions)
+{
+    var now = _clock.GetUtcNow();
+    var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
+
+    var claims = new List<Claim>
+    {
+        new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+        new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+        new(JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(now.UtcDateTime).ToString(), ClaimValueTypes.Integer64),
+        new(JwtRegisteredClaimNames.Email, user.Email),
+        new(AuthClaims.TokenVersion, user.PermissionVersion.ToString()),
+    };
+
+    claims.AddRange(roles.Select(r => new Claim(AuthClaims.Role, r)));
+    claims.AddRange(permissions.Select(p => new Claim(AuthClaims.Permission, p)));
+
+    // sign & return JWT...
+}
+```
+
+At login (or refresh), load roles + permissions from the DB **once**, then pass them in:
+
+```csharp showLineNumbers {18}
+var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+
+var roles = await (
+    from ur in _db.UserRoles
+    join r in _db.Roles on ur.RoleId equals r.Id
+    where ur.UserId == user.Id
+    select r.Name
+).Distinct().ToListAsync();
+
+var permissions = await (
+    from ur in _db.UserRoles
+    join rp in _db.RolePermissions on ur.RoleId equals rp.RoleId
+    join p in _db.Permissions on rp.PermissionId equals p.Id
+    where ur.UserId == user.Id
+    select p.Name
+).Distinct().ToListAsync();
+
+var token = _tokenService.CreateAccessToken(user, roles, permissions);
+```
+
+Your JWT payload now looks like:
+
+```text
+sub         = 123
+email       = john@example.com
+role        = Finance
+permission  = Permissions.Invoices.View
+permission  = Permissions.Invoices.Edit
+permission  = Permissions.Products.View
+```
+
+💡 Result: authorization handlers see those claims on `context.User` with **zero DB hits** per request. Claim type (`AuthClaims.Permission`) and values must match what `PermissionRequirement` checks.
+
+<Callout variant="warning" title="Stale permissions">
+If you change a user's permissions in the DB, existing tokens keep the old claims until they expire or are refreshed. Use short-lived access tokens, force refresh on permission changes, or bump `PermissionVersion` / revoke tokens when roles change.
+</Callout>
+
+</GuideStep>
+
+</Guide>
+
+<Guide title="Level 3: Dynamic Permission Policy Provider" numbered headingLevel={3} stepHeadingLevel={4}>
+Level 1 already gave us `Permissions`, `PermissionRequirement`, and `PermissionAuthorizationHandler`. The annoying part is manually calling `AddPolicy` for every permission. Level 3 fixes that.
+
+<GuideStep title="🧩 Create a Dynamic Permission Policy Provider">
+
+If we want a dynamic policy, something like:
+
+```csharp
+[Authorize(Policy = Permissions.Products.Delete)]
+// → [Authorize(Policy = "Permissions.Products.Delete")]
+```
+
+We can't manually define hundreds of those! Instead, we'll teach ASP.NET Core to generate permission policies on the fly.
+
+We already have two of the three pieces from Level 1:
+- 🧩 `PermissionRequirement` – represents the permission we need to check.
+- 🧩 `PermissionAuthorizationHandler` – checks the `AuthClaims.Permission` claim on the JWT.
+- 🧩 <Mark type="circle"> `PermissionPolicyProvider` </Mark> – dynamically creates policies when ASP.NET Core requests them.
+
+
+We'll make a custom `IAuthorizationPolicyProvider` that dynamically creates policies based on permission strings.
+
+Add this file: `PermissionPolicyProvider.cs`
+
+```csharp  showLineNumbers {12-24}
+public class PermissionPolicyProvider : IAuthorizationPolicyProvider
+{
+    private readonly DefaultAuthorizationPolicyProvider _fallbackPolicyProvider;
+    public PermissionPolicyProvider(IOptions<AuthorizationOptions> options)
+    {
+        _fallbackPolicyProvider = new DefaultAuthorizationPolicyProvider(options);
+    }
+    public Task<AuthorizationPolicy?> GetDefaultPolicyAsync()
+        => _fallbackPolicyProvider.GetDefaultPolicyAsync();
+    public Task<AuthorizationPolicy?> GetFallbackPolicyAsync()
+        => _fallbackPolicyProvider.GetFallbackPolicyAsync();
+    public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
+    {
+        // If policy starts with "Permissions.", treat it as a permission policy
+        if (policyName.StartsWith("Permissions.", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogInformation(
-                "User {UserId} granted permission {Permission} via database lookup",
-                userGuid, requirement.Permission);
-            context.Succeed(requirement);
+            var policy = new AuthorizationPolicyBuilder()
+                .AddRequirements(new PermissionRequirement(policyName))
+                .Build();
+            return Task.FromResult<AuthorizationPolicy?>(policy);
         }
+        // fallback for other policies
+        return _fallbackPolicyProvider.GetPolicyAsync(policyName);
     }
 }
 ```
-Critical: Authorization handlers registered as singletons cannot consume scoped services directly. Use `IServiceProvider.CreateAsyncScope()` to resolve `AppDbContext` safely.
-   
+💡 How it works:
+
+- <Mark type="underline" color="tip">When ASP.NET Core sees `[Authorize(Policy = "Permissions.Products.Delete")]`, it asks the provider: "Hey, do you know this policy?"</Mark>
+- The provider detects the `"Permissions."` prefix and automatically creates a new policy requiring that permission.
+- The `PermissionAuthorizationHandler` checks whether the JWT has a matching `AuthClaims.Permission` claim.
+
+Therefore, we no longer need to manually call <Mark type="crossed-off" color="danger"> `AddPolicy(...)`</Mark> in `Program.cs`.
+
+Make sure the strings you embed at login match these policy names (e.g. store / claim `"Permissions.Products.Delete"`, not just `"Products.Delete"`).
+
+</GuideStep>
+<GuideStep title="Register the Policy Provider">
+    
+The handler is already registered from Level 1. Add the policy provider, and you can drop the manual `AddPolicy(...)` calls — the provider creates them on demand.
+
+```csharp
+builder.Services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>(); // from Level 1
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+```
+
 </GuideStep>
 
 </Guide>
@@ -870,220 +1055,299 @@ Critical: Authorization handlers registered as singletons cannot consume scoped 
 
 ## Resource-based Authorization
 
-Resource-based authorization is where you authorize access to a specific resource.
-For **resource-based authorization**, the decision depends on the **specific resource being accessed**.
+Permission policies (Level 1–3) answer:
 
-For an invoice, the question is not only:
+> "Does this user have `Permissions.Invoices.Edit`?"
 
-> "Is this user in Finance?"
+A Finance **role** answers:
 
-It can also be:
+> "Is this user in the Finance group?"
 
-> "Does this Finance user have permission to access *this particular invoice*?"
+Resource-based authorization answers:
 
-A good example is **invoice ownership**.
+> "Given that — can they access *this particular invoice*?"
 
-## Resource-Based Authorization
+Two Finance users can share the same role and the same `Permissions.Invoices.*` claims. What differs is the **resource**: who owns the invoice, which department it belongs to, and so on. You still embed permissions at login; the handler does **not** hit the DB for grants. It only needs the invoice the endpoint already loaded.
 
-Resource-based authorization is used when the authorization decision depends on the **resource being accessed**.
+<Figure
+    src="/learn/dotnet-api/05-auth/resource-based-auth-1.png"
+    alt="Resource-based authorization"
+    caption="Resource-based authorization"
+    width="800"
+/>
 
-For example, suppose a Finance user wants to access an invoice:
+Same permission claim. The decision depends on the **relationship between the user and that invoice**.
 
-```http
-GET /invoices/123
-```
-
-The authorization decision might depend on:
-
-* Is the user authenticated?
-* Is the user in the `finance` role?
-* Does this invoice belong to the user's department?
-* Is the user the owner of the invoice?
-
-Unlike policy-only authorization, the handler needs access to the actual resource.
-
-### Example: Invoice ownership
-
-Consider this invoice:
+You *can* do that check by hand inside the endpoint — load the invoice, compare owner to `sub`, forbid if they don't match:
 
 ```csharp
-public sealed class Invoice
+app.MapGet("/api/invoices/{id:guid}", async (
+    Guid id,
+    ClaimsPrincipal user,
+    IInvoiceRepository invoices) =>
+{
+    // 1. Load invoice from database
+    var invoice = await invoices.GetByIdAsync(id);
+    if (invoice is null)
+        return Results.NotFound();
+
+    // 2. Current user id from JWT (sub)
+    var currentUserId = user.GetUserId(); // AuthClaims extension
+
+    // 3. Ensure the user owns the invoice
+    if (invoice.OwnerId != currentUserId)
+        return Results.Forbid();
+
+    return Results.Ok(invoice);
+})
+.RequireAuthorization("finance"); // named policy: RequireRole("Finance") — see below
+```
+
+That works for a demo, but it doesn't scale — every endpoint reimplements the same ownership rules. Prefer a reusable resource handler (below).
+
+<Guide title="Invoice ownership + permission claims" numbered headingLevel={3} stepHeadingLevel={4}>
+
+<GuideStep title="The invoice resource">
+
+Model the resource with the fields authorization will need — typically id, owner, and department:
+
+```csharp showLineNumbers {1-7}
+public interface IOwnedResource
+{
+    Guid Id { get; }
+    Guid OwnerId { get; }
+}
+
+public sealed class Invoice : IOwnedResource
 {
     public Guid Id { get; set; }
-
     public Guid OwnerId { get; set; }
-
+    public string Department { get; set; } = "Finance";
     public decimal Amount { get; set; }
-
     public string Status { get; set; } = default!;
 }
 ```
 
-The requirement:
+`IOwnedResource` keeps the handler reusable for other owned types later (documents, tickets, …). Invoice is the concrete resource type we care about here.
 
-```csharp
-public sealed class InvoiceOwnerRequirement
-    : IAuthorizationRequirement
+</GuideStep>
+
+<GuideStep title="The requirement">
+
+Reuse permission strings from Level 1 (`Permissions.Invoices.Edit`, etc.). The requirement says which permission this operation needs, and whether ownership matters:
+
+```csharp showLineNumbers {4}
+public sealed class ResourcePermissionRequirement : IAuthorizationRequirement
 {
+    public string Permission { get; }
+    public bool RequireOwnership { get; }
+
+    public ResourcePermissionRequirement(string permission, bool requireOwnership = true)
+    {
+        if (string.IsNullOrWhiteSpace(permission))
+            throw new ArgumentException("Permission cannot be empty", nameof(permission));
+
+        Permission = permission;
+        RequireOwnership = requireOwnership;
+    }
 }
 ```
 
-The handler can compare the invoice owner with the current user:
+- `Permissions.Invoices.View` → often `requireOwnership: false` (any Finance user with View can read invoices in scope).
+- `Permissions.Invoices.Edit` / `Delete` → `requireOwnership: true` (must own the invoice, unless a manager override).
 
-```csharp
-public sealed class InvoiceOwnerHandler
-    : AuthorizationHandler<InvoiceOwnerRequirement, Invoice>
+</GuideStep>
+
+<GuideStep title="The resource handler">
+
+`AuthorizationHandler<TRequirement, TResource>` receives the **invoice**. Permission check = JWT claims (same as Level 1). Ownership check = compare `OwnerId` to `sub`. Optionally allow a Finance manager role to bypass ownership.
+
+```csharp showLineNumbers {16-23}
+public sealed class ResourcePermissionHandler
+    : AuthorizationHandler<ResourcePermissionRequirement, IOwnedResource>
 {
     protected override Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
-        InvoiceOwnerRequirement requirement,
-        Invoice invoice)
+        ResourcePermissionRequirement requirement,
+        IOwnedResource resource)
     {
-        var userId = context.User
-            .FindFirstValue(ClaimTypes.NameIdentifier);
+        var hasPermission = context.User.HasClaim(c =>
+            c.Type == AuthClaims.Permission &&
+            c.Value.Equals(requirement.Permission, StringComparison.OrdinalIgnoreCase));
 
-        if (userId is not null &&
-            invoice.OwnerId.ToString() == userId)
+        if (!hasPermission)
+            return Task.CompletedTask;
+
+        if (requirement.RequireOwnership)
         {
-            context.Succeed(requirement);
+            var userId = context.User.GetUserId(); // AuthClaims extension → JWT sub
+            var isFinanceManager = context.User.IsInRole("FinanceManager");
+
+            if (resource.OwnerId != userId && !isFinanceManager)
+                return Task.CompletedTask;
         }
 
+        context.Succeed(requirement);
         return Task.CompletedTask;
     }
 }
 ```
 
-Register the handler:
+💡 Same rules as permission-based auth:
+
+- Claims come from `TokenService` (`AuthClaims.Permission`).
+- No `DbContext` in the handler — zero DB hits for authorization.
+- On miss we **don't** call `context.Fail()` (unlike Level 1's simple handler). Returning without `Succeed` lets other handlers for the same requirement still run; call `Fail()` only when you want to short-circuit.
+
+`Department` is on the model so you can extend later (e.g. match a `department` claim) without changing how permissions are embedded in the JWT.
+
+</GuideStep>
+
+<GuideStep title="Registration + Finance policy">
 
 ```csharp
-builder.Services.AddScoped<
-    IAuthorizationHandler,
-    InvoiceOwnerHandler>();
-```
+builder.Services.AddSingleton<IAuthorizationHandler, ResourcePermissionHandler>();
 
-### Finance policy
-
-We can combine a Finance role requirement with the ownership requirement:
-
-```csharp
 builder.Services.AddAuthorization(options =>
 {
+    // Endpoint-level gate: authenticated + Finance role.
+    // Do NOT put the resource/ownership requirement here — that needs the loaded invoice.
     options.AddPolicy("finance", policy =>
-    {
-        policy.RequireRole("finance");
-
-        policy.Requirements.Add(
-            new InvoiceOwnerRequirement());
-    });
+        policy.RequireRole("Finance"));
 });
 ```
 
-However, because the ownership requirement needs the **actual invoice**, the endpoint must perform resource-based authorization.
-
-### Endpoint
-
-First load the invoice:
+You might be tempted to combine role + ownership in one policy:
 
 ```csharp
-app.MapGet("/invoices/{id:guid}",
-    async (
-        Guid id,
-        ClaimsPrincipal user,
-        IInvoiceRepository repository,
-        IAuthorizationService authorization) =>
-    {
-        var invoice = await repository.GetByIdAsync(id);
-
-        if (invoice is null)
-            return Results.NotFound();
-
-        var result = await authorization.AuthorizeAsync(
-            user,
-            invoice,
-            new InvoiceOwnerRequirement());
-
-        if (!result.Succeeded)
-            return Results.Forbid();
-
-        return Results.Ok(invoice);
-    })
-    .RequireAuthorization();
+// ❌ Don't do this for resource ownership
+options.AddPolicy("finance", policy =>
+{
+    policy.RequireRole("Finance");
+    policy.Requirements.Add(new ResourcePermissionRequirement(Permissions.Invoices.Edit));
+});
 ```
 
-The important part is:
+That fails for resource auth: `.RequireAuthorization("finance")` runs **before** the handler, so ASP.NET Core has no `Invoice` instance to pass into `ResourcePermissionHandler`. Split the concerns:
+
+| Layer | What it checks | When |
+| --- | --- | --- |
+| `.RequireAuthorization("finance")` | Authenticated + `Finance` role | Before endpoint runs |
+| `auth.AuthorizeAsync(user, invoice, …)` | Permission claim + ownership | After you load the invoice |
+
+</GuideStep>
+
+<GuideStep title="Authorize against the loaded invoice">
+
+Load the invoice, then authorize against that instance. Keep the Finance policy on the route — `AuthorizeAsync` alone does **not** replace it.
+
+```csharp showLineNumbers {5,12-15,28,35-38,51,58-63}
+app.MapPut("/api/invoices/{id:guid}", async (
+    Guid id,
+    UpdateInvoiceRequest request,
+    IInvoiceRepository invoices,
+    IAuthorizationService auth,
+    ClaimsPrincipal user) =>
+{
+    var invoice = await invoices.GetByIdAsync(id);
+    if (invoice is null)
+        return Results.NotFound();
+
+    var result = await auth.AuthorizeAsync(
+        user,
+        invoice,
+        new ResourcePermissionRequirement(Permissions.Invoices.Edit));
+
+    if (!result.Succeeded)
+        return Results.Forbid();
+
+    var updated = await invoices.UpdateAsync(id, request);
+    return Results.Ok(updated);
+})
+.RequireAuthorization("finance");
+
+app.MapDelete("/api/invoices/{id:guid}", async (
+    Guid id,
+    IInvoiceRepository invoices,
+    IAuthorizationService auth,
+    ClaimsPrincipal user) =>
+{
+    var invoice = await invoices.GetByIdAsync(id);
+    if (invoice is null)
+        return Results.NotFound();
+
+    var result = await auth.AuthorizeAsync(
+        user,
+        invoice,
+        new ResourcePermissionRequirement(Permissions.Invoices.Delete));
+
+    if (!result.Succeeded)
+        return Results.Forbid();
+
+    await invoices.DeleteAsync(id);
+    return Results.NoContent();
+})
+.RequireAuthorization("finance");
+
+app.MapGet("/api/invoices/{id:guid}", async (
+    Guid id,
+    IInvoiceRepository invoices,
+    IAuthorizationService auth,
+    ClaimsPrincipal user) =>
+{
+    var invoice = await invoices.GetByIdAsync(id);
+    if (invoice is null)
+        return Results.NotFound();
+
+    var result = await auth.AuthorizeAsync(
+        user,
+        invoice,
+        new ResourcePermissionRequirement(
+            Permissions.Invoices.View,
+            requireOwnership: false));
+
+    if (!result.Succeeded)
+        return Results.Forbid();
+
+    return Results.Ok(invoice);
+})
+.RequireAuthorization("finance");
+```
+
+
+The important call:
 
 ```csharp
-await authorization.AuthorizeAsync(
+await auth.AuthorizeAsync(
     user,
-    invoice,
-    new InvoiceOwnerRequirement());
+    invoice, // ← the resource
+    new ResourcePermissionRequirement(Permissions.Invoices.Edit));
 ```
-
-Here, `invoice` is the **resource** being authorized.
-
-The handler receives both:
-
-```text
-Current User
-     +
-Invoice
-     ↓
-InvoiceOwnerHandler
-     ↓
-Does user own this invoice?
-     ↓
-Allow / Deny
-```
-
-### Finance + ownership
-
-If the endpoint should require both **Finance membership** and **invoice ownership**, the authorization flow becomes:
 
 ```text
 Request
    ↓
-Authentication
+Authentication (JWT)
    ↓
-Is user authenticated?
-   ↓
-Finance role?
+.RequireAuthorization("finance")  → Role = Finance?
    ↓
 Load Invoice
    ↓
-Does user own Invoice?
+AuthorizeAsync(user, invoice, requirement)
    ↓
-Allow
+Has AuthClaims.Permission == Permissions.Invoices.Edit?
+   ↓
+OwnerId == sub  (or FinanceManager)?
+   ↓
+Allow / Forbid
 ```
 
-This is different from a normal policy such as:
+</GuideStep>
 
-```csharp
-policy.RequireRole("finance");
-```
+</Guide>
 
-because a normal role policy doesn't know **which invoice** is being accessed.
 
-### Why resource-based authorization?
+## References
 
-Consider:
-
-```text
-User A → Finance
-User B → Finance
-
-Invoice 1 → Owner = User A
-Invoice 2 → Owner = User B
-```
-
-Both users have the same role, but:
-
-```text
-User A → Invoice 1 ✅
-User A → Invoice 2 ❌
-User B → Invoice 1 ❌
-User B → Invoice 2 ✅
-```
-
-The authorization decision depends on the **relationship between the user and the resource**.
-
-That's the main purpose of resource-based authorization.
+- [🧠 Implementing a Custom Authorization Handler in ASP.NET Core 10 | Permission Authorization](https://blog.stackademic.com/implementing-a-custom-authorization-handler-in-asp-net-core-10-permission-authorization-4cbf2a9330a2)
+- [Implementing a Custom Authorization Handler in ASP.NET](https://medium.com/@mariammaurice/implementing-a-custom-authorization-handler-in-asp-net-937b1e190f3f#-part-2--building-the-permission-authorization-system)
