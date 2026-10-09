@@ -87,10 +87,10 @@ export function LearnArticleClient({
                   {page.title}
                 </h1>
               </ViewTransition>
-              {page.description && (
+              {page.excerpt && (
                 <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
                   <p className="mt-3 max-w-3xl text-lg leading-relaxed text-muted-foreground">
-                    {page.description}
+                    {page.excerpt}
                   </p>
                 </ViewTransition>
               )}

@@ -24,7 +24,7 @@ import {
 import type { LearnCatalogCourse, LearnCatalogLesson } from '@/lib/learn';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardFooter, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
@@ -98,7 +98,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
       if (!query.trim()) return true;
       return matchesQuery(query, [
         course.title,
-        course.description,
+        course.excerpt,
         course.badge,
         ...(course.tags ?? []),
       ]);
@@ -111,7 +111,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
       const course = courses.find((c) => c.slug === lesson.courseSlug);
       return matchesQuery(query, [
         lesson.title,
-        lesson.description,
+        lesson.excerpt,
         lesson.courseTitle,
         lesson.badge,
         ...(course?.tags ?? []),
@@ -252,7 +252,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
                               href={course.href}
                               title={course.title}
                               meta={`${course.pageCount} lessons`}
-                              description={course.description}
+                              description={course.excerpt}
                               tags={course.tags}
                               active={selectedIndex === index}
                             />
@@ -278,7 +278,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
                               href={lesson.href}
                               title={lesson.title}
                               meta={lesson.courseTitle}
-                              description={lesson.description}
+                              description={lesson.excerpt}
                               badge={lesson.badge}
                               active={selectedIndex === index}
                             />
@@ -373,40 +373,42 @@ function CourseCard({ course }: { course: LearnCatalogCourse }) {
     <Link
       href={course.href}
       transitionTypes={['post-open']}
-      className="reveal-on-scroll group block h-full">
-      <Card className="h-full border-border/80 bg-card/80 transition-[box-shadow,border-color] group-hover:border-accent/40 group-hover:shadow-md">
-        <CardHeader>
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-muted/80 ring-1 ring-border/60">
+      className="reveal-on-scroll group flex h-full flex-col">
+      <Card className="h-full flex-1 gap-0 border-border/80 bg-card/80 transition-[box-shadow,border-color] group-hover:border-accent/40 group-hover:shadow-md">
+        <div className="flex min-h-0 flex-1 flex-col px-6 pb-5">
+          <div className="mb-3 flex h-11 items-center justify-between gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted/80 ring-1 ring-border/60">
               <Icon className="size-5 text-accent" />
             </div>
-            {course.badge && (
+            {course.badge ? (
               <Badge variant="secondary" size="sm">
                 {course.badge}
               </Badge>
-            )}
+            ) : null}
           </div>
+
           <ViewTransition name={`learn-title-${transitionSlug}`} share="post-title">
-            <CardTitle className="text-lg transition-colors group-hover:text-accent">
+            <CardTitle className="min-h-[2.75rem] line-clamp-2 text-lg leading-snug transition-colors group-hover:text-accent">
               {course.title}
             </CardTitle>
           </ViewTransition>
-          {course.description && (
-            <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
-              <CardDescription className="line-clamp-3">{course.description}</CardDescription>
-            </ViewTransition>
-          )}
-          {(course.tags?.length ?? 0) > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {course.tags!.map((tag) => (
-                <Badge key={tag} variant="outline" size="sm">
-                  {formatTagLabel(tag)}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </CardHeader>
-        <CardContent className="flex items-center justify-between text-sm text-muted-foreground">
+
+          <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
+            <CardDescription className="mt-1.5 min-h-[3.75rem] line-clamp-3 leading-5">
+              {course.excerpt || '\u00a0'}
+            </CardDescription>
+          </ViewTransition>
+
+          <div className="mt-auto flex min-h-14 flex-wrap content-start gap-1.5 pt-4">
+            {(course.tags ?? []).map((tag) => (
+              <Badge key={tag} variant="outline" size="sm">
+                {formatTagLabel(tag)}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        <CardFooter className="justify-between border-t border-border/60 pt-4 text-sm text-muted-foreground">
           <span>
             {course.pageCount} lessons
             {course.chapterCount > 0 ? ` · ${course.chapterCount} chapters` : ''}
@@ -415,7 +417,7 @@ function CourseCard({ course }: { course: LearnCatalogCourse }) {
             Start
             <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
           </span>
-        </CardContent>
+        </CardFooter>
       </Card>
     </Link>
   );

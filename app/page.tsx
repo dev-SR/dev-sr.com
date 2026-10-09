@@ -210,9 +210,9 @@ export default async function App() {
                           <CardTitle className="text-xl transition-colors group-hover:text-[#F08F87]">
                             {course.title}
                           </CardTitle>
-                          {course.description && (
+                          {course.excerpt && (
                             <CardDescription className="line-clamp-2 leading-6">
-                              {course.description}
+                              {course.excerpt}
                             </CardDescription>
                           )}
                         </CardHeader>

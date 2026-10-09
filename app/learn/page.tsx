@@ -22,7 +22,7 @@ export default async function LearnPage() {
         data={getCourseCatalogSchema(
           catalog.courses.map((course) => ({
             title: course.title,
-            description: course.description,
+            description: course.excerpt,
             href: course.href,
           }))
         )}

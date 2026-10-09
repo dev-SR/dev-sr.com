@@ -45,7 +45,7 @@ export async function generateMetadata(props: LearnSlugPageProps): Promise<Metad
   return constructMetadata({
     title: page.title,
     description:
-      page.description ||
+      page.excerpt ||
       `${page.title} — part of the ${courseLabel} course on Sharukh Rahman's Learn hub.`,
     path,
     tags: [courseLabel, page.badge].filter((value): value is string => Boolean(value)),
@@ -91,7 +91,7 @@ export default async function LearnSlugPage(props: LearnSlugPageProps) {
         data={[
           getCourseLessonSchema({
             title: page.title,
-            description: page.description,
+            description: page.excerpt,
             path,
             courseSlug: page.courseSlug,
             courseTitle,
@@ -104,7 +104,7 @@ export default async function LearnSlugPage(props: LearnSlugPageProps) {
         page={{
           slug: page.slug,
           title: page.title,
-          description: page.description,
+          excerpt: page.excerpt,
           icon: page.icon,
           order: page.order,
           badge: page.badge,

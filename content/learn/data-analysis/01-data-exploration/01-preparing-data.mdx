@@ -1,0 +1,1312 @@
+---
+title: 'Preparing Data'
+excerpt: 'Preparing data for analysis.'
+tags: ['data-analysis', 'python', 'machine-learning']
+---
+
+## Motivation
+
+Before we can analyze data, we must prepare it. Two motivating questions guide this chapter:
+
+ - **Does immunization of infants against measles save lives in poor countries?** We use data on immunization rates across countries and years from the World Bank.
+    - <Mark type="underline" color="danger">Challenge</Mark>: how should we  <Mark type="highlight" color="tip"> store, organize, and structure</Mark> the data so that all relevant information is accessible and ready for meaningful analysis?
+
+ - **Who has been the best manager in the English Premier League?** We have data on football games and on managers from separate sources.
+    - <Mark type="underline" color="danger">Challenge</Mark>: how do we <Mark type="highlight" color="tip"> combine (link/merge)</Mark> these datasets, and what data-quality issues must we address first?
+   
+   
+## Data Attributes and Measurement Levels
+ Before any analysis, we must understand what kind of information each variable captures. Data attributes (variables) can be classified by their **measurement scale** — the mathematical properties that determine which operations and statistical methods are valid.
+
+ ### Summary of Attribute Types
+ | Attribute Type | Description | Examples | Valid Operations |
+ |----------------|-------------|----------|------------------|
+ | **Nominal** | Categories **without order** | Gender, nationality, product category, blood type | Frequency, mode, one-hot encoding |
+ | **Ordinal** | Categories **with order** but unequal distances | Satisfaction level, education level, pain level, ranking | Median, percentiles, ordinal encoding |
+ | **Interval** | Numerical, equal intervals, **no true zero** | Celsius temperature, calendar years, IQ score | Addition, subtraction, standardization |
+ | **Ratio-scale** | Numerical, equal intervals, **true zero** | Mass, length, age, income, speed, production quantity | All arithmetic: +, −, ×, ÷, ratios |
+ | **Binary** | Exactly **two possible values** | Yes/no, true/false, active/inactive, diseased/not diseased | Proportions, dummy encoding |
+ | **Time-series** | Values **ordered over time** | Stock prices, temperature readings, sensor logs | Temporal aggregation, lag analysis |
+ 
+ 
+## Data Wrangling
+
+**Data wrangling** (also called **data munging**) is the process of <Mark type="highlight" color="tip"> cleaning, transforming, and organizing raw data into a format that can be easily analyzed or used.</Mark>
+
+
+
+
+**8 Common Data Wrangling Tasks**: 
+
+<Mark type="highlight" > **1. Data Cleaning**</Mark>
+
+- Fix errors, remove duplicate records, handle missing values, and correct inconsistent data.
+- **Example:** Replace invalid ages and remove duplicate customer records.
+
+<Mark type="highlight" > **2. Data Transformation**</Mark>
+
+- Change data types, formats, or values to make data consistent and useful.
+- **Example:** Convert date strings into proper date values.
+
+
+<Mark type="highlight" > **3. Data Merging and Joining**</Mark>
+
+- Combine data from multiple files, tables, or sources.
+- **Example:** Combine customer details with their order history.
+
+
+<Mark type="highlight" > **4. Data Filtering and Sorting**</Mark>
+
+- Select relevant records and arrange data in a specific order.
+- **Example:** Display only sales above €1,000 and sort from highest to lowest.
+
+
+
+<Mark type="highlight" > **5. Data Aggregation**</Mark>
+
+- Summarize data using totals, averages, counts, minimums, or maximums.
+- **Example:** Calculate total monthly sales for each region.
+
+
+<Mark type="highlight" > **6. Reshaping Data**</Mark>
+
+- Change the structure of a dataset by pivoting, unpivoting, or rearranging rows and columns.
+- **Example:** Convert monthly sales columns into individual month rows.
+
+
+<Mark type="highlight" > **7. Standardization and Normalization**</Mark>   
+
+- Make values consistent or scale numerical data into a comparable range.
+- **Example:** Standardize “USA,” “U.S.A.,” and “United States” to one label.
+
+
+### Data Wrangling: Cleaning
+
+Data cleaning is a critical process that **improves the reliability, consistency, and interpretability** of data. 
+
+Main Tasks of Data Cleaning
+
+- **Entity resolution:** Dealing with duplicates, ambiguous identification, and non-entity rows.
+- **Missing values:** Identifying, understanding, and handling absent data.
+- **Harmonizing:** Standardizing data types, units, and formats.
+
+---
+
+#### The Five Levels of Data Cleaning
+
+Cleaning should be performed systematically at progressively broader scopes.
+
+> **Level 1: Value-Level Cleaning**
+
+Examines **one cell or value** at a time.
+- **Typical questions:** Is the data type correct? Is the value in the allowed range? Is the format correct? Is it missing or an input error?
+- **Examples:** Text in a numeric column (e.g., `"N/A"` in a price column), unreadable date formats (mixing `"01-nov-19"` and `"2019-11-01"`), negative body weight/age, sentinel values for missing data (e.g., `"-999"`), or unrealistic sensor readings (e.g., 500°C).
+- **Action:** Parse, convert, recode, or flag individual values.
+
+> **Level 2: Record-Level Cleaning**
+
+Examines a **whole row or record** to check if values within the same row are logically consistent.
+- **Examples:** Birth date **after** examination date, an animal marked as **male and pregnant**, an order marked as **delivered without a delivery date**, check-out date **before** check-in date, or a manager's "end date" **before** their "start date".
+- **Action:** Flag or drop logically impossible records. Investigate whether the error lies in a single field or the entire record.
+
+> **Level 3: Variable-Level (Column-Level) Cleaning**
+
+Examines an **entire column** across all observations.
+- **Checks to perform:** Missing value percentage, mixed data types, distribution (skewed/multimodal), extreme values/outliers, category consistency (e.g., `"USA"`, `"U.S.A."`, `"US"`), mixed measurement units (Celsius vs. Fahrenheit), and coding consistency (does `1` always mean "yes"?).
+- **Examples:** One category written in multiple ways, mixed temperature units, numeric columns containing text artifacts (`"<10"`), or a binary variable containing `0, 1, 2, 9`.
+- **Action:** Standardize categories, convert units, create unified coding schemes, and decide how to handle variables with excessive missingness.
+
+
+> **Level 4: Table-Level Cleaning**
+
+Checks the **structure and internal logic** of an entire table.
+- **Important questions:** Is there a **primary key**? Is the identifier **unique**? Are there **duplicate rows**? Are column names **consistent** and machine-readable? Is the **granularity** clear and uniform?
+- **Granularity** refers to the level of detail represented by a single record. Mixing different levels of detail makes analysis misleading.
+
+| Granularity | Description | Examples |
+|-------------|-------------|----------|
+| **High (Fine-grained)** | Very detailed data | Individual purchase transactions, per-second sensor measurements, detailed user actions. |
+| **Low (Coarse-grained)**| Summarized/aggregated data | Daily total sales, monthly averages, user category summaries. |
+
+- **Action:** Ensure uniform granularity, enforce unique IDs, drop summary rows embedded in raw data, and standardize column naming conventions.
+
+> **Level 5: Database-Level or Multi-Table Cleaning**
+
+Checks consistency **across multiple tables or data sources**.
+- **Focus areas:** **Foreign key validity** (do referenced IDs exist?), **referential integrity** (no orphaned records), **entity matching** (do two tables refer to the same real-world object?), code standardization across sources (e.g., `"Man City"` vs. `"Manchester City"`), time synchronization, unit consistency (USD vs. EUR), and schema compatibility.
+- **Action:** Build crosswalk/lookup tables for entity resolution, harmonize units and codes, and verify that merged datasets maintain referential integrity.
+
+---
+
+#### Domain-Specific and Rule-Based Cleaning
+Beyond generic checks, cleaning must incorporate **expert knowledge, business rules, scientific constraints, and operational logic**.
+- **Examples:** Birth date must precede treatment date; milk yield/machine operating time/hotel prices cannot be negative; machine time cannot exceed 24 hours/day; animal weight shouldn't drop 30% in a day; GPS coordinates must fall within a specific area; daily mortality cannot exceed 100%; a football manager cannot manage two clubs simultaneously; star ratings must be 1–5.
+- **Action:** Encode domain rules as validation checks. Flag violations for manual review rather than silently correcting them, as violations may reveal deeper data-quality issues.
+
+---
+
+#### Model-Specific Cleaning Expectations
+Different analytical and machine-learning methods have varying sensitivities to data quality. Tailor your cleaning depth to the model you plan to use.
+
+| Model Family | Sensitive To | Less Sensitive To | Special Requirements |
+|--------------|--------------|-------------------|----------------------|
+| **Linear / Logistic Regression** | Scale, outliers, multicollinearity, missing values | — | Needs complete cases or imputation; standardization helps interpretation. |
+| **Tree-Based Models** (Random Forest, XGBoost) | Duplicates, wrong labels, badly coded categories, **data leakage** | Scale, outliers | Can handle missing values natively; watch for label errors. |
+| **Neural Networks / Deep Learning** | Noisy labels, poor normalization, incomplete annotation, **unbalanced data** | Outliers (with enough data) | Requires careful normalization; needs large, clean labels. |
+| **Clustering & Dimensionality Reduction** (K-Means, PCA) | Noise, duplicates, **badly scaled variables**, irrelevant features | Target variable (unsupervised) | **Do NOT use a target variable** for cleaning; standardization is essential. |
+| **Time-Series Models** (ARIMA, LSTM) | Incorrect time order, missing values, **irregular sampling**, **future data leakage** | Individual outliers | Requires strict temporal ordering; **never shuffle**; absolutely no future information in training. |
+
+---
+
+#### Handling Missing Values
+
+Missing values mean a variable's value is unavailable for some observations. Handling them requires understanding both the **scope** (how much is missing?) and the **reason** (why is it missing?).
+
+##### Step 1: Identify How Missingness is Encoded (Value-Level)
+
+- **Explicit:** `NA`, `NaN`, empty string `""`, dot `.`
+- **Implicit (Sentinels):** `9`, `999`, or `9999999999` used in a 1–100 scale.
+- **Hidden:** Binary `0/1` where `9` means missing, or `"0"` used to mean "not applicable".
+
+##### Step 2: Count Missing Values per Variable (Variable-Level)
+
+Never rely on summary functions like `df.describe()` alone, as they silently exclude missing values. You may have far fewer usable observations than the raw row count suggests.
+
+##### Step 3: Understand the Selection Process (Record / Table-Level)
+
+- **Missing at Random:** Result of data-entry errors (rare).
+- **Structural Zero:** The value is truly zero or "no" (e.g., missing Twitter handle means no account). Recode missing to `0` or `"no"`.
+- **Systematic Missingness:** Non-response correlates with respondent characteristics. This introduces **selection bias** and requires careful handling.
+
+##### Step 4: Decide on a Strategy (Domain / Model-Level)
+
+| Strategy | When to Use | Caveat |
+|----------|-------------|--------|
+| **Listwise Deletion** | Drop rows with any missing values in analysis variables. | Simple, but reduces sample size and biases results if missingness is systematic. |
+| <Mark type="highlight" color="tip"> **Imputation (Mean/Median)**</Mark> | Fill missing with a central tendency measure. | Distorts variance and correlations; use only if absolutely necessary. |
+| <Mark type="highlight" color="tip"> **Flag + Impute**</Mark> | Create a binary <Mark type="underline" color="tip"> "is_missing"</Mark> flag, then impute. | Allows the model to account for the missingness pattern. |
+| <Mark type="highlight" color="tip"> **Model-Based Imputation**</Mark> | Use regression or ML to predict missing values. | Advanced; requires strong assumptions. |
+| <Mark type="highlight" color="tip"> **Domain Recoding**</Mark> | Missing means "zero" or "no" in context. | Only valid when domain knowledge confirms this interpretation. |
+
+ **Practical Advice by Variable Type:**
+
+- **General:** Focus on variables with the most complete data. Always be conservative, document every imputation decision, and use flag variables in your analysis.
+- **Binary variables:** Consider whether missing means "no" (recode to `0`).
+- **Qualitative nominal variables:** Add `"missing"` as an explicit category (e.g., white, blue, red, <Mark type="underline" color="tip">missing</Mark>).
+- **Qualitative ordinal variables:** Add `"missing"` or recode to a neutral value (e.g., high, average, low; recode missing to <Mark type="underline" color="tip">average</Mark>).
+- **Quantitative variables:** Mean/median imputation is a <Mark type="underline" color="danger">last resort</Mark>. If imputing, create a flag.
+- **Time-series data:** <Mark type="circle" color="tip"> Forward-fill or interpolation</Mark> is usually more appropriate than mean imputation.
+
+ ---
+
+
+
+ ## 4. Case Study A1: Finding a Good Deal Among Hotels — Data Preparation
+
+**Dataset:** `hotels-vienna`
+**Source:** Online hotel booking data for Vienna, November 2017 weekend.
+
+---
+
+ This case study demonstrates:
+ - Loading clean, tidy data and creating a workfile.
+ - Loading **raw** data and performing the cleaning steps yourself.
+ - Handling string parsing, type conversion, renaming, duplicates, and missing values.
+
+### Part A: First look at the cleaned data
+
+#### First look at the data
+
+
+```text
+   hotel_id accommodation_type  distance  stars  rating  rating_count  price
+0     21894          Apartment       2.7    4.0     4.4          36.0     81
+1     21897              Hotel       1.7    4.0     3.9         189.0     81
+2     21901              Hotel       1.4    4.0     3.7          53.0     85
+3     21902              Hotel       1.7    3.0     4.0          55.0     83
+4     21903              Hotel       1.2    4.0     3.9          33.0     82
+```
+
+#### Table 2.2 — Check data types
+
+
+It is crucial to verify that each variable is stored in the correct type.
+
+
+```python
+data.dtypes
+```
+
+```text
+hotel_id                int64
+accommodation_type     object
+distance              float64
+stars                 float64
+rating                float64
+rating_count          float64
+price                   int64
+dtype: object
+```
+
+ #### Inspect a single observation
+ 
+```python
+data.iloc[1]
+```
+
+```text
+hotel_id              21897
+accommodation_type    Hotel
+distance                1.7
+stars                   4.0
+rating                  3.9
+rating_count          189.0
+price                    81
+Name: 1, dtype: object
+```
+
+ #### Filter to Hotels only
+
+
+The dataset contains various accommodation types (Hotel, Apartment, etc.).
+
+ For this analysis, we restrict attention to proper hotels.
+ 
+```python
+data = data.loc[data["accommodation_type"] == "Hotel"]
+print(f"Number of hotel observations: {data.shape[0]}")
+data[["hotel_id", "price", "distance"]].head(3)
+```
+
+```text
+Number of hotel observations: 264
+```
+
+```text
+   hotel_id  price  distance
+1     21897     81       1.7
+2     21901     85       1.4
+3     21902     83       1.7
+```
+
+ ---
+
+
+
+ ### Part B: Repeating the Cleaning from Raw Data
+
+
+Raw data often arrives in formats that are not immediately usable.Variables may be encoded as strings, distances may include units, and ratings may be embedded in text. Below we show the full pipeline from raw CSV to analysis-ready data.
+
+> **Key lesson:** Never trust that raw data is ready for analysis.
+> Always inspect, parse, convert, and validate.
+ 
+ #### Parse distance strings into numeric kilometers
+
+
+The raw file stores distance as strings like `"1.7 miles"`.
+
+ We split on the space and convert the first element to float.
+```python
+data_raw["distance"] = (
+    data_raw["center1distance"].str.split(" ").apply(lambda x: float(x[0]))
+)
+data_raw["distance_alter"] = (
+    data_raw["center2distance"].str.split(" ").apply(lambda x: float(x[0]))
+)
+data_raw.head()
+```
+
+```text
+  addresscountryname city_actual  rating_reviewcount center1distance  \
+0            Austria      Vienna                36.0       2.7 miles   
+1            Austria      Vienna               189.0       1.7 miles   
+2            Austria      Vienna                53.0       1.4 miles   
+3            Austria      Vienna                55.0       1.7 miles   
+4            Austria      Vienna                33.0       1.2 miles   
+
+  center1label center2distance center2label neighbourhood  price  \
+0  City centre       4.4 miles    Donauturm   17. Hernals     81   
+1  City centre       3.8 miles    Donauturm   17. Hernals     81   
+2  City centre       2.5 miles    Donauturm    Alsergrund     85   
+3  City centre       2.5 miles    Donauturm    Alsergrund     83   
+4  City centre       2.8 miles    Donauturm    Alsergrund     82   
+```
+
+ #### Extract accommodation type from a composite string
+
+
+
+ The raw column `accommodationtype` looks like `"@Hotel"` or `"@Apartment"`.
+
+ We split on `@` and take the second part, stripping whitespace.
+```python
+data_raw["accommodation_type"] = (
+    data_raw["accommodationtype"].str.split("@").apply(lambda x: x[1]).str.strip()
+)
+```
+
+ #### Extract number of nights from a text field
+```python
+data_raw["nnight"] = data_raw["price_night"].str.split(" ").apply(lambda x: int(x[2]))
+```
+
+ #### Convert rating from string to numeric
+
+
+
+ Ratings are stored as strings like `"4.2 /5"`. We extract the numeric part.
+
+ Some entries may be missing, so we handle those gracefully.
+```python
+data_raw["rating"] = (
+    data_raw["guestreviewsrating"]
+    .str.split(" ")
+    .apply(lambda x: float(x[0]) if isinstance(x, list) else None)
+)
+```
+
+ #### Frequency tables: inspect all values including missing
+
+
+Before modeling, always look at the full distribution. Custom `tabulate` functions show missing values explicitly—unlike `.value_counts()`, which silently drops them by default.
+```python
+da.tabulate(data_raw["rating"], drop_missing=False).tail()
+# if da is not None:
+#     da.tabulate(data_raw["rating"])
+# else:
+#     print(data_raw["rating"].value_counts(dropna=False).head(10))
+```
+
+```text
+        Freq.  Perc.    Cum
+rating                     
+4.6        10  0.023  0.872
+4.8        12  0.028  0.900
+4.9         2  0.005  0.905
+5.0         6  0.014  0.919
+NaN        35  0.081  1.000
+```
+
+```python
+da.tabulate(data_raw["rating"], drop_missing=True).tail()
+```
+
+```text
+        Freq.  Perc.    Cum
+rating                     
+4.5        44  0.111  0.924
+4.6        10  0.025  0.949
+4.8        12  0.030  0.980
+4.9         2  0.005  0.985
+5.0         6  0.015  1.000
+```
+
+```python
+da.tabulate(data_raw["rating_reviewcount"], drop_missing=False)
+# if da is not None:
+#     da.tabulate(data_raw["rating_reviewcount"])
+# else:
+#     print(data_raw["rating_reviewcount"].value_counts(dropna=False).head(10))
+```
+
+```text
+                    Freq.  Perc.    Cum
+rating_reviewcount                     
+1.0                    15  0.035  0.035
+2.0                     9  0.021  0.056
+3.0                     9  0.021  0.077
+4.0                     1  0.002  0.079
+5.0                     5  0.012  0.091
+...                   ...    ...    ...
+923.0                   1  0.002  0.912
+985.0                   1  0.002  0.914
+1122.0                  1  0.002  0.916
+1541.0                  1  0.002  0.919
+NaN                    35  0.081  1.000
+
+[225 rows x 3 columns]
+```
+
+ #### Convert review count to numeric
+```python
+data_raw["rating_count"] = data_raw["rating_reviewcount"].apply(float)
+data_raw["rating_count"].describe().to_frame().T
+```
+
+```text
+              count        mean         std  min   25%   50%    75%     max
+rating_count  395.0  155.293671  191.296684  1.0  26.5  84.0  203.0  1541.0
+```
+
+ #### Rename variables for clarity
+
+
+
+ Good variable names are short, descriptive, and consistent.
+
+ Avoid spaces, special characters, and ambiguous abbreviations.
+```python
+data_raw = data_raw.rename(
+    columns={
+        "rating2_ta": "ratingta",
+        "rating2_ta_reviewcount": "ratingta_count",
+        "addresscountryname": "country",
+        "s_city": "city",
+        "starrating": "stars",
+    }
+)
+```
+
+ #### Drop intermediate/raw columns that are no longer needed
+
+
+
+ Keeping your workspace tidy reduces memory usage and prevents accidental
+
+ use of outdated variables.
+```python
+data_raw = data_raw.drop(
+    columns=[
+        "center2distance",
+        "center1distance",
+        "price_night",
+        "guestreviewsrating",
+        "rating_reviewcount",
+    ]
+)
+```
+
+ ---
+
+
+
+ ### Table 2.10 — Dealing with Duplicates
+
+
+
+ Duplicates can arise from human error, repeated scraping, or data-entry mistakes.
+
+ Always check for perfect duplicates before analysis.
+
+
+
+ **Strategy:**
+
+ 1. Sort by the ID variable.
+
+ 2. Use `.duplicated(keep=False)` to flag all instances of repeated IDs.
+
+ 3. Inspect the duplicates visually.
+
+ 4. Decide what to keep (usually the first or last, or drop all but one).
+```python
+data_raw = data_raw.sort_values(by=["hotel_id"])
+duplicates = data_raw[data_raw["hotel_id"].duplicated(keep=False)][
+    [
+        "hotel_id",
+        "accommodation_type",
+        "price",
+        "distance",
+        "stars",
+        "rating",
+        "rating_count",
+    ]
+]
+print(f"Number of duplicate rows: {duplicates.shape[0]}")
+duplicates.head(10)
+```
+
+```text
+Number of duplicate rows: 4
+```
+
+```text
+     hotel_id accommodation_type  price  distance  stars  rating  rating_count
+128     22050              Hotel    242       0.0    4.0     4.8         404.0
+129     22050              Hotel    242       0.0    4.0     4.8         404.0
+241     22185              Hotel     84       0.8    3.0     2.2           3.0
+242     22185              Hotel     84       0.8    3.0     2.2           3.0
+```
+
+```python
+# Drop exact duplicates (all columns identical)
+data_raw = data_raw.drop_duplicates()
+print(f"Shape after dropping duplicates: {data_raw.shape}")
+```
+
+```text
+Shape after dropping duplicates: (428, 25)
+```
+
+ ---
+
+
+
+ ### Missing Values in the Hotels Data
+
+
+
+ Missing values are one of the most common and important data-quality issues.
+
+
+
+ **Key questions to ask:**
+
+ - **Scope:** How much is missing? A few rows or a large fraction?
+
+ - **Reason:** Why is it missing? Random error, systematic non-response, or does
+
+   missing actually mean "zero" or "no"?
+
+ - **Pattern:** Is missingness related to other variables? (Selection bias)
+
+
+
+ **Practical steps:**
+
+ 1. Identify missing values (look for `NA`, empty strings, dots, or sentinel values like 999).
+
+ 2. Count them.
+
+ 3. Decide: drop, impute, or create a flag variable.
+```python
+# Summary statistics automatically exclude missing values—be careful!
+data_raw.describe().transpose().head(10)
+```
+
+```text
+                count          mean         std      min       25%      50%  \
+price           428.0    131.366822   91.580545     27.0     83.00    109.5   
+stars           428.0      3.434579    0.772278      1.0      3.00      3.5   
+ratingta        325.0      3.990769    0.482638      2.0      3.50      4.0   
+ratingta_count  325.0    556.516923  586.874582      2.0    129.00    335.0   
+scarce_room     428.0      0.598131    0.490850      0.0      0.00      1.0   
+hotel_id        428.0  22153.502336  146.858477  21894.0  22027.75  22155.5   
+offer           428.0      0.679907    0.467058      0.0      0.00      1.0   
+year            428.0   2017.000000    0.000000   2017.0   2017.00   2017.0   
+month           428.0     11.000000    0.000000     11.0     11.00     11.0   
+weekend         428.0      0.000000    0.000000      0.0      0.00      0.0   
+
+                     75%      max  
+price             146.00   1012.0  
+stars               4.00      5.0  
+ratingta            4.50      5.0  
+ratingta_count    811.00   3171.0  
+scarce_room         1.00      1.0  
+hotel_id        22279.25  22409.0  
+offer               1.00      1.0  
+year             2017.00   2017.0  
+month              11.00     11.0  
+weekend             0.00      0.0  
+```
+
+ #### Create a binary flag for missing ratings
+
+
+
+ Instead of ignoring missingness, we can make it an explicit variable.
+
+ This turns a data-quality problem into an analyzable feature.
+```python
+print(f"Missing ratings: {data_raw['rating'].isnull().sum()}")
+data_raw["misrating"] = data_raw["rating"].isnull()
+# if da is not None:
+#     da.tabulate(data_raw["misrating"])
+# else:
+#     print(data_raw["misrating"].value_counts())
+da.tabulate(data_raw["misrating"])
+```
+
+```text
+Missing ratings: 35
+```
+
+```text
+           Freq.  Perc.    Cum
+misrating                     
+False        393  0.918  0.918
+True          35  0.082  1.000
+```
+
+ #### Cross-tabulate missingness by accommodation type
+
+
+
+ This reveals whether missing ratings are concentrated in certain categories.
+```python
+pd.crosstab(data_raw["accommodation_type"], data_raw["misrating"], margins=True)
+```
+
+```text
+misrating            False  True  All
+accommodation_type                   
+Apart-hotel              4     0    4
+Apartment               92    32  124
+Bed and breakfast        4     0    4
+Guest House              7     1    8
+Hostel                   6     0    6
+Hotel                  263     1  264
+Pension                 16     0   16
+Vacation home Condo      1     1    2
+All                    393    35  428
+```
+
+ #### Average price by accommodation type and missing-rating status
+
+
+
+ If missing ratings correlate with price, this suggests non-random missingness.
+```python
+pd.crosstab(
+    index=data_raw["accommodation_type"],
+    columns=data_raw["misrating"],
+    values=data_raw["price"],
+    aggfunc="mean",
+    margins=True,
+).round(2)
+```
+
+```text
+misrating             False    True     All
+accommodation_type                         
+Apart-hotel          121.25     NaN  121.25
+Apartment            136.45  179.06  147.44
+Bed and breakfast    118.25     NaN  118.25
+Guest House           71.00  103.00   75.00
+Hostel                53.67     NaN   53.67
+Hotel                130.02  106.00  129.93
+Pension               96.06     NaN   96.06
+Vacation home Condo  107.00  116.00  111.50
+All                  127.66  173.00  131.37
+```
+
+ #### Inspect hotels with missing ratings
+```python
+data_raw.loc[
+    (data_raw["misrating"] == True) & (data_raw["accommodation_type"] == "Hotel"),
+    [
+        "hotel_id",
+        "accommodation_type",
+        "price",
+        "distance",
+        "stars",
+        "rating",
+        "rating_count",
+    ],
+].head()
+```
+
+```text
+    hotel_id accommodation_type  price  distance  stars  rating  rating_count
+14     21916              Hotel    106       0.7    2.5     NaN           NaN
+```
+
+## Wide vs. Long (Tidy) Data Formats
+
+### The Tidy Data Approach
+
+The **tidy data approach**, developed by Hadley Wickham, provides a standardized way to organize data that makes it easier to work with, validate, and extend. The core principles are:
+
+1. **Each observation forms a row.**
+2. **Each variable forms a column.**
+3. **Each type of observational unit forms a table.**
+4. **Each observation has a unique identifier (ID).**
+
+### Long (Tidy) Format
+
+In the **long format** (also called **tidy format**), each row represents a single observation at the most granular level. For panel or multi-dimensional data, this means one row corresponds to **one unit observed in one time period** (e.g., one country in one year).
+
+#### Characteristics:
+
+- One row = **one observation** (e.g., one country in one year).
+- Variables are stacked vertically, making the dataset **longer** as more time periods are added.
+- The number of columns remains **stable** regardless of how many time periods are included.
+- **Preferred for storage, analysis, and database management** because the structure is consistent and scalable.
+- Requires **identifier variables** (e.g., `country` and `year`) to distinguish observations.
+
+#### Example: Immunization Rates (Long / Tidy)
+
+| Country   | Year | imm | gdppc |
+|-----------|------|-----|-------|
+| India     | 2015 | 87  | 5743  |
+| India     | 2016 | 88  | 6145  |
+| India     | 2017 | 88  | 6516  |
+| Pakistan  | 2015 | 75  | 4459  |
+| Pakistan  | 2016 | 75  | 4608  |
+| Pakistan  | 2017 | 76  | 4771  |
+
+*Each row is one country in one year. `imm` = measles immunization rate (%); `gdppc` = GDP per capita (PPP, constant 2011 USD).*
+
+---
+
+### Wide Format
+
+In the **wide format**, data is spread across multiple columns. Each row typically represents a single unit (e.g., one country, one person, one product), and different measurements over time or across categories are stored in separate columns.
+
+#### Characteristics:
+
+- One row = one cross-sectional unit.
+- Multiple variables or time periods are represented as **separate columns**.
+- The dataset becomes **wider** as more time periods or categories are added.
+- Useful for **presentation** and certain types of analysis (e.g., comparing values side-by-side).
+- **Not ideal for storage or long-term data management**, as the structure changes whenever a new time period is added.
+
+#### Example: Immunization Rates (Wide)
+
+| Country | imm2015 | imm2016 | imm2017 | gdppc2015 | gdppc2016 | gdppc2017 |
+|---------|---------|---------|---------|-----------|-----------|-----------|
+| India   | 87      | 88      | 88      | 5743      | 6145      | 6516      |
+| Pakistan| 75      | 75      | 76      | 4459      | 4608      | 4771      |
+
+*Each row is one country. Years are spread across columns. `imm` = measles immunization rate (%); `gdppc` = GDP per capita (PPP, constant 2011 USD).*
+
+
+---
+
+### Key Differences at a Glance
+
+| Feature | Wide Format | Long (Tidy) Format |
+|---------|-------------|-------------------|
+| **Row represents** | One cross-sectional unit | One observation (unit × time) |
+| **Time periods** | Separate columns | Values in rows, identified by a time column |
+| **Scalability** | Adds columns as data grows | Adds rows as data grows |
+| **Best for** | Presentation, quick visual comparison | Storage, analysis, modeling, databases |
+| **Column stability** | Changes with new time periods | Fixed structure regardless of time span |
+| **Unique ID** | One ID per row | Composite ID (e.g., country + year) |
+
+---
+
+### Practical Guidance
+
+- **Store and manage data in long (tidy) format.** It keeps the structure stable, makes filtering and aggregation easier, and works seamlessly with tools like `dplyr`, `pandas`, and SQL.
+- **Convert to wide format only when needed** — for example, when creating pivot tables, certain visualizations, or specific statistical models that require a matrix structure.
+- For panel (cross-sectional time-series, or "xt") data, the long format is the standard: one row per unit per time period, with clear identifier columns for each dimension.
+
+
+## 5. Case Study B1: Displaying Immunization Rates Across Countries
+
+
+
+ **Dataset:** `worldbank-immunization`
+ **Source:** World Development Indicators (World Bank)
+
+
+
+ This case study illustrates **multi-dimensional (panel) data** and the difference between **wide** and **long (tidy)** formats.
+
+
+ ### Panel Data Structure
+
+
+
+ Panel (cross-sectional time-series, or "xt") data follows the same units (countries, firms, individuals) over multiple time periods.
+
+
+
+ - **Wide format:** Each row is one country; each year is a separate column.
+
+   Good for presentation, poor for analysis and storage.
+
+ - **Long (tidy) format:** Each row is one country-year observation.
+
+   This is the standard for analysis because it satisfies the tidy-data rules.
+```python
+# Set up paths for immunization data
+data_in_imm = ROOT_DIR / "data/worldbank-immunization/clean/"
+```
+
+ #### Load the tidy (long-format) panel
+```python
+df = pd.read_csv(data_in_imm / "worldbank-immunization-panel.csv")
+# Alternative: df = pd.read_csv("https://osf.io/download/gk5cn/")
+```
+
+ #### Filter to two countries and recent years for illustration
+```python
+df = df.filter(["countryname", "year", "imm", "gdppc"]).loc[
+    (df["year"] >= 2015) & (df["countryname"].isin(["Pakistan", "India"]))
+]
+df
+```
+
+```text
+     countryname  year  imm        gdppc
+3240       India  2015   87  5743.426497
+3370    Pakistan  2015   75  4459.146517
+3431       India  2016   88  6145.294595
+3561    Pakistan  2016   75  4608.527214
+3622       India  2017   88  6516.172620
+3752    Pakistan  2017   76  4771.205236
+```
+
+ #### Descriptive statistics
+```python
+df.describe(percentiles=[])
+```
+
+```text
+              year        imm        gdppc
+count     6.000000   6.000000     6.000000
+mean   2016.000000  81.500000  5373.962113
+std       0.894427   6.774954   874.322204
+min    2015.000000  75.000000  4459.146517
+50%    2016.000000  81.500000  5257.315866
+max    2017.000000  88.000000  6516.172620
+```
+
+ #### Table 2.4 — Long (tidy) format
+
+
+
+ Each row is one observation: one country in one year.
+
+ This is the correct way to store panel data for analysis.
+```python
+df.sort_values(["countryname", "year"])
+```
+
+```text
+     countryname  year  imm        gdppc
+3240       India  2015   87  5743.426497
+3431       India  2016   88  6145.294595
+3622       India  2017   88  6516.172620
+3370    Pakistan  2015   75  4459.146517
+3561    Pakistan  2016   75  4608.527214
+3752    Pakistan  2017   76  4771.205236
+```
+
+ #### Convert long → wide for presentation
+
+
+
+ Sometimes you need a wide table for a report or paper.
+
+ Pandas `unstack()` pivots the data from long to wide.
+```python
+df_wide = df.set_index(["countryname", "year"]).unstack("year")
+
+# Flatten multi-index columns for readability
+df_wide.columns = [f"{x[0]}_{x[1]}" for x in df_wide.columns]
+```
+
+ #### Table 2.5 — Wide format
+
+
+
+ Notice how the wide format violates the tidy-data principle:
+
+ the year variable is spread across columns, not rows.
+
+ This makes it harder to filter, model, or extend with new years.
+```python
+df_wide
+```
+
+```text
+             imm_2015  imm_2016  imm_2017   gdppc_2015   gdppc_2016  \
+countryname                                                           
+India              87        88        88  5743.426497  6145.294595   
+Pakistan           75        75        76  4459.146517  4608.527214   
+
+              gdppc_2017  
+countryname               
+India        6516.172620  
+Pakistan     4771.205236  
+```
+
+ > **Rule of thumb:** Store data in **long format**. Convert to wide only when
+
+ > you need a specific table for a presentation or publication.
+## 6. Relational Databases and Linking Data Tables
+
+ Real-world analysis rarely relies on a single table. Instead, we work with **relational datasets**: multiple tidy tables that are linked by shared identifiers.
+
+ ### Core Concepts
+
+ - **Primary key:** A unique identifier for each row in a table (e.g., `hotel_id`).
+ - **Foreign key:** A column in one table that refers to the primary key of another table.
+ - **Linking / joining / merging:** Pulling variables from different tables into a single **workfile** for analysis.
+
+
+
+ ### Types of Matches
+
+ | Match type | Description | Example |
+ |------------|-------------|---------|
+ | **One-to-one (1:1)** | Each row in table A matches exactly one row in table B | Teams and their stadiums (one stadium per team) |
+ | **Many-to-one (m:1)** | Multiple rows in A match one row in B | Players and their teams (many players, one team) |
+ | **One-to-many (1:m)** | One row in A matches multiple rows in B | Teams and their games over a season |
+ | **Many-to-many (m:m)** | Rows in both tables can match multiple rows in the other | Managers and teams (managers move between clubs) |
+
+Many-to-many merges require special care. You often need to match on **time** in addition to entity IDs (e.g., which manager was in charge on the date of the game?).
+ ---
+
+
+
+ ## 7. Case Study C1/C2: Identifying Successful Football Managers
+
+
+
+ **Dataset:** `football` (English Premier League, 2008/09–2018/19)
+
+ **Source:** [www.football-data.co.uk](http://www.football-data.co.uk)
+
+
+
+ This case study demonstrates:
+
+ - Working with relational data (games + managers).
+
+ - Restructuring data from "game-level" to "team-game-level" (long format).
+
+ - Merging tables using both entity and time identifiers.
+
+ - Aggregating to manager-level statistics and visualizing results.
+```python
+# Set up paths for football data
+data_in_football = ROOT_DIR / "data/football/clean/"
+```
+
+ ### 7.1 The Games Table (Game-Level)
+
+
+
+ Each row is one match. Key variables: date, home team, away team, goals scored.
+
+ This is a tidy table: one observation = one game.
+```python
+epl_games = pd.read_csv(data_in_football / "epl_games.csv")
+```
+
+```python
+# Sort by home team to inspect
+epl_games.sort_values(["team_home"]).head()
+```
+
+```text
+     div  season       date team_home    team_away  points_home  points_away  \
+0     E0    2008  16aug2008   Arsenal    West Brom            3            0   
+3638  E0    2017  03jan2018   Arsenal      Chelsea            1            1   
+1900  E0    2013  17aug2013   Arsenal  Aston Villa            0            3   
+1014  E0    2010  12feb2011   Arsenal       Wolves            3            0   
+3939  E0    2018  02dec2018   Arsenal    Tottenham            3            0   
+
+      goals_home  goals_away  
+0              1           0  
+3638           2           2  
+1900           1           3  
+1014           2           0  
+3939           4           2  
+```
+
+```python
+# Sort by season and home team
+epl_games.sort_values(["season", "team_home"]).head()
+```
+
+```text
+   div  season       date team_home  team_away  points_home  points_away  \
+0   E0    2008  16aug2008   Arsenal  West Brom            3            0   
+21  E0    2008  30aug2008   Arsenal  Newcastle            3            0   
+53  E0    2008  27sep2008   Arsenal       Hull            0            3   
+75  E0    2008  18oct2008   Arsenal    Everton            3            0   
+95  E0    2008  29oct2008   Arsenal  Tottenham            1            1   
+
+    goals_home  goals_away  
+0            1           0  
+21           3           0  
+53           1           2  
+75           3           1  
+95           4           4  
+```
+
+```python
+# Filter to one season for closer inspection
+epl_games.loc[epl_games["season"] == 2016].head()
+```
+
+```text
+     div  season       date       team_home   team_away  points_home  \
+3040  E0    2016  13aug2016   Middlesbrough       Stoke            1   
+3041  E0    2016  13aug2016         Burnley     Swansea            0   
+3042  E0    2016  13aug2016         Everton   Tottenham            1   
+3043  E0    2016  13aug2016  Crystal Palace   West Brom            0   
+3044  E0    2016  13aug2016        Man City  Sunderland            3   
+
+      points_away  goals_home  goals_away  
+3040            1           1           1  
+3041            3           0           1  
+3042            1           1           1  
+3043            3           0           1  
+3044            0           2           1  
+```
+
+ ### 7.2 The Team-Game Table (Team-Game-Level)
+
+ For many analyses, the game-level table is inconvenient because a team appears  in two columns (home and away). An alternative tidy structure:
+
+ - Each row is one **team-game** observation.
+ - Each game generates **two rows** (one per team).
+ - New variable: `home_or_away`.
+
+ This is also tidy, just with a different observational unit.
+ It makes it easy to compute team-level statistics consistently.
+```python
+epl_teams_games = pd.read_csv(data_in_football / "epl-teams-games.csv")
+```
+
+```python
+epl_teams_games.sort_values(["team"]).head()
+```
+
+```text
+    div  season       date     team  gameno  home  points  goals  \
+0    E0    2008  16aug2008  Arsenal       1     1       3      1   
+286  E0    2015  13jan2016  Arsenal      21     0       1      3   
+285  E0    2015  02jan2016  Arsenal      20     1       3      1   
+283  E0    2015  26dec2015  Arsenal      18     0       0      0   
+282  E0    2015  21dec2015  Arsenal      17     1       3      2   
+
+    team_opponent  points_opponent  goals_opponent  hometeam_uid  awayteam_uid  
+0       West Brom                0               0             1            33  
+286     Liverpool                1               3            18             1  
+285     Newcastle                0               0             1            22  
+283   Southampton                3               4            27             1  
+282      Man City                0               1             1            19  
+```
+
+```python
+epl_teams_games.sort_values(["season", "team"]).head()
+```
+
+```text
+  div  season       date     team  gameno  home  points  goals team_opponent  \
+0  E0    2008  16aug2008  Arsenal       1     1       3      1     West Brom   
+1  E0    2008  23aug2008  Arsenal       2     0       0      0        Fulham   
+2  E0    2008  30aug2008  Arsenal       3     1       3      3     Newcastle   
+3  E0    2008  13sep2008  Arsenal       4     0       3      4     Blackburn   
+4  E0    2008  20sep2008  Arsenal       5     0       3      3        Bolton   
+
+   points_opponent  goals_opponent  hometeam_uid  awayteam_uid  
+0                0               0             1            33  
+1                3               1            14             1  
+2                0               0             1            22  
+3                0               0             4             1  
+4                0               1             6             1  
+```
+
+```python
+epl_teams_games.loc[epl_teams_games["season"] == 2016].head()
+```
+
+```text
+    div  season       date     team  gameno  home  points  goals  \
+304  E0    2016  14aug2016  Arsenal       1     1       0      3   
+305  E0    2016  20aug2016  Arsenal       2     0       1      0   
+306  E0    2016  27aug2016  Arsenal       3     0       3      3   
+307  E0    2016  10sep2016  Arsenal       4     1       3      2   
+308  E0    2016  17sep2016  Arsenal       5     0       3      4   
+
+    team_opponent  points_opponent  goals_opponent  hometeam_uid  awayteam_uid  
+304     Liverpool                3               4             1            18  
+305     Leicester                1               0            17             1  
+306       Watford                0               1            32             1  
+307   Southampton                0               1             1            27  
+308          Hull                0               1            16             1  
+```
+
+### 7.3 The Managers Table
+
+Each row is one **manager-team spell**: a period during which a manager  was in charge of a specific club. A manager can appear multiple times
+ (different clubs or different spells at the same club).
+
+This is a classic **many-to-many** relationship with respect to teams:
+ - One team has many managers over time.
+ - One manager may work for many teams.
+
+To merge managers with games, we need the **date** of the game to fall within the manager's `From`–`Until` interval.
+```python
+football_managers = pd.read_csv(data_in_football / "football_managers.csv")
+football_managers.head(10)
+```
+
+```text
+        manager_id     manager_name         club  caretaker  date_from  \
+0    George Graham    George Graham      Arsenal          0  14may1986   
+1  Stewart Houston  Stewart Houston      Arsenal          1  22feb1995   
+2      Bruce Rioch      Bruce Rioch      Arsenal          0  08jun1995   
+3  Stewart Houston  Stewart Houston      Arsenal          1  12aug1996   
+4         Pat Rice         Pat Rice      Arsenal          1  13sep1996   
+5    Arsène Wenger    Arsène Wenger      Arsenal          0  01oct1996   
+6       Unai Emery       Unai Emery      Arsenal          0  23may2018   
+7     Ron Atkinson     Ron Atkinson  Aston Villa          0  07jun1991   
+8     Brian Little     Brian Little  Aston Villa          0  25nov1994   
+9     John Gregory     John Gregory  Aston Villa          0  25feb1998   
+
+  date_until               nat league  flag_inoffice  
+0  21feb1995          Scotland    EPL              0  
+1  08jun1995          Scotland    EPL              0  
+2  12aug1996          Scotland    EPL              0  
+3  13sep1996          Scotland    EPL              0  
+4  30sep1996  Northern Ireland    EPL              0  
+5  13may2018            France    EPL              0  
+6  01jul2019             Spain    EPL              1  
+7  10nov1994           England    EPL              0  
+8  24feb1998           England    EPL              0  
+9  24jan2002           England    EPL              0  
+```
+
+ ### 7.4 The Merged Workfile
+
+ The workfile is created by linking the team-game data with the managers table.
+
+ It contains 8,360 team-game observations (11 seasons × 20 teams × 38 games).
+
+ With the workfile ready, we can aggregate to manager-level performance.
+```python
+football_managers_merged = pd.read_csv(
+    data_in_football / "football_managers_workfile.csv"
+).sort_values(["season", "team"])
+```
+
+ #### Aggregate to manager level: games played and total points
+```python
+games = football_managers_merged.groupby(["team", "manager_id", "manager_name"]).agg(
+    manager_games=("div", "size")
+)
+points = football_managers_merged.groupby(["team", "manager_id", "manager_name"]).agg(
+    manager_points=("points", "sum")
+)
+```
+
+ #### Compute win ratio (average points per game)
+
+
+
+ Join the two aggregated tables on their multi-index (team, manager_id, manager_name).
+```python
+win_ratio = games.join(points)
+win_ratio["manager_win_ratio"] = (
+    win_ratio["manager_points"] / win_ratio["manager_games"]
+)
+win_ratio = win_ratio.sort_values(["manager_win_ratio"], ascending=False)
+win_ratio.head(10)
+```
+
+```text
+                                          manager_games  manager_points  \
+team        manager_id manager_name                                       
+Leicester   150        Michael Appleton               1               3   
+Man City    175        Pep Guardiola                114             276   
+Man United  12         Alex Ferguson                190             433   
+Chelsea     17         Antonio Conte                 76             163   
+            37         Carlo Ancelotti               76             157   
+Man City    193        Roberto Mancini              134             276   
+Liverpool   122        Jürgen Klopp                 144             296   
+Man City    139        Manuel Pellegrini            114             231   
+Chelsea     120        José Mourinho                 92             184   
+Aston Villa 131        Kevin MacDonald                3               6   
+
+                                          manager_win_ratio  
+team        manager_id manager_name                          
+Leicester   150        Michael Appleton            3.000000  
+Man City    175        Pep Guardiola               2.421053  
+Man United  12         Alex Ferguson               2.278947  
+Chelsea     17         Antonio Conte               2.144737  
+            37         Carlo Ancelotti             2.065789  
+Man City    193        Roberto Mancini             2.059701  
+Liverpool   122        Jürgen Klopp                2.055556  
+Man City    139        Manuel Pellegrini           2.026316  
+Chelsea     120        José Mourinho               2.000000  
+Aston Villa 131        Kevin MacDonald             2.000000  
+```
+
+ #### Select top managers for visualization
+```python
+top_managers = win_ratio.sort_values(by=["manager_win_ratio"], ascending=False).head(11)
+top_managers
+```
+
+```text
+                                          manager_games  manager_points  \
+team        manager_id manager_name                                       
+Leicester   150        Michael Appleton               1               3   
+Man City    175        Pep Guardiola                114             276   
+Man United  12         Alex Ferguson                190             433   
+Chelsea     17         Antonio Conte                 76             163   
+            37         Carlo Ancelotti               76             157   
+Man City    193        Roberto Mancini              134             276   
+Liverpool   122        Jürgen Klopp                 144             296   
+Man City    139        Manuel Pellegrini            114             231   
+Chelsea     120        José Mourinho                 92             184   
+Aston Villa 131        Kevin MacDonald                3               6   
+West Ham    6          Alan Curbishley                3               6   
+
+                                          manager_win_ratio  
+team        manager_id manager_name                          
+Leicester   150        Michael Appleton            3.000000  
+Man City    175        Pep Guardiola               2.421053  
+Man United  12         Alex Ferguson               2.278947  
+Chelsea     17         Antonio Conte               2.144737  
+            37         Carlo Ancelotti             2.065789  
+Man City    193        Roberto Mancini             2.059701  
+Liverpool   122        Jürgen Klopp                2.055556  
+Man City    139        Manuel Pellegrini           2.026316  
+Chelsea     120        José Mourinho               2.000000  
+Aston Villa 131        Kevin MacDonald             2.000000  
+West Ham    6          Alan Curbishley             2.000000  
+```
+
+ ### Figure 2.1 — The Most Successful Managers
+
+
+We visualize average points per game. Managers with fewer than 18 games are considered "caretakers" (temporary appointments) and are shown in a different color to distinguish them from long-term managers.
+```python
+# Caretakers: managers with fewer than 18 games
+top_managers["manager_win_ratio0"] = [
+    row["manager_win_ratio"] if row["manager_games"] < 18 else np.nan
+    for index, row in top_managers.iterrows()
+]
+top_managers["manager_win_ratio1"] = [
+    row["manager_win_ratio"] if row["manager_games"] > 18 else np.nan
+    for index, row in top_managers.iterrows()
+]
+
+# Create a color flag: 1 = caretaker, 0 = long-term
+top_managers["fill"] = [
+    1 if row["manager_games"] < 18 else 0 for index, row in top_managers.iterrows()
+]
+
+# Sort for horizontal bar plot (best at top after inverting y-axis)
+top_managers = top_managers.sort_values(["manager_win_ratio"]).reset_index()
+```
+
+```python
+# Set up plotting style
+try:
+    import da_helper_functions as da
+
+    sns.set_theme(rc=da.da_theme, palette=da.color)
+    palette = [da.color[3] if x == 1 else da.color[0] for x in top_managers["fill"]]
+except Exception:
+    palette = ["#e74c3c" if x == 1 else "#3498db" for x in top_managers["fill"]]
+
+plt.figure(figsize=(8, 6))
+sns.barplot(
+    x="manager_win_ratio",
+    y="manager_name",
+    data=top_managers,
+    palette=palette,
+    ci=None,
+)
+plt.xlabel("Average points per game")
+plt.ylabel("Manager name")
+plt.xlim(0, 3.1)
+plt.xticks(ticks=np.arange(0, 3.1, 0.3))
+plt.gca().invert_yaxis()
+plt.title("Most Successful Premier League Managers (2008/09–2018/19)")
+plt.tight_layout()
+plt.show()
+```
+

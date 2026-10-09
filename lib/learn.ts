@@ -10,7 +10,6 @@ const learnDirectory = path.join(process.cwd(), 'content', 'learn');
 
 export interface LearnPageMeta {
   title: string;
-  description?: string;
   excerpt?: string;
   tags?: string[];
   icon?: string;
@@ -21,7 +20,6 @@ export interface LearnPageMeta {
 export interface LearnPage {
   slug: string;
   title: string;
-  description?: string;
   excerpt?: string;
   tags?: string[];
   icon?: string;
@@ -43,7 +41,7 @@ interface LearnPageRecord extends LearnPageMeta {
 export interface LearnNavNode {
   slug: string;
   title: string;
-  description?: string;
+  excerpt?: string;
   tags?: string[];
   icon?: string;
   badge?: string;
@@ -56,7 +54,7 @@ export interface LearnNavNode {
 export interface LearnCourseSummary {
   slug: string;
   title: string;
-  description?: string;
+  excerpt?: string;
   tags?: string[];
   icon?: string;
   badge?: string;
@@ -70,7 +68,7 @@ export interface LearnCatalogCourse extends LearnCourseSummary {
 
 export interface LearnCatalogLesson {
   title: string;
-  description?: string;
+  excerpt?: string;
   href: string;
   courseSlug: string;
   courseTitle: string;
@@ -204,7 +202,6 @@ function loadLearnMetaFromPath(relativePath: string): LearnPageRecord | undefine
     return {
       slug,
       title: data.title || 'Untitled',
-      description: excerpt,
       excerpt,
       tags: parseTags(data.tags),
       icon: data.icon,
@@ -237,7 +234,6 @@ async function loadLearnPageFromPath(relativePath: string): Promise<LearnPage | 
     return {
       slug,
       title: data.title || 'Untitled',
-      description: excerpt,
       excerpt,
       tags,
       icon: data.icon,
@@ -269,7 +265,7 @@ function buildNavFromRaw(
       navNodes.push({
         slug: page.slug,
         title: page.title,
-        description: page.description,
+        excerpt: page.excerpt,
         tags: page.tags,
         icon: page.icon,
         badge: page.badge,
@@ -296,13 +292,16 @@ function buildNavFromRaw(
     const childPages = (node.children ?? []).filter((child) => child.type === 'file');
     const childDirs = (node.children ?? []).filter((child) => child.type === 'directory');
 
+    // index.mdx is optional. When present it sets chapter/course href + meta.
+    // It is kept in `children` (same slug as parent) for static params / neighbors;
+    // the sidebar hides that duplicate and only lists real sections.
     const children: LearnNavNode[] = [];
 
     if (indexPage) {
       children.push({
         slug: indexPage.slug,
         title: indexPage.title,
-        description: indexPage.description,
+        excerpt: indexPage.excerpt,
         tags: indexPage.tags,
         icon: indexPage.icon,
         badge: indexPage.badge,
@@ -319,7 +318,7 @@ function buildNavFromRaw(
       children.push({
         slug: page.slug,
         title: page.title,
-        description: page.description,
+        excerpt: page.excerpt,
         tags: page.tags,
         icon: page.icon,
         badge: page.badge,
@@ -341,13 +340,18 @@ function buildNavFromRaw(
       indexPage?.title ??
       segment.replace(/-/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 
+    const sectionChildren = children.filter((child) => child.slug !== chapterSlug);
+    const href = indexPage
+      ? `/learn/${indexPage.slug}`
+      : (sectionChildren[0]?.href ?? children[0]?.href ?? `/learn/${chapterSlug}`);
+
     if (depth === 0 && !indexPage && childDirs.length > 0) {
       navNodes.push({
         slug: chapterSlug,
         title: chapterTitle,
         order: node.order,
         type: 'course',
-        href: children[0]?.href ?? `/learn/${chapterSlug}`,
+        href,
         children: sortByOrderThenName(children),
       });
       continue;
@@ -356,13 +360,13 @@ function buildNavFromRaw(
     navNodes.push({
       slug: chapterSlug,
       title: chapterTitle,
-      description: indexPage?.description,
+      excerpt: indexPage?.excerpt,
       tags: indexPage?.tags,
       icon: indexPage?.icon,
       badge: indexPage?.badge,
       order: node.order,
       type: depth === 0 ? 'course' : 'chapter',
-      href: indexPage ? `/learn/${indexPage.slug}` : (children[0]?.href ?? `/learn/${chapterSlug}`),
+      href,
       children: sortByOrderThenName(children),
     });
   }
@@ -448,7 +452,7 @@ export const getLearnCatalog = cache(async (): Promise<LearnCatalog> => {
     courses.push({
       slug: courseSlug,
       title: course.title,
-      description: course.description,
+      excerpt: course.excerpt,
       tags: course.tags ?? [],
       icon: course.icon,
       badge: course.badge,
@@ -463,7 +467,7 @@ export const getLearnCatalog = cache(async (): Promise<LearnCatalog> => {
 
       lessons.push({
         title: leaf.title,
-        description: leaf.description,
+        excerpt: leaf.excerpt,
         href: leaf.href,
         courseSlug,
         courseTitle: course.title,

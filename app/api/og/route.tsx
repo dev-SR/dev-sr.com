@@ -60,7 +60,7 @@ export async function GET(request: Request) {
 
     return createOgImage({
       title: page.title,
-      description: page.description,
+      description: page.excerpt,
       eyebrow: `Learn · ${courseLabel}`,
       tags: [page.badge, courseLabel].filter((value): value is string => Boolean(value)),
       footerLeft: siteConfig.author,

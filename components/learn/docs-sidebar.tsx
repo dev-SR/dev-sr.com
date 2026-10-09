@@ -88,8 +88,15 @@ function ChapterHeader({ node, showIcon = false }: { node: LearnNavNode; showIco
   );
 }
 
+/**
+ * Nested sidebar entries. Hide only the chapter/course *index* page
+ * (same slug as the parent — index.mdx maps to the parent slug).
+ *
+ * Do not filter by href: chapters without index.mdx fall back to the
+ * first section’s href, and filtering by href was hiding those sections.
+ */
 function getVisibleChildren(node: LearnNavNode): LearnNavNode[] {
-  return (node.children ?? []).filter((child) => child.href !== node.href);
+  return (node.children ?? []).filter((child) => child.slug !== node.slug);
 }
 
 function isFlatPageChapter(node: LearnNavNode): boolean {
