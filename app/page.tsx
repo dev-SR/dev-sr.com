@@ -1,39 +1,73 @@
 import Header from '@/components/Header';
-import { BlogPostPreviewCard } from '@/components/blog-post-preview-card';
+import { HomeColumnMotion } from '@/components/home/home-column-motion';
 import LetterGlitchLeftSide from '@/components/showcase/LetterGlitchLeftSide';
 import LetterGlitchRightSide from '@/components/showcase/LetterGlitchRightSide';
 import ParallaxWaves from '@/components/showcase/ParallaxWaveBackground';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { BlogTopicCard, PopularPostCard } from '@/components/ui/blog-index-cards';
 import { JsonLd } from '@/components/seo/json-ld';
+import { getBestTopics, getPopularPosts } from '@/lib/home';
+import { getLearnCatalog, type LearnCatalogCourse } from '@/lib/learn';
 import { getAllPosts } from '@/lib/mdx';
-import { homeStrengths, profile, projects, publications } from '@/lib/profile';
+import { homeStrengths, profile } from '@/lib/profile';
 import { constructMetadata, getPersonSchema } from '@/lib/seo';
 import {
   ArrowRight,
   Binary,
+  BookOpen,
+  Boxes,
   BrainCircuit,
   Code2,
   Database,
+  Layers3,
+  MousePointer2,
   Network,
+  Play,
+  ScrollText,
+  Server,
+  Sparkles,
   Workflow,
+  type LucideIcon,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ViewTransition } from 'react';
 
 const strengthIcons = [BrainCircuit, Binary, Network, Workflow] as const;
 
-const projectIcons = [BrainCircuit, Database, Code2] as const;
+const COURSE_ICON_MAP: Record<string, LucideIcon> = {
+  BookOpen,
+  Boxes,
+  Code2,
+  Database,
+  Layers3,
+  MousePointer2,
+  Network,
+  Play,
+  ScrollText,
+  Server,
+  Sparkles,
+};
+
+function courseIcon(name?: string) {
+  if (!name) return BookOpen;
+  return COURSE_ICON_MAP[name] ?? BookOpen;
+}
+
+function featuredCourses(courses: LearnCatalogCourse[], limit = 4) {
+  return [...courses].sort((a, b) => b.pageCount - a.pageCount).slice(0, limit);
+}
 
 export const metadata: Metadata = constructMetadata({
   path: '/',
 });
 
 export default async function App() {
-  const posts = await getAllPosts();
-  const recentPosts = posts.slice(0, 3);
+  const [posts, catalog] = await Promise.all([getAllPosts(), getLearnCatalog()]);
+  const popularPosts = getPopularPosts(posts, 5);
+  const bestTopics = getBestTopics(posts, 6);
+  const courses = featuredCourses(catalog.courses, 4);
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,10 +80,10 @@ export default async function App() {
           <LetterGlitchLeftSide />
         </div>
 
-        <div className="relative z-30 w-full -mt-[60vh] lg:col-span-8">
-          <section className="relative min-h-[92svh] px-4 pb-16 pt-28 sm:px-6 lg:px-8">
+        <HomeColumnMotion className="relative z-30 w-full -mt-[60vh] lg:col-span-8">
+          <section className="relative min-h-[80svh] px-4 pb-16 pt-28 sm:px-6 lg:px-8">
             <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-[1.08fr_0.92fr]">
-              <div className="reveal-on-scroll">
+              <div>
                 <Badge
                   variant="outline"
                   className="mb-6 border-[#F08F87]/35 bg-[#F08F87]/10 text-[#F08F87]">
@@ -66,20 +100,20 @@ export default async function App() {
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <Button asChild size="lg" className="group">
-                    <Link href="/portfolio" transitionTypes={['nav-forward']}>
-                      View Portfolio
+                    <Link href="/learn" transitionTypes={['nav-forward']}>
+                      Learn with me
                       <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>
                   <Button asChild variant="outline" size="lg" className="bg-background/40">
                     <Link href="/blog" transitionTypes={['nav-forward']}>
-                      Read Latest Posts
+                      Read my blog
                     </Link>
                   </Button>
                 </div>
               </div>
 
-              <div className="reveal-on-scroll reveal-delay-2">
+              <div>
                 <div className="hero-console">
                   <div className="hero-console__bar">
                     <span />
@@ -97,12 +131,12 @@ export default async function App() {
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       <div className="hero-metric">
-                        <span>{projects.length}</span>
-                        <p>projects</p>
+                        <span>{catalog.courses.length}</span>
+                        <p>courses</p>
                       </div>
                       <div className="hero-metric">
-                        <span>{publications.length}</span>
-                        <p>pubs</p>
+                        <span>{catalog.lessons.length}</span>
+                        <p>lessons</p>
                       </div>
                       <div className="hero-metric">
                         <span>{posts.length}</span>
@@ -129,71 +163,75 @@ export default async function App() {
             </div>
           </section>
 
-          <section className="px-4 py-12 sm:px-6 lg:px-8">
-            <div className="reveal-stagger mx-auto grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {homeStrengths.map((label, index) => {
-                const Icon = strengthIcons[index] ?? BrainCircuit;
-                return (
-                  <div
-                    key={label}
-                    className="reveal-on-scroll rounded-lg border border-border bg-card/45 p-5 backdrop-blur">
-                    <Icon className="mb-4 h-5 w-5 text-[#ACC5D3]" />
-                    <p className="text-sm font-medium text-foreground">{label}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
+
 
           <section className="px-4 py-16 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
-              <div className="reveal-on-scroll mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div
+
+                className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
                 <div>
                   <p className="font-mono text-xs uppercase tracking-[0.24em] text-[#F08F87]">
-                    portfolio signals
+                    study paths
                   </p>
                   <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">
-                    Selected work from the resume.
+                    Structured courses on Learn.
                   </h2>
                 </div>
                 <Button asChild variant="outline" className="bg-background/40">
-                  <Link href="/portfolio#projects" transitionTypes={['nav-forward']}>
-                    All Work
+                  <Link href="/learn" transitionTypes={['nav-forward']}>
+                    All courses
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
 
-              <div className="reveal-stagger grid gap-5 lg:grid-cols-3">
-                {projects.map((project, index) => {
-                  const Icon = projectIcons[index] ?? Code2;
+              <div className="grid gap-5 sm:grid-cols-2">
+                {courses.map((course) => {
+                  const Icon = courseIcon(course.icon);
                   return (
-                    <ViewTransition key={project.id} name={`project-${index}`} share="morph">
-                      <Card className="reveal-on-scroll group h-full overflow-hidden border-border bg-card/55 transition-all duration-300 hover:-translate-y-1 hover:border-[#ACC5D3]/35 hover:shadow-2xl">
+                    <Link
+                      key={course.slug}
+                      href={course.href}
+                      transitionTypes={['nav-forward']}
+                      className="block transition-transform duration-150 ease-out active:scale-[0.98]">
+                      <Card className="group h-full border-border bg-card/45 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#F08F87]/30 hover:bg-card/70 hover:shadow-lg">
                         <CardHeader>
-                          <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-[#ACC5D3]/10 text-[#ACC5D3]">
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <CardTitle className="text-xl transition-colors group-hover:text-[#ACC5D3]">
-                            <Link href={project.href} target="_blank" rel="noopener noreferrer">
-                              {project.shortTitle}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription className="leading-6">
-                            {project.description}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            {project.technologies.slice(0, 4).map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
+                          <div className="mb-4 flex items-start justify-between gap-3">
+                            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#F08F87]/10 text-[#F08F87]">
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            {course.badge && (
+                              <Badge variant="secondary" className="text-xs">
+                                {course.badge}
                               </Badge>
-                            ))}
+                            )}
                           </div>
+                          <CardTitle className="text-xl transition-colors group-hover:text-[#F08F87]">
+                            {course.title}
+                          </CardTitle>
+                          {course.description && (
+                            <CardDescription className="line-clamp-2 leading-6">
+                              {course.description}
+                            </CardDescription>
+                          )}
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {course.chapterCount} chapters · {course.pageCount} pages
+                          </p>
+                          {course.tags && course.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {course.tags.slice(0, 3).map((tag) => (
+                                <Badge key={tag} variant="outline" className="text-xs capitalize">
+                                  {tag.replace(/-/g, ' ')}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
-                    </ViewTransition>
+                    </Link>
                   );
                 })}
               </div>
@@ -202,45 +240,71 @@ export default async function App() {
 
           <section className="px-4 py-16 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-6xl">
-              <div className="reveal-on-scroll mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div
+
+                className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
                 <div>
                   <p className="font-mono text-xs uppercase tracking-[0.24em] text-[#ACC5D3]">
-                    latest writing
+                    from the blog
                   </p>
                   <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">
-                    Notes worth opening twice.
+                    Popular posts and topics.
                   </h2>
                 </div>
                 <Button asChild variant="outline" className="bg-background/40">
                   <Link href="/blog" transitionTypes={['nav-forward']}>
-                    Blog Index
+                    Blog index
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
 
-              <div className="reveal-stagger grid gap-5">
-                {recentPosts.map((post) => (
-                  <BlogPostPreviewCard key={post.slug} post={post} variant="landing" />
-                ))}
+              <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:gap-8">
+                <div>
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Popular
+                    </h3>
+                  </div>
+                  <div className="space-y-4">
+                    {popularPosts.map((post, index) => (
+                      <PopularPostCard key={post.slug} post={post} rank={index + 1} />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-4 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Best topics
+                    </h3>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                    {bestTopics.map(([topic, count]) => (
+                      <BlogTopicCard key={topic} topic={topic} count={count} />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </section>
 
           <section className="px-4 pb-24 pt-10 sm:px-6 lg:px-8">
-            <div className="reveal-on-scroll mx-auto flex max-w-6xl flex-col gap-6 rounded-lg border border-border bg-card/80 p-6 backdrop-blur md:flex-row md:items-center md:justify-between">
+            <div
+
+              className="mx-auto flex max-w-6xl flex-col gap-6 rounded-lg border border-border bg-card/80 p-6 backdrop-blur md:flex-row md:items-center md:justify-between">
               <div>
-                <Code2 className="mb-4 h-6 w-6 text-[#F08F87]" />
-                <h2 className="text-2xl font-bold text-foreground">Looking for project context?</h2>
+                <BookOpen className="mb-4 h-6 w-6 text-[#F08F87]" />
+                <h2 className="text-2xl font-bold text-foreground">Keep learning.</h2>
                 <p className="mt-2 max-w-2xl text-muted-foreground">
-                  See experience, skills, and GitHub-linked work on the portfolio — or reach out
-                  about ML and software roles.
+                  Dive into interactive courses, skim the notes archive, or reach out about ML and
+                  software roles.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Button asChild>
-                  <Link href="/portfolio" transitionTypes={['nav-forward']}>
-                    Portfolio
+                  <Link href="/learn" transitionTypes={['nav-forward']}>
+                    Learn
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="bg-transparent">
@@ -248,10 +312,16 @@ export default async function App() {
                     Contact
                   </Link>
                 </Button>
+                <Link
+                  href="/portfolio"
+                  transitionTypes={['nav-forward']}
+                  className="text-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:text-left">
+                  Portfolio
+                </Link>
               </div>
             </div>
           </section>
-        </div>
+        </HomeColumnMotion>
 
         <div className="hidden lg:contents">
           <LetterGlitchRightSide />

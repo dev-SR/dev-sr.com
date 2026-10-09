@@ -3,7 +3,8 @@
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { signalPageMotionReady } from '@/lib/page-motion';
 
 const SPLASH_KEY = 'devsr:splash:v4';
 type SplashState = 'pending' | 'playing' | 'hidden';
@@ -29,13 +30,15 @@ export default function SiteSplash() {
   const container = useRef<HTMLDivElement>(null);
   const originalOverflow = useRef('');
 
-  useEffect(() => {
+  // Layout effect so skip/ready lands before page motion hooks.
+  useLayoutEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const hasSeenSplash = window.localStorage.getItem(SPLASH_KEY);
 
     if (reduceMotion || hasSeenSplash) {
       window.localStorage.setItem(SPLASH_KEY, 'seen');
       setState('hidden');
+      signalPageMotionReady();
       return;
     }
 
@@ -58,6 +61,7 @@ export default function SiteSplash() {
         onComplete: () => {
           document.documentElement.style.overflow = originalOverflow.current;
           setState('hidden');
+          signalPageMotionReady();
         },
       });
 

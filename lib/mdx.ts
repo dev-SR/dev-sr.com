@@ -21,7 +21,7 @@ import { visit } from 'unist-util-visit';
 import { rehypeDefaultLineNumbers } from '@/lib/rehype-default-line-numbers';
 import { rehypeSkipPlainCode } from '@/lib/rehype-skip-plain-code';
 
-const contentDirectory = path.join(process.cwd(), 'content');
+const contentDirectory = path.join(process.cwd(), 'content', 'blog');
 
 export interface BlogPost {
   slug: string;
@@ -76,10 +76,6 @@ export async function discoverMDXFiles(dir: string = contentDirectory): Promise<
   const tree: BlogTree[] = [];
 
   for (const item of items) {
-    if (dir === contentDirectory && item === 'learn') {
-      continue;
-    }
-
     const fullPath = path.join(dir, item);
     const stat = fs.statSync(fullPath);
     const relativePath = path.relative(contentDirectory, fullPath);

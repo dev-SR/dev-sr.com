@@ -692,49 +692,6 @@
   min-height: 100svh;
 }
 
-.reveal-on-scroll {
-  --reveal-delay: 0ms;
-  --reveal-start: 6%;
-  --reveal-end: 24%;
-  animation: reveal-up 920ms cubic-bezier(0.16, 1, 0.3, 1) var(--reveal-delay) both;
-}
-
-.reveal-delay-2 {
-  --reveal-delay: 120ms;
-}
-
-.reveal-stagger > :nth-child(2) .reveal-on-scroll,
-.reveal-stagger > .reveal-on-scroll:nth-child(2) {
-  --reveal-delay: 90ms;
-  --reveal-start: 10%;
-  --reveal-end: 28%;
-}
-
-.reveal-stagger > :nth-child(3) .reveal-on-scroll,
-.reveal-stagger > .reveal-on-scroll:nth-child(3) {
-  --reveal-delay: 180ms;
-  --reveal-start: 14%;
-  --reveal-end: 32%;
-}
-
-.reveal-stagger > :nth-child(4) .reveal-on-scroll,
-.reveal-stagger > .reveal-on-scroll:nth-child(4) {
-  --reveal-delay: 270ms;
-  --reveal-start: 18%;
-  --reveal-end: 36%;
-}
-
-@supports (animation-timeline: view()) {
-  .reveal-on-scroll {
-    animation-name: reveal-up;
-    animation-duration: 1ms;
-    animation-delay: 0ms;
-    animation-fill-mode: both;
-    animation-timeline: view();
-    animation-range: entry var(--reveal-start) cover var(--reveal-end);
-  }
-}
-
 .navbar-dock {
   --nav-glass: 0;
   border: 1px solid
@@ -828,19 +785,6 @@
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-}
-
-@keyframes reveal-up {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.992);
-    filter: blur(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    filter: blur(0);
-  }
 }
 
 @keyframes vt-fade {
@@ -976,17 +920,6 @@
   ::view-transition-new(*) {
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
-  }
-
-  .reveal-on-scroll {
-    animation-duration: 1ms !important;
-    animation-delay: 0ms !important;
-  }
-
-  .reveal-on-scroll {
-    opacity: 1;
-    transform: none;
-    filter: none;
   }
 }
 

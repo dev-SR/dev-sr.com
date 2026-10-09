@@ -6,9 +6,10 @@ import gsap from 'gsap';
 import { ReactLenis } from 'lenis/react';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { SplitText } from "gsap/SplitText";
+import { SplitText } from 'gsap/SplitText';
+import { LenisScrollTriggerSync } from '@/components/lenis-scroll-trigger-sync';
 
-gsap.registerPlugin(useGSAP); // register the hook to avoid React version discrepancies
+gsap.registerPlugin(useGSAP);
 gsap.registerPlugin(ScrollTrigger);
 gsap.registerPlugin(SplitText);
 
@@ -21,7 +22,6 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
 
   useEffect(() => {
     function update(time: number) {
-      // Lenis expects milliseconds, gsap gives seconds → convert
       lenisRef.current?.lenis?.raf(time * 1000);
     }
 
@@ -31,6 +31,7 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
 
   return (
     <ReactLenis root ref={lenisRef} options={{ autoRaf: false }}>
+      <LenisScrollTriggerSync />
       {children}
     </ReactLenis>
   );

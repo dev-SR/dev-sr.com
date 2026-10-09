@@ -177,7 +177,7 @@ After deploy, verify:
 
 ## Content authoring for SEO & LLM visibility
 
-### Blog (`content/**/*.mdx`, excluding `content/learn`)
+### Blog (`content/blog/**/*.mdx`)
 
 Required frontmatter:
 

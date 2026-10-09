@@ -24,7 +24,7 @@ export interface ContentNode {
   meta?: ContentMeta // only for files
 }
 
-const CONTENT_DIR = path.join(process.cwd(), "content")
+const CONTENT_DIR = path.join(process.cwd(), "content", "blog")
 
 // Utility: is .md or .mdx file
 function isMarkdownLike(fileName: string): boolean {

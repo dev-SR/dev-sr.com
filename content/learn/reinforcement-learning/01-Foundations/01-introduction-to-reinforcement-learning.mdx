@@ -1,0 +1,100 @@
+---
+title: 'Introduction to Reinforcement Learning​'
+date: '2026-09-04'
+excerpt: 'Learn the fundamentals of reinforcement learning: agent, environment, and interface.'
+---
+
+## The Reinforcement Learning Problem
+
+To understand the RL problem, we first need to understand how different it is from supervised learning and unsupervised learning.
+
+### Difference between Supervised, Unsupervised, and Reinforcement Learning
+
+| Type                            | What does the model learn from?                         | Main goal                                         | Example                                                              |
+| ------------------------------- | ------------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------- |
+| **Supervised Learning**         | **Labeled data** (input + correct answer)               | Learn to predict the correct output for new data  | Classifying an MRI as **benign or malignant**                        |
+| **Unsupervised Learning**       | **Unlabeled data**                                      | Find hidden patterns, structures, or groups       | Grouping **Iris flowers** based on similarities                      |
+| **Reinforcement Learning (RL)** | **Interaction with an environment + rewards/penalties** | Learn which actions maximize **long-term reward** | An agent learning to play a game by receiving rewards for good moves |
+
+### The key difference
+
+Think of them as three different ways of learning:
+
+* **Supervised:** *“Here is the question and the correct answer. Learn to answer similar questions.”*
+* **Unsupervised:** *“Here is the data. Find interesting patterns or groups yourself.”*
+* **Reinforcement:** *“Here is an environment. Try things, see what happens, and learn which actions lead to better rewards.”*
+
+
+## Elements of Reinforcement Learning
+
+There are four elements of a reinforcement learning system:
+
+(1) <Mark type="highlight" color="tip">**Policy**</Mark>: Informally, policy defines the agents’ way of behaving at a given time. Formally, policy is a mapping from perceived states of the environment to actions taken when in those states.
+
+(2) <Mark type="highlight" color="tip">**Reward signal**</Mark>: Reward signal defines the goal in the reinforcement learning problem. At each step, the environment sends to the reinforcement learning agent a single number: reward. The sole objective of the agent is to maximize the total rewards received over time.
+
+
+Reward is analogous to pleasure or pain in a biological system. If you touch a boiling vessel, your body gives you a negative reward signal.
+
+(3) <Mark type="highlight" color="tip">**Value Function**</Mark>: While reward signals indicate what is good in an immediate sense, a value function specifies what is good in the long run.
+
+> _Value of state is the total amount of reward the agent can expect to accumulate over the future, starting from that state._
+
+As an example, consider a sports tournament in which there are 14 matches. Let us say a player X is selected by a team. Now in the first two matches, this player does not play well. The reward signal is low, but the captain has faith in the player and believes that he will continue to do well in later matches. Hence, even if the reward signal is low, the value is high since the long-term desirability of the player is high.
+
+“In the field of reinforcement learning, the central role of value estimation is the most important thing that researchers learned from 1960 to 1990”
+
+(4) <Mark type="highlight" color="tip">**Model of the Environment**</Mark>  : Model is something which mimics the behavior of the environment. There are model-based as well as model-free methods in reinforcement learning.
+
+Let us look at a practical example to understand the four elements of reinforcement learning.
+
+We will look at the example of Tic-Tac-Toe.
+
+Our goal is to construct a player which can find flaws in the opponent's play and maximize the chances of winning.
+
+First, let us start by understanding the state, policy, and the value function.
+
+State: Configuration of X's and O's on the 3x3 board.
+
+Policy: Rule which tells the player what move to make for every state of the game.
+
+Value function: For every state, we assign a number which gives the latest estimate of the probability of winning from that state. Then we draw up a table.
+
+Have a look at the value function table drawn below.
+
+
+The value corresponding to the states will change as our agent plays the game more number of times.
+
+Now, let us see how we modify the value function estimates as we play the game more number of times so that they reflect the true probabilities.
+
+Let us say we are playing “X” and we are in the state given below:
+
+
+Now to play our next move, we look at all possible next states and select the one with the highest probability.
+
+All the possible next states are given below:
+
+
+We select the move which has a value function of 0.6. This is called exploitation, selecting the state with the greatest value.
+
+But sometimes we select randomly from the available states so that we can experience states that you otherwise might not see.
+
+For example, we can select the state with a value function of 0.4. This is called as exploration.
+
+While we are playing, we change the value of the states we find ourselves in. We make them more accurate estimates of the probability of winning.
+
+> _After each greedy move (exploitation), the current value of the earlier state is adjusted to be closer to the value of the latter state. This is done by moving the earlier state value a fraction of a way towards the latter state. This is called backing up._
+
+Our overall method looks as follows:
+
+
+What did we learn from this example?
+
+(1) In reinforcement learning, the learning happens by interacting with the environment/the opponent player.
+
+(2) There is a clear goal and correct behavior includes planning, especially delayed effects of one's choices.
+
+(3) This was an example of model-free reinforcement learning; we did not use any model of the opponent.
+
+Several researchers have contributed to the field of classical reinforcement learning. Below is a brief history of classical reinforcement learning.
+

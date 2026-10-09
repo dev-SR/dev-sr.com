@@ -1,4 +1,5 @@
 import { getAllPosts, discoverMDXFiles, toBlogNavTree } from '@/lib/mdx';
+import { getBestTopics, getPopularPosts } from '@/lib/home';
 import { BlogTreeNavigation } from '@/components/blog-tree';
 import { BlogTopicCard, PopularPostCard } from '@/components/ui/blog-index-cards';
 import { Calendar, TrendingUp, Star } from 'lucide-react';
@@ -20,29 +21,9 @@ export default async function BlogPage() {
   const posts = await getAllPosts();
   const tree = await discoverMDXFiles();
 
-  // Get recent posts (last 5)
   const recentPosts = posts.slice(0, 5);
-
-  // Get popular posts (mock data - in real app this would come from analytics)
-  const popularPosts = posts
-    .map((post) => ({ ...post, views: Math.floor(Math.random() * 1000) + 100 }))
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 5);
-
-  // Get best topics (most posts per topic)
-  const topicCounts = posts.reduce(
-    (acc, post) => {
-      post.tags?.forEach((tag) => {
-        acc[tag] = (acc[tag] || 0) + 1;
-      });
-      return acc;
-    },
-    {} as Record<string, number>
-  );
-
-  const bestTopics = Object.entries(topicCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 6);
+  const popularPosts = getPopularPosts(posts, 5);
+  const bestTopics = getBestTopics(posts, 6);
 
   return (
     <div className="relative bg-background">

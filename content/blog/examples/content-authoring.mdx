@@ -23,16 +23,16 @@ Do **not** escape fences with `\```` — that does not work.
 
 ## Where posts live
 
-Every `.md` / `.mdx` under `content/` (except `content/learn/`) becomes a blog post.
+Every `.md` / `.mdx` under `content/blog/` becomes a blog post.
 
 | File | URL |
 | --- | --- |
-| `content/algorithms/sorting.mdx` | `/blog/algorithms/sorting` |
-| `content/guides/content-authoring.mdx` | `/blog/guides/content-authoring` |
+| `content/blog/algorithms/sorting.mdx` | `/blog/algorithms/sorting` |
+| `content/blog/guides/content-authoring.mdx` | `/blog/guides/content-authoring` |
 
 - Prefer `.mdx` when you need components (`Figure`, `CodeTabs`, `PathVisualizer`).
 - Kebab-case folders; numeric prefixes sort the tree only.
-- Learn courses live under `content/learn/` → `/learn/...` (skipped by the blog crawler).
+- Learn courses live under `content/learn/` → `/learn/...` (separate from the blog tree).
 
 ---
 
@@ -605,7 +605,7 @@ A master chess player makes a <Mark type="underline" note="RL?" noteLayout="floa
 
 ## Checklist for a new post
 
-1. Create `content/<topic>/<slug>.mdx`.
+1. Create `content/blog/<topic>/<slug>.mdx`.
 2. Fill `title`, `date`, `excerpt`, `tags` (+ cover only if you have a real image).
 3. Start body at `##`.
 4. Use `CodeTabs` for related files; transformers for diffs.

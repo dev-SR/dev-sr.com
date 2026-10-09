@@ -6,17 +6,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 interface PopularPostCardProps {
-  post: BlogPost & { views: number };
+  post: BlogPost & { views?: number };
   rank: number;
 }
 
 export function PopularPostCard({ post, rank }: PopularPostCardProps) {
   return (
-    <Card className="reveal-on-scroll group gap-0 overflow-hidden border-border bg-card/45 py-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#ACC5D3]/35 hover:bg-card/70 hover:shadow-lg">
+    <Card className="group gap-0 overflow-hidden border-border bg-card/45 py-0 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#ACC5D3]/35 hover:bg-card/70 hover:shadow-lg active:scale-[0.98]">
       <Link
         href={`/blog/${post.slug}`}
         transitionTypes={['post-open']}
-        className="flex min-h-24 items-stretch">
+        className="flex min-h-24 items-stretch transition-transform duration-150 ease-out active:scale-[0.98]">
         {post.coverImage && (
           <div className="relative z-[1] hidden w-[7.75rem] shrink-0 overflow-hidden bg-card -mr-3 sm:block">
             <Image
@@ -41,10 +41,12 @@ export function PopularPostCard({ post, rank }: PopularPostCardProps) {
               {post.title}
             </h3>
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Eye className="size-3.5" />
-                {post.views.toLocaleString()} views
-              </span>
+              {typeof post.views === 'number' && (
+                <span className="flex items-center gap-1.5">
+                  <Eye className="size-3.5" />
+                  {post.views.toLocaleString()} views
+                </span>
+              )}
               <span className="flex items-center gap-1.5">
                 <Clock className="size-3.5" />
                 {post.readingTime} min read
@@ -66,7 +68,7 @@ interface BlogTopicCardProps {
 
 export function BlogTopicCard({ topic, count }: BlogTopicCardProps) {
   return (
-    <Card className="reveal-on-scroll group gap-0 border-border bg-card/45 py-0 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#F08F87]/30 hover:bg-card/70 hover:shadow-md">
+    <Card className="group gap-0 border-border bg-card/45 py-0 transition-[transform,box-shadow,border-color,background-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-[#F08F87]/30 hover:bg-card/70 hover:shadow-md active:scale-[0.98]">
       <CardContent className="flex min-h-24 items-center gap-3 p-4">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-md border border-[#ACC5D3]/25 bg-[#ACC5D3]/10 text-[#ACC5D3]">
           <Hash className="size-4" />

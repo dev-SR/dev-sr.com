@@ -1,0 +1,473 @@
+
+#### **Representing a Reinforcement Learning Problem: Finite Markov Decision Processes**
+
+This problem of representing RL problems through finite Markov decision processes defines the field of reinforcement learning.
+
+The most common framework used for representing RL problems is the Agent-Environment Interface.
+
+![](https://substackcdn.com/image/fetch/$s_!fUsV!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fbda0feae-8ec1-4623-9049-f08acdda32e0_3325x1202.png)
+
+At each time step, the agent receives information on the state of the environment (also called the observation). Based on this state, the agent performs an action.
+
+One time step later, the agent receives a reward and goes into a new state.
+
+At each time step, the agent implements a mapping from the states to the probability of selecting each possible action. This mapping is called the agent's policy.
+
+Examples of States: Sensor reading, chess game intermediate position.
+
+Examples of actions:
+
+-   Voltage applied to motors of robot arm
+    
+-   Pedaling wheels of a bicycle
+    
+
+Now let us look at understanding the agent-environment interface with some practical examples.
+
+**Example 1: Bioreactor**
+
+![](https://substackcdn.com/image/fetch/$s_!77P2!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Ff1256f15-8b6f-4ece-95b2-67353a9c775e_2329x1717.png)
+
+Here, the states are the sensor readings and the thermocouple readings.
+
+The actions are:
+
+-   Target Temperature: Activate Heating Element
+    
+-   Target Stirring Rate: Activate Motors
+    
+
+The rewards are the moment-to-moment measures of the rate at which useful chemicals are produced.
+
+**Example 2: Pick and Place Robot**
+
+![Pick And Place Robot, For Industrial at ₹ 550000/number in Ahmedabad | ID:  17872522888](https://substackcdn.com/image/fetch/$s_!zmaD!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F98ed7c5c-7c63-4406-92b5-d8863ae17eb2_1000x662.jpeg)
+
+The states are readings of joint angles and velocities.
+
+The actions are voltage applied to motors at each joint.
+
+The reward is +1 for each object successfully picked up and placed, and -0.02 (small negative) for jerky motion.
+
+Now we will look at a very important section of rewards and returns.
+
+#### **Rewards and Returns:**
+
+> _The use of a reward signal to formalize the idea of a goal is one of the most distinctive features of reinforcement learning._
+
+Let us look at some examples to understand the meaning of rewards first.
+
+**(1) Game of Chess:**
+
+Rewards are:
+
+-   +1 for winning
+    
+-   \-1 for losing
+    
+-   0 for a draw
+    
+
+**(2) Robot escaping a maze:**
+
+Rewards are:
+
+-   \-1 for every time step that passes before the robot escapes the maze
+    
+
+(3) **Robot collecting empty soda cans**
+
+Rewards are:
+
+-   +1 for each can collected
+    
+-   0 for not collecting any cans
+    
+
+We should be careful in designing the rewards. Rewards should not be given for achieving sub-goals but only for actually attaining the final goal. Example: Giving reward in chess for taking opponent's queen.
+
+Now let us understand the meaning of returns.
+
+The goal of the agent is to maximize the cumulative reward it receives in the long run. We want to maximize the expected return. We can express the expected return as follows:
+
+Gt\=Rt+1+Rt+2+...+RT
+
+Here, ‘T’ denotes the final step.
+
+This formulation is suited for applications which have a final step like a game of chess or trips through a maze. These tasks are called episodic tasks.
+
+There are cases where the agent-environment interaction goes on continuously. These are called continuing tasks. Example, rover on a Mars expedition. For these tasks, we cannot use the above formulation.
+
+We naturally come to the concept of discounting. Let us understand this concept using an analogy.
+
+![What's on the back - This is how new Rs 100 note would look like | The  Economic Times](https://substackcdn.com/image/fetch/$s_!wPJI!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F8035d8e8-1464-45ef-9ece-c92cfbab22f5_480x360.jpeg)
+
+Rs. 100 are more valuable now compared to five years later due to inflation.
+
+Similarly, immediate rewards are more valuable compared to rewards received later. We take this into account by saying that every reward is gamma times less valuable than the reward before, where gamma is the discounted rate, which is less than 1.
+
+The expected return can now be written as follows:
+
+Gt\=Rt+1+γRt+2+γ2Rt+3...+...
+
+If gamma equals 0, the agent is only concerned about immediate rewards. As gamma approaches 1, the agent considers future rewards more strongly.
+
+Let us look at a good example to illustrate the difference between episodic and continuing tasks.
+
+This is the **classic Cart-Pole problem.**
+
+![](https://substackcdn.com/image/fetch/$s_!ddyf!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F40708ca9-49c9-4cdb-8302-d8525c160e51_2000x2000.png)
+
+The objective is to apply forces to a car at moving along a track such that the pole does not fall over.
+
+How would you write the rewards and returns for this problem?
+
+**Option 1: Treat the problem as an episodic task.**
+
+Reward = +1 for all time steps when the pole does not fall over, 0 for time steps when the pole does fall over.
+
+The return can be written as follows:
+
+Gt\=Rt+1+Rt+2+...+RT
+
+Return will be maximum only if the pole does not fall over for the maximum number of time steps. This is what we want. So our reward formulation is correct.
+
+**Option 2: Treat the problem as a continuous task.**
+
+Reward = -1 for failure if pole falls, otherwise 0.
+
+The return can be written as follows:
+
+Gt\=Rt+1+γRt+2+γ2Rt+3...+...
+
+Return will be maximum if failure occurs very late. This is exactly what we want. So, our reward formulation is correct.
+
+Now we move to a very important section which is the markov property.
+
+#### The Markov Property:
+
+We know that the agent makes a decision after receiving a signal from the environment. This is called a state signal. Let us look at state signals which have a specific property.
+
+**Conversations**:
+
+![](https://substackcdn.com/image/fetch/$s_!DiMw!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F68bcc8ee-cc96-4238-99fb-edee1dee94de_2449x1632.png)
+
+When we are speaking with someone, the entire history of our past conversation is known to us.
+
+**Chess:**
+
+![](https://substackcdn.com/image/fetch/$s_!6-i_!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc6f5144c-b361-443b-9f7f-1b1e5b3cea55_2459x1626.png)
+
+The current configuration of chess pieces contains the entire history of past configurations.
+
+**Cannonball**:
+
+![](https://substackcdn.com/image/fetch/$s_!dfz3!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F43b3ead0-4ff2-432b-9cbf-82ae5c9ecbeb_2449x1632.png)
+
+The current position and velocity of the cannonball are all that is needed to predict the next position and velocity. Past history does not matter.
+
+What is common in all these examples?
+
+In all of these examples, the state signals given below retain all the relevant information from the past:
+
+-   Knowledge of people
+    
+-   Current configuration of chess pieces
+    
+-   Current position and velocity of cannon ball
+    
+
+A state signal that succeeds in maintaining all relevant information is set to a Markov or has a Markov property.
+
+If a state signal has a Markov property, it allows us to predict the next state and the expected next state reward, given only the current state and action.
+
+Let us look at an interesting practical example to demonstrate Markov property.
+
+**Game of Draw Poker:**
+
+![](https://substackcdn.com/image/fetch/$s_!2INH!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F226edd2a-6f44-47df-8af1-a5c5bddec8f9_2667x1499.png)
+
+In this game, for the state to satisfy the mark of property, the player should know:
+
+1.  Knowledge of one's own cards
+    
+2.  Bets made by other players
+    
+3.  Number of cards drawn by other players
+    
+4.  Past history with other players - Does Raj like to bluff? Does his expressions reveal something when he is bluffing?
+    
+
+However, no one remembers this much information while playing poker. Unless you are James Bond :)
+
+Hence, the state representations which people use to make poker decisions are non-Markov.
+
+#### Markov Decision Processes
+
+A reinforcement learning task which satisfies the Markov property is called Markov Decision Process or MDP.
+
+Let us look at a practical example to understand Markov decision processes.
+
+We will look at the example of a recycling robot.
+
+![](https://substackcdn.com/image/fetch/$s_!RCBx!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb2df56e6-09d3-4564-9c92-d3e49fa21023_2309x1732.png)
+
+At each time step, the robot should decide on one of the following:
+
+1.  Whether to actively search for a can
+    
+2.  Whether to remain stationary and wait for someone to bring the can
+    
+3.  Whether to go back to home base and recharge the battery
+    
+
+The state of the robot has two possible states: High and Low
+
+The action state of the robot has three possible actions: Wait, Search and Reward
+
+How do we formulate the rewards?
+
+Let r\_search denote the expected number of cans the robot collects while searching and r\_wait denote the expected number of cans the robot receives while waiting.
+
+So while searching the reward value will be r\_search, and while waiting the reward value will be r\_wait.
+
+Reward value is -3 if the robot battery is discharged and it has to be rescued.
+
+A period of searching starts which high energy level leaves the level high with probability alpha and reduces it to low with probability 1 - alpha.
+
+A period of searching starts with low energy level leaves the level low with probability beta and depletes the battery with probability 1 - beta.
+
+How can we write the transition probabilities and the expected rewards for this example? Let us build a table.
+
+![](https://substackcdn.com/image/fetch/$s_!0nuG!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F194b1671-4fd0-4110-8f32-0e3d654def40_1620x1432.png)
+
+The transition graph for the recycling robot can be very nicely summarized in this figure:
+
+![](https://substackcdn.com/image/fetch/$s_!n7my!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fdd66341d-a018-46a4-be97-c9cc8a60df08_2698x1482.png)
+
+Enough theory, let us look at some practical implementation now.
+
+Reinforcement learning has always been thought of as a very theoretical field, but it's simple to implement it practically. Let us see how.
+
+![Generated image](https://substackcdn.com/image/fetch/$s_!VJNU!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F7eded304-2af9-4429-b0ab-8e45a28b534e_1024x1536.png)
+
+#### OpenAI Gymnasium
+
+![](https://substackcdn.com/image/fetch/$s_!ouKw!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F5ff4cdca-fd00-4748-a570-59ab98fd08a6_2507x1595.png)
+
+The Python library called Gym was developed by OpenAI in 2017.
+
+In 2021, the team that developed OpenAI Gym moved the development to Gymnasium.
+
+The main goal of Gymnasium is to provide a rich collection of RL experiments using a unified interface.
+
+Gymnasium provides the following pieces of information and functionality:
+
+1.  Set of actions allowed in the environment: Discrete/Continuous
+    
+2.  Shape and boundaries of the observations
+    
+3.  Method called step to execute an action which returns the current observation, the reward, and a flag indicating that the episode is over
+    
+4.  Method called reset which returns the environment to its initial state and obtains the first observation
+    
+
+Gymnasium has two spaces:
+
+1.  The action space
+    
+2.  The environment space
+    
+
+![](https://substackcdn.com/image/fetch/$s_!U7dL!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F62070b42-1e7f-4f70-984c-47dfe6318f96_2555x1564.png)
+
+Three methods are available to create the spaces: Box, Discrete, and Tuple.
+
+Let us look at a simple code to understand OpenAI Gymnasium better.
+
+We will look at the Lunar Lander environment.
+
+![](https://substackcdn.com/image/fetch/$s_!uIsE!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F500d76f3-d091-4c1c-8594-e9b030de846c_1484x898.png)
+
+Notice how the action space and the observation space are mentioned in the environment.
+
+**The action space contains 4 actions:**
+
+Zero for doing nothing
+
+One for firing left orientation engine
+
+Two for firing main downward engine
+
+Three for firing right orientation engine
+
+**There are 8 sets of observations for:**
+
+-   Horizontal position
+    
+-   Vertical position
+    
+-   Horizontal speed
+    
+-   Vertical speed
+    
+-   Angle of the lander
+    
+-   Rotation speed
+    
+-   Left leg contact
+    
+-   Right leg contact
+    
+
+All these observations have a range from -infinity to +infinity.
+
+**The rewards are defined as following**:
+
+The reward is +100 for landing safely and -100 for crashing.
+
+The reward is increased by 10 points for each leg that is in contact with the ground.
+
+The reward is decreased by 0.03 points each frame a side engine is firing.
+
+The reward is decreased by 0.3 points each frame the main engine is firing.
+
+Based on these actions, observations, and rewards, here is how our agent environment interface looks like:
+
+![](https://substackcdn.com/image/fetch/$s_!GVKk!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F38ad3c3e-c98a-4c4d-8529-ed6e5b3f39e0_1724x984.png)
+
+Now let's look at our first code to create a sample from the observation and action spaces.
+
+First, let us look at the dependencies you need to install for this.
+
+pip install gymnasium\[box2d\] - That’s All!
+
+```
+import gymnasium as gym
+
+# Create the environment
+env = gym.make("LunarLander-v3")
+
+# Sample an action
+sample_action = env.action_space.sample()
+print("Sample action from action space:", sample_action)
+
+# Sample an observation
+sample_observation = env.observation_space.sample()
+print("Sample observation from observation space:", sample_observation)
+
+# Optional: check the space definitions
+print("Action space:", env.action_space)
+print("Observation space:", env.observation_space)
+
+env.close()
+```
+
+This code will give you a sample action from the action space and from the observation space as well. There are three functions that we see here:
+
+The gym.make( ) function creates the environment for us.
+
+The env.observation\_space.sample( ) samples an observation from the observation. space.
+
+The env.action\_space.sample( ) equals an action from the action space.
+
+You might be thinking that, but I never defined the action space and the observation space. They are defined in the environment for you.
+
+Now let us control our lunar lander.
+
+The following is a code for controlling your lunar lander with random actions. Remember that we are not using any policy right now.
+
+```
+import gymnasium as gym
+
+# Create the environment
+env = gym.make("LunarLander-v3", render_mode="human")
+
+env.reset()
+
+for step in range(200):
+    env.render()
+    env.step(env.action_space.sample())
+
+env.close()
+```
+
+Let us understand this code in detail.
+
+The first step is the creation of our environment using the gym.make( ) function.
+
+Next we have \`env.reset( )\`, which is used to reset the episode for episodic tasks (remember we talked about episodic tasks before), and also collect the first observation from the environment. This is a mandatory command.
+
+The env.step( ) function takes the action as the input and gives the following as the output:
+
+(1) Observation - This represents the agent's observation of the environment after taking the action. For example, in a classic control environment like Cart-Pole, it might be a NumPy array containing positions and velocities.
+
+(2) Reward - This represents the amount of reward received as a result of taking the action. The scale and the meaning of reward are environment-specific.
+
+(3) Terminated - A Boolean indicating whether a terminal state has been reached or not. If true, the episode has ended because the task was completed or failed.
+
+(4) Truncated - A Boolean indicating whether a truncation condition has been satisfied. This typically signifies that the episode has ended prematurely, often due to a time limit or agent going out of bounds (_I have personally not understood the requirement of this, but I am just explaining it here anyways._)
+
+(5) Info - A dictionary containing diagnostic information useful for debugging and analysis.
+
+Let us understand all this by referring to our agent-environment interface diagram which we looked at before.
+
+![](https://substackcdn.com/image/fetch/$s_!vJS9!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fc79939bf-49b7-4ebc-bf94-818fe165f1bc_1920x1080.png)
+
+Once you run this code, you should see a py game window open with the lunar rover moving towards the landing surface.
+
+![](https://substackcdn.com/image/fetch/$s_!Lsxq!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F1281e30d-f352-471d-a627-0cedc8e7824e_1097x575.gif)
+
+You might be wondering that: well, this is not very good. Our lunar lander just falls off - it is not oriented properly towards the end.
+
+![Generated image](https://substackcdn.com/image/fetch/$s_!53MH!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F0ebc11ad-8c3f-45de-929b-1f81c5b69b11_1024x1536.png)
+
+If only it was this easy to run reinforcement learning problems :)
+
+To understand why we are not doing good, go back and check the 4 elements of reinforcement learning problems. We have missed a major element here.
+
+Yes, the policy.
+
+We will cover this in detail in the subsequent lectures.
+
+For now, play around with Gymnasium and try various environments.
+
+See you next time!
+
+Thanks for reading Vizuara’s Substack! Subscribe for free to receive new posts and support my work.
+
+Subscribe
+
+[
+
+![Achal Achal's avatar](https://substackcdn.com/image/fetch/$s_!iBRE!,w_32,h_32,c_fill,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F18fef908-efab-4e38-bd08-a34d70e8cd7e_689x689.png)
+
+](https://substack.com/profile/131208138-achal-achal)[
+
+![Sakil Ahmed's avatar](https://substackcdn.com/image/fetch/$s_!OzQk!,w_32,h_32,c_fill,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fe2db391c-08a5-4711-b096-74a46f2ea136_335x335.jpeg)
+
+](https://substack.com/profile/147288348-sakil-ahmed)[
+
+![Dhruv's avatar](https://substackcdn.com/image/fetch/$s_!TqGt!,w_32,h_32,c_fill,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fad459f10-a14f-454d-816d-a57e590b8ffa_144x144.png)
+
+](https://substack.com/profile/3107687-dhruv)[
+
+![Rohit Chandra's avatar](https://substackcdn.com/image/fetch/$s_!LNhl!,w_32,h_32,c_fill,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F13bc14fc-a32c-41d2-b283-5f79024766ed_96x96.jpeg)
+
+](https://substack.com/profile/15481451-rohit-chandra)[
+
+![Nitin's avatar](https://substackcdn.com/image/fetch/$s_!_d9z!,w_32,h_32,c_fill,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F0123c6d8-1a4d-44ea-9793-d0918d8acd07_96x96.png)
+
+](https://substack.com/profile/13123986-nitin)
+
+22 Likes∙
+
+[2 Restacks](https://substack.com/note/p-169648519/restacks?utm_source=substack&utm_content=facepile-restacks)
+
+22
+
+2
+
+Share
+
+## Embedded Content
