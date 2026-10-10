@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
   loading: () => (
-    <div className="my-8 flex h-48 items-center justify-center rounded-lg border border-border bg-card/35 text-sm text-muted-foreground">
+    <div className="mb-8 flex h-48 items-center justify-center rounded-lg border border-border bg-card/35 text-sm text-muted-foreground">
       Loading path visualizer…
     </div>
   ),

@@ -9,7 +9,7 @@ import { extractFigureTitleFromChildren, extractPreMeta } from './figure-utils';
 
 const Mermaid = dynamic(() => import('@/components/learn/mermaid').then((mod) => mod.Mermaid), {
   loading: () => (
-    <div className="my-6 flex h-40 items-center justify-center rounded-xl border border-border bg-card/50 text-sm text-muted-foreground">
+    <div className="mb-6 flex h-40 items-center justify-center rounded-xl border border-border bg-card/50 text-sm text-muted-foreground">
       Loading diagram…
     </div>
   ),

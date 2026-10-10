@@ -1,0 +1,322 @@
+---
+title: "Object Detection (Red)"
+excerpt: "Learn how to detect objects in an image."
+tags: ['computer-vision', 'python', 'machine-learning']
+---
+
+
+## Initial Position and color (Cheating)
+
+In real-world computer vision, we often start with some initial knowledge about what we're looking for. This isn't "cheating" - it's a common approach called **"supervised detection"**.
+
+**Why Start with Known Values?**
+
+1. **Proof of Concept**: Verify our algorithm works before making it fully automatic
+2. **Baseline Creation**: Establish a reference point for comparison
+3. **Algorithm Development**: Test detection logic with reliable starting points
+4. **Real-world Applications**: Many systems start with user-provided initial detection
+
+**What We're Defining:**
+
+- **Position**: Where we think the object is located (x, y coordinates)
+- **Color**: What color we expect the object to be (RGB values)
+- **Drawing Function**: A utility to visualize our detections
+
+**Coordinate System:**
+
+- **X-axis**: Horizontal position (0 = left edge, increases rightward)
+- **Y-axis**: Vertical position (0 = top edge, increases downward)
+- **Origin (0,0)**: Top-left corner of the image
+
+
+## Selecting the image with the initial position
+
+**Why Visualization Matters**
+Before we start detecting, let's visualize our initial guess. This helps us:
+1. **Verify our coordinates** - Make sure we're pointing to the right spot
+2. **Understand the image** - See what we're working with
+3. **Create a baseline** - Have something to compare our results against
+
+**What You'll See**
+- **Cyan rectangle**: Shows where we initially think the object is
+- **Original image**: The unmodified input image
+- **Interactive plot**: You can zoom and pan to explore details
+
+**Color Choice**
+
+We use **cyan (light blue)** for the initial position because:
+- It contrasts well with red objects
+- It's easily distinguishable from green (which we'll use later)
+- It stands out against most backgrounds
+
+
+
+<CodeTabs>
+
+```python title="main.py"
+
+obj_position = [180, 80]  # Format: [x, y] coordinates
+
+image_rect = draw_rect(image, obj_position, color=(0, 255, 255))
+
+plt.figure()
+plt.imshow(image_rect)
+plt.axis("off")
+plt.title("Object Position - Initial Guess (Cyan Rectangle)")
+```
+
+```python title="draw_rect.py"
+def draw_rect(image, position, width=40, color=(0, 255, 0)):
+    # Create a copy of the original image to avoid modifying it
+    # This is good practice - always preserve your original data!
+    new_image = image.copy()
+
+    # Extract x and y coordinates from the position list/tuple
+    x, y = position
+
+    # Draw the rectangle using OpenCV's rectangle function
+    # Parameters: (image, top_left_corner, bottom_right_corner, color, thickness)
+    cv2.rectangle(
+        new_image,  # Image to draw on
+        (x - width, y - width),  # Top-left corner: (x-width, y-width)
+        (x + width, y + width),  # Bottom-right corner: (x+width, y+width)
+        color,  # RGB color tuple
+        5,  # Line thickness in pixels
+    )
+
+    return new_image
+```
+
+</CodeTabs>
+
+<Figure
+    src="/learn/cv/01/cv0301.png"
+    alt="Initial position of the object"
+    caption="Initial position of the object"
+    width="560"
+/>
+
+
+## Create a Color-Based Detection Mask (Near-Red )
+
+**The Science Behind Color Detection**
+
+Color detection works by measuring how "similar" each pixel's color is to our target color. We use **Euclidean distance** in RGB space:
+
+**Mathematical Formula:**
+
+$$
+d = \sqrt{(R_1 - R_2)^2 + (G_1 - G_2)^2 + (B_1 - B_2)^2}
+$$
+
+Where:
+- $(R_1, G_1, B_1)$ = target color RGB values
+- $(R_2, G_2, B_2)$ = pixel color RGB values
+
+**How It Works:**
+1. **Calculate Distance**: For every pixel, compute how far its color is from our target
+2. **Apply Threshold**: If distance < threshold, the pixel is "similar enough"
+3. **Create Mask**: Mark similar pixels as white (255), others as black (0)
+
+**Why This Approach?**
+- **Robust**: Handles slight color variations due to lighting
+- **Adjustable**: We can tune the threshold for sensitivity
+- **Fast**: Vectorized operations process entire images quickly
+
+**What You'll See:**
+- **White areas**: Pixels that match our target color (detected object)
+- **Black areas**: Pixels that don't match (background)
+
+```python showLineNumbers {2,5-10,14}
+# Initial color of the object
+obj_color = [255, 0, 0]  # Format: [Red, Green, Blue] values (0-255)
+
+# get the mask where rgb values are close to the object color, by calculating the distance of rgb values
+distance_mask = np.sqrt(
+    (image - obj_color)[:, :, 0] ** 2
+    + (image - obj_color)[:, :, 1] ** 2
+    + (image - obj_color)[:, :, 2] ** 2
+)
+near_rgb_mask = distance_mask < 100  # Adjust the threshold as needed - True, False
+print(near_rgb_mask)
+
+mask = np.zeros_like(image, dtype=np.uint8)
+mask[near_rgb_mask] = 255  # Set the mask to white where the condition
+
+plt.figure()
+plt.imshow(mask)
+```
+
+<Figure
+    src="/learn/cv/01/cv0302.png"
+    alt="Mask of the object"
+    caption="Mask of the object"
+    width="360"
+/>
+
+
+## Calculate the RGB mean /   True Average Color
+
+**Why Calculate the Mean Color?**
+
+Our initial color guess might not be perfect! Real objects have:
+- **Lighting variations**: Shadows and highlights create color differences
+- **Surface properties**: Texture and material affect color appearance
+- **Camera effects**: White balance and exposure influence captured colors
+
+**What This Step Does:**
+1. **Extract detected pixels**: Get RGB values only from pixels we detected as "red"
+2. **Calculate average**: Find the mean RGB values across all detected pixels
+3. **Refine our understanding**: Get a more accurate color signature
+
+**Mathematical Process:**
+
+$$
+\begin{aligned}
+\bar{R} &= \frac{R_1 + R_2 + \cdots + R_N}{N} \\
+\bar{G} &= \frac{G_1 + G_2 + \cdots + G_N}{N} \\
+\bar{B} &= \frac{B_1 + B_2 + \cdots + B_N}{N}
+\end{aligned}
+$$
+
+**Benefits:**
+- **Improved accuracy**: Better color signature for future detections
+- **Noise reduction**: Averaging reduces the impact of outlier pixels
+- **Adaptive detection**: Can adjust to varying lighting conditions
+
+```python
+colors = image[near_rgb_mask]
+print(colors)
+mean_rgb = np.mean(colors, axis=0)
+print(f"Mean RGB Color: {mean_rgb}")
+```
+
+```text
+[[174  53  23]
+ [180  58  28]
+ [180  56  27]
+ ...
+ [181  62  25]
+ [178  59  24]
+ [178  59  24]]
+Mean RGB Color: [186.02803738  59.65981308  24.14579439]
+```
+
+## Calculate the New Position of the colored object.
+
+**From Pixels to Position**
+
+Now that we know which pixels belong to our object, we need to find its center position. This involves calculating the **centroid** (center of mass) of all detected pixels.
+
+**The Mathematical Approach:**
+
+$$
+\begin{aligned}
+Center_X &= \frac{X_1 + X_2 + \cdots + X_N}{N} \\
+Center_Y &= \frac{Y_1 + Y_2 + \cdots + Y_N}{N}
+\end{aligned}
+$$
+
+Where:
+- **N** = total number of detected pixels
+- **Xᵢ, Yᵢ** = coordinates of each detected pixel
+
+**Why This Works:**
+- **Physical analogy**: Like finding the balance point of a physical object
+- **Robust to noise**: A few wrong pixels won't significantly affect the center
+- **Handles irregular shapes**: Works even if the object isn't perfectly round
+
+**Coordinate System Reminder:**
+- **np.argwhere()** returns positions as **(y, x)** format (row, column)
+- **We need (x, y)** format for drawing and display
+- **Conversion is essential** for correct visualization
+
+**Expected Result:**
+
+Our calculated position should be close to (but probably not exactly the same as) our initial guess of [180, 80].
+
+```python showLineNumbers {2,5,8}
+# Calculate the new position of the colored object
+mask_positions = np.argwhere(near_rgb_mask)  
+
+# Get the positions of the mask where the condition is true
+new_mean = np.mean(mask_positions, axis=0).astype(int)
+
+# Note: np.mean returns (y, x) for the positions
+new_position = (new_mean[1], new_mean[0])  # Convert to (x, y) format
+
+# draw a rectangle around the new position
+image_rect2 = draw_rect(image, new_position, color=(0, 255, 0))
+
+plt.figure()
+plt.imshow(image_rect2)
+plt.axis("off")
+plt.title("New Object Position")
+```
+
+<Figure
+    src="/learn/cv/01/cv0303.png"
+    alt="New position of the object"
+    caption="New position of the object"
+    width="360"
+/>
+
+## Compare Initial Guess vs. Algorithm Detection (New Position)
+
+**The Moment of Truth!**
+
+Now we can see how well our computer vision algorithm performed by comparing:
+
+- **Cyan rectangle**: Our initial human guess
+- **Green rectangle**: What the algorithm detected
+
+**What to Look For:**
+
+**Perfect Detection:**
+
+- Both rectangles overlap significantly
+- Green rectangle is centered on the actual object
+- Algorithm successfully found what we were looking for
+
+**Good Detection:**
+
+- Rectangles are close but not perfectly aligned
+- Green rectangle is on the object but slightly offset
+- This is normal and acceptable for most applications
+
+**Poor Detection:**
+
+- Rectangles are far apart
+- Green rectangle is not on the intended object
+- May indicate need for parameter tuning
+
+**Common Reasons for Differences:**
+
+1. **Initial guess accuracy**: Our human estimate might have been imperfect
+2. **Object shape**: Non-circular objects have centers that may not match visual perception
+3. **Color distribution**: The object's color isn't uniform across its surface
+4. **Threshold sensitivity**: Our color matching threshold might need adjustment
+
+**Learning Opportunities:**
+
+This comparison teaches us about the precision and limitations of automated detection systems!
+
+```python
+# =============================================================================
+# CREATE COMPARISON VISUALIZATION
+# =============================================================================
+image_rect3 = draw_rect(image, obj_position, color=(0, 255, 255))  # Cyan
+image_rect3 = draw_rect(image_rect3, new_position, color=(0, 255, 0))  # Green
+
+plt.figure()
+plt.imshow(image_rect3)
+plt.axis("off")
+plt.title("Comparison: Initial Guess (Cyan) vs. Algorithm Detection (Green)")
+```
+
+<Figure
+    src="/learn/cv/01/cv0304.png"
+    alt="Comparison of initial guess and algorithm detection"
+    caption="Comparison of initial guess and algorithm detection"
+    width="660"
+/>

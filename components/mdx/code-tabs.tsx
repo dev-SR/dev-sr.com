@@ -30,7 +30,7 @@ export function MultiFileCodeBlock({
 }) {
   if (!files?.length) {
     return (
-      <div className="my-8 rounded-lg border border-border bg-card/50 p-5 text-sm text-muted-foreground">
+      <div className="mb-8 rounded-lg border border-border bg-card/50 p-5 text-sm text-muted-foreground">
         {title && <h4 className="mb-2 text-lg font-semibold text-foreground">{title}</h4>}
         <p>
           MultiFileCodeBlock with a <code>files</code> array is deprecated. Use{' '}
@@ -41,7 +41,7 @@ export function MultiFileCodeBlock({
   }
 
   return (
-    <div className="my-8 rounded-lg border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-muted-foreground">
+    <div className="mb-8 rounded-lg border border-amber-500/30 bg-amber-500/10 p-5 text-sm text-muted-foreground">
       {title && <h4 className="mb-2 text-lg font-semibold text-foreground">{title}</h4>}
       <p>
         This post still uses the deprecated <code>files=&#123;[...]&#125;</code> API. Migrate to{' '}

@@ -1,0 +1,412 @@
+---
+title: "Object Filtering (Red) and Coordinate System"
+excerpt: "Learn how to filter objects in an image and understand the coordinate system."
+tags: ['computer-vision', 'python', 'machine-learning']
+---
+
+
+## Introduction
+Welcome to an essential computer vision tutorial that teaches you how to filter objects by color and master coordinate transformations! This chapter builds the foundation for advanced object tracking and detection systems.
+
+## What You'll Master
+
+By completing this tutorial, you'll understand:
+
+**Core Computer Vision Techniques**
+- **Color-based filtering** using HSV and RGB ranges
+- **Morphological operations** for noise reduction
+- **Blob detection** and centroid calculation
+
+
+## 👓 Color Range Filtering - The Foundation of Object Detection
+
+Color filtering is the process of selecting pixels that fall within a specific color range. This is fundamental to detecting colored objects in images. `cv2.inRange()` is a function that helps us filter the image by RGB range.
+
+
+```python
+mask = cv2.inRange(image, lower_bound, upper_bound)
+```
+
+**How It Works**:
+1. **Compare each pixel** to the defined color range
+2. **Create a binary mask** (0 = outside range, 255 = inside range)
+3. **Apply the mask** to isolate the desired colors
+
+**Choosing Color Ranges**:
+- **Lower bound**: Minimum RGB values [R_min, G_min, B_min]
+- **Upper bound**: Maximum RGB values [R_max, G_max, B_max]
+- **Tip**: Use image editing software to sample actual object colors
+
+**Our Target**: <Mark type="underline" color="red">Red/Orange Objects</Mark>
+
+We'll define a range that captures red and orange colors while excluding other colors.
+
+<Guide numbered headingLevel={2} stepHeadingLevel={3}>
+    <GuideStep title="Step 1: Define Color Range for Red Objects">
+
+```python showLineNumbers {7,12}
+# =============================================================================
+# DEFINE COLOR RANGE FOR RED/ORANGE OBJECTS
+# =============================================================================
+
+# Lower bound: minimum RGB values for our target color
+# [200, 0, 0] = High red (200), minimal green (0), minimal blue (0)
+rgb_lower = np.array([200, 0, 0], dtype=np.uint8)
+
+# Upper bound: maximum RGB values for our target color
+# [255, 100, 100] = Maximum red (255), some green (100), some blue (100)
+# This range captures red objects with slight orange/pink tints
+rgb_upper = np.array([255, 100, 100], dtype=np.uint8)
+```
+</GuideStep>
+
+<GuideStep title="Step 2: Create Color Mask">
+
+```python showLineNumbers {8}
+# =============================================================================
+# CREATE COLOR MASK
+# =============================================================================
+
+# Create a binary mask identifying pixels within our color range
+# cv2.inRange() returns 255 for pixels within range, 0 for pixels outside range
+# Note: We use 'image' (already in RGB format) not 'iamge' (typo fixed)
+mask = cv2.inRange(image, rgb_lower, rgb_upper)
+
+# =============================================================================
+# VISUALIZE THE MASK
+# =============================================================================
+
+# Display the mask as a grayscale image
+plt.figure()
+plt.imshow(
+    mask, cmap="gray"
+)  # 'gray' colormap shows: white=detected, black=not detected
+plt.title("Color Detection Mask - White Areas = Detected Red/Orange Pixels")
+plt.axis("off")  # Remove axis numbers for cleaner display
+plt.show()
+```
+
+<Figure
+    src="/learn/cv/01/cv0201.png"
+    alt="Color Range Filtering"
+    caption="Color Range Filtering"
+    width="800"
+/>
+
+
+</GuideStep>
+
+<GuideStep title="Step 3: Apply Mask to Original Image">
+
+
+```python showLineNumbers {7}
+# =============================================================================
+# APPLY MASK TO ORIGINAL IMAGE
+# =============================================================================
+
+# Use bitwise_and to keep only the pixels identified by our mask
+# This creates an image showing only the red/orange parts, everything else becomes black
+result = cv2.bitwise_and(image, image, mask=mask)
+
+# =============================================================================
+# SIDE-BY-SIDE COMPARISON
+# =============================================================================
+
+# Create a figure with two subplots for before/after comparison
+plt.figure(figsize=(12, 5))
+
+# Left subplot: Original image
+plt.subplot(1, 2, 1)
+plt.imshow(image)
+plt.title("Original Image")
+plt.axis("off")
+
+# Right subplot: Filtered result
+plt.subplot(1, 2, 2)
+plt.imshow(result)
+plt.title("Detected Red/Orange Objects Only")
+plt.axis("off")
+
+plt.tight_layout()  # Ensure proper spacing between subplots
+
+```
+
+<Figure
+    src="/learn/cv/01/cv0202.png"
+    alt="Apply Mask to Original Image"
+    caption="Apply Mask to Original Image"
+    width="900"
+/>
+
+</GuideStep>
+
+</Guide>
+
+
+
+## 🧹 Morphological Operations - Cleaning Up Detections
+
+### Why Clean Up Our Mask?
+Color filtering often produces noisy results with:
+- **Small holes** inside detected objects
+- **Scattered pixels** around the main object
+- **Rough edges** that need smoothing
+
+### Morphological Operations Explained:
+
+<Mark type="underline" color="red">**Erosion** (`cv2.erode`):</Mark>
+- **Purpose**: Remove small noise and shrink objects
+- **Effect**: Makes white regions smaller, eliminates tiny white spots
+- **Analogy**: Like eroding a coastline - removes small protrusions
+
+<Mark type="underline" color="red">**Dilation** (`cv2.dilate`):</Mark>
+- **Purpose**: Fill gaps and expand objects back to original size
+- **Effect**: Makes white regions larger, fills small holes
+- **Analogy**: Like inflating a balloon - expands the shape outward
+
+<Mark type="circle" color="green">**Our Strategy**:</Mark>
+1. **Erode first**: Remove small noise spots
+2. **Dilate second**: Restore the main object size and fill holes
+3. **Result**: Clean, solid object detection
+
+<Mark type="box" color="blue">**Kernel (Structuring Element)**:</Mark>
+- **Definition**: A small matrix that defines the operation's neighborhood
+- **5×5 kernel**: Affects a 5×5 pixel area around each pixel
+- **Shape matters**: Square kernels work well for general cleaning
+
+
+<Guide numbered headingLevel={3} stepHeadingLevel={4}>
+    <GuideStep title="Apply Erosion Operation">
+
+```python showLineNumbers {8,17}
+# =============================================================================
+# CREATE MORPHOLOGICAL KERNEL
+# =============================================================================
+
+# Create a 5×5 square kernel filled with ones
+# This kernel defines the neighborhood for morphological operations
+# Larger kernels = more aggressive operations, smaller kernels = more subtle effects
+kernel = np.ones((5, 5), np.uint8)  # 5×5 square of ones, uint8 data type
+
+# =============================================================================
+# APPLY EROSION OPERATION
+# =============================================================================
+
+# Erode the mask to remove small noise and separate connected components
+# iterations=3 means apply erosion 3 times for stronger noise removal
+# This will make white regions smaller and eliminate tiny white spots
+new_mask = cv2.erode(mask, kernel, iterations=3)
+
+
+# =============================================================================
+# COMPARE ORIGINAL AND CLEANED MASKS
+# =============================================================================
+
+plt.figure(figsize=(12, 5))
+
+# Left subplot: Original noisy mask
+plt.subplot(1, 2, 1)
+plt.imshow(mask, cmap="gray")
+plt.title("Original Mask (Potentially Noisy)")
+plt.axis("off")
+
+# Right subplot: Cleaned mask after morphological operations
+plt.subplot(1, 2, 2)
+plt.imshow(new_mask, cmap="gray")
+plt.title("Cleaned Mask (After Erosion)")
+plt.axis("off")
+
+plt.tight_layout()
+plt.show()
+
+```
+
+<Figure
+    src="/learn/cv/01/cv0203.png"
+    alt="Morphological Operations After Erosion"
+    caption="Morphological Operations After Erosion"
+    width="800"
+/>
+
+</GuideStep>
+
+<GuideStep title="Apply Erosion and Dilation Operation">
+
+```python showLineNumbers {9}
+# =============================================================================
+# APPLY DILATION OPERATION
+# =============================================================================
+
+# Dilate the eroded mask to restore object size and fill internal gaps
+# iterations=10 means apply dilation 10 times (more than erosion)
+# This restores the object size and fills holes inside detected regions
+
+new_mask = cv2.dilate(new_mask, kernel, iterations=3)
+
+# Note: We use more dilation iterations (10) than erosion iterations (3)
+# This ensures the final object is slightly larger than the original,
+# which helps ensure we don't lose parts of the actual object
+
+# =============================================================================
+# COMPARE ORIGINAL AND CLEANED MASKS
+# =============================================================================
+
+plt.figure(figsize=(12, 5))
+
+# Left subplot: Original noisy mask
+plt.subplot(1, 2, 1)
+plt.imshow(mask, cmap="gray")
+plt.title("Original Mask (Potentially Noisy)")
+plt.axis("off")
+
+# Right subplot: Cleaned mask after morphological operations
+plt.subplot(1, 2, 2)
+plt.imshow(new_mask, cmap="gray")
+plt.title("Cleaned Mask (After Erosion + Dilation)")
+plt.axis("off")
+
+plt.tight_layout()
+plt.show()
+# Observation: The cleaned mask should have:
+# - Fewer small white spots (noise reduced)
+# - More solid white regions (holes filled)
+# - Smoother boundaries around detected objects
+```
+
+
+<Figure
+    src="/learn/cv/01/cv0203.1.png"
+    alt="Morphological Operations After Erosion and Dilation"
+    caption="Morphological Operations After Erosion and Dilation"
+    width="800"
+/>
+
+</GuideStep>
+
+
+<GuideStep title="Calculating the position of the blob">
+
+```python showLineNumbers {1-4,8}
+positions = np.column_stack(np.where(new_mask > 0))
+mean_position = np.mean(positions, axis=0).astype(int)
+print(f"Calculated centroid position: {mean_position}")  # [641 320]
+y, x = mean_position  # x: 320, y: 641
+
+image_vis = image.copy()
+# Draw a red circle at the mean position
+cv2.circle(image_vis, (x, y), 75, (0, 255, 0), 5)
+
+plt.figure(figsize=(10, 8))
+plt.imshow(image_vis)
+plt.title("Object Center Detection - Green Circle Shows Calculated Centroid")
+plt.axis("off")
+
+```
+
+<Figure
+    src="/learn/cv/01/cv0204.png"
+    alt="Calculating the position of the blob"
+    caption="Calculating the position of the blob"
+    width="600"
+/>
+
+
+</GuideStep>
+
+<GuideStep title="Draw Bounding Rectangle - Creating Object Boundaries">
+
+Why Draw Bounding Rectangles?
+Bounding rectangles are essential in computer vision for:
+- **Object localization**: Clearly defining where objects are located
+- **Region of interest**: Focusing processing on specific areas
+- **User interfaces**: Showing detection results to users
+- **Further processing**: Preparing for object tracking or analysis
+
+Rectangle Coordinate System:
+- **Top-left corner**: (x₁, y₁) - starting point of the rectangle
+- **Bottom-right corner**: (x₂, y₂) - ending point of the rectangle
+- **Width**: x₂ - x₁
+- **Height**: y₂ - y₁
+
+Our Approach:
+1. **Define rectangle dimensions** (width and height)
+2. **Calculate corners** relative to the center position
+3. **Handle boundary conditions** (ensure rectangle stays within image)
+4. **Draw the rectangle** using OpenCV
+
+Boundary Handling:
+We must ensure our rectangle doesn't extend outside the image boundaries, which would cause errors.
+
+```python showLineNumbers {3,8-9,14-15,17,29-31,44}
+def get_rectangle_coordinates(center, width, height):
+    # Unpack center coordinates
+    x, y = center  # x = horizontal (column), y = vertical (row)
+
+    # Calculate top-left corner coordinates
+    # Use floor division (//) to get integer pixel coordinates
+    # max() ensures we don't go below 0 (outside image boundary)
+    top_left_x = max(0, x - width // 2)
+    top_left_y = max(0, y - height // 2)
+
+    # Calculate bottom-right corner coordinates
+    # min() ensures we don't exceed image dimensions
+    # image.shape[1] = image width, image.shape[0] = image height
+    bottom_right_x = min(image.shape[1], x + width // 2)
+    bottom_right_y = min(image.shape[0], y + height // 2)
+
+    return (top_left_x, top_left_y), (bottom_right_x, bottom_right_y)
+
+
+# =============================================================================
+# CALCULATE RECTANGLE COORDINATES
+# =============================================================================
+
+# Define rectangle dimensions (150x150 pixels)
+rectangle_width = 150
+rectangle_height = 150
+
+# Calculate corner coordinates using our helper function
+top_left_corner, bottom_right_corner = get_rectangle_coordinates(
+    (x, y), rectangle_width, rectangle_height
+)
+
+print(f"Rectangle corners:")
+print(f"Top-left: {top_left_corner}")
+print(f"Bottom-right: {bottom_right_corner}")
+
+# Create a copy of the original image for rectangle visualization
+image_vis2 = image.copy()
+
+# Draw a green rectangle around the detected object
+# Parameters: (image, top_left_corner, bottom_right_corner, color, thickness)
+# Color (0, 255, 0) = bright green in RGB format
+# Thickness 5 = 5-pixel wide border
+cv2.rectangle(image_vis2, top_left_corner, bottom_right_corner, (0, 255, 0), 5)
+
+# =============================================================================
+# DISPLAY THE RESULT
+# =============================================================================
+
+plt.figure(figsize=(10, 8))
+plt.imshow(image_vis2)
+plt.title("Bounding Rectangle - Green Box Around Detected Object")
+plt.axis("off")
+plt.show()
+
+# The green rectangle should fully contain the red/orange object
+# Adjust rectangle_width and rectangle_height if needed for better coverage
+```
+
+<Figure
+    src="/learn/cv/01/cv0205.png"
+    alt="Draw Bounding Rectangle - Creating Object Boundaries"
+    caption="Draw Bounding Rectangle - Creating Object Boundaries"
+    width="600"
+/>
+
+</GuideStep>
+
+</Guide>
+
+
+

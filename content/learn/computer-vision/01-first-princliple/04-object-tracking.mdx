@@ -1,0 +1,368 @@
+---
+title: "Object Tracking"
+excerpt: "Learn how to track objects in a video."
+tags: ['computer-vision', 'python', 'machine-learning']
+---
+
+## Introduction
+
+This chapter demonstrates how to track a red object in a video using computer vision techniques. We'll use OpenCV (a popular computer vision library) and NumPy (for numerical operations) to:
+
+1. **Load and process video frames** - Read video files frame by frame
+2. **Detect red objects** - Find objects based on their color
+3. **Track object movement** - Follow the object as it moves through the video
+4. **Visualize results** - Display the tracking in real-time
+
+**What You'll Learn**
+
+- Basic image processing with OpenCV
+- Color-based object detection
+- Video processing techniques
+- Real-time visualization with matplotlib
+
+## Define Helper Functions
+
+We'll create three helper functions that will make our object tracking easier:
+
+1. **`draw_rect()`** - Draws a colored rectangle around detected objects
+2. **`get_near_color_mask()`** - Finds pixels that are similar to a target color
+3. **`morphological_operations()`** - Cleans up the detected regions to remove noise
+
+These functions break down our complex task into smaller, manageable pieces.
+
+```python showLineNumbers {1,8,22}
+def draw_rect(image, position, width=40, color=(0, 255, 0)):
+    new_image = image.copy()
+    x, y = position
+    cv2.rectangle(new_image, (x - width, y - width), (x + width, y + width), color, 5)
+    return new_image
+
+
+def get_near_color_mask(image, target_color, threshold=100):
+    # Calculate the Euclidean distance between each pixel and the target color
+    # The formula is: sqrt((R1-R2)² + (G1-G2)² + (B1-B2)²)
+    distance_mask = np.sqrt(
+        (image - target_color)[:, :, 0] ** 2
+        + (image - target_color)[:, :, 1] ** 2
+        + (image - target_color)[:, :, 2] ** 2
+    )
+
+    # Create a boolean mask where True indicates pixels within the threshold distance
+    near_rgb_mask = distance_mask < threshold
+    return near_rgb_mask
+
+
+def morphological_operations(mask, kernel_size=(5, 5), iterations=2):
+    # Create
+    # a rectangular structuring element (kernel) for morphological operations
+    kernel = np.ones(kernel_size, np.uint8)
+    mask = cv2.erode(mask, kernel, iterations=iterations)
+    mask = cv2.dilate(mask, kernel, iterations=iterations)
+    return mask
+```
+
+## Understanding Video Processing Fundamentals
+
+Before we dive into object tracking, it's important to understand a fundamental concept: <Mark type="underline" color="amber">**videos are just sequences of images displayed rapidly in a loop**</Mark>.
+
+### Key Concepts:
+
+- A video is essentially a series of still images (called **frames**) shown one after another
+- When we process a video, <Mark type="underline" color="sky">we read one frame at a time in a loop</Mark>
+- Each frame is just a regular image that we can analyze using the same techniques we use for photos
+- By processing each frame and displaying the results quickly, we create the illusion of real-time tracking
+
+### The Basic Video Reading Pattern:
+1. **Open** the video file
+2. **Loop** through each frame:
+   - Read the next frame (which is just an image)
+   - Process the image (apply our tracking algorithm)
+   - Display the result
+   - Repeat until no more frames
+3. **Close** the video when done
+
+The code below demonstrates this fundamental pattern. It simply reads each frame from a video and displays it without any processing - this is the foundation that all video processing builds upon.
+
+**What this code does:**
+- Opens a video file using OpenCV
+- Reads frames one by one in a loop
+- Displays each frame (image) to show the video
+- Demonstrates the basic structure we'll build our tracker on
+
+**Why this is important:**
+- Understanding that video = images in sequence is crucial for computer vision
+- This pattern forms the backbone of all video processing applications
+- Once you master this loop, you can add any image processing inside it
+
+
+```python showLineNumbers {5,13,27,59,63,72}
+# =============================================================================
+# STEP 1: Open the video file
+# =============================================================================
+# cv2.VideoCapture creates an object that can read video files frame by frame
+cap = cv2.VideoCapture("data/red_object.mp4")
+
+# Always check if the video opened successfully
+if not cap.isOpened():
+    print("Error: Could not open video.")
+    exit()
+
+# Create a window to display our video frames
+cv2.namedWindow("Video Frames (Images in Sequence)", cv2.WINDOW_NORMAL)
+
+# =============================================================================
+# STEP 2: The Video Processing Loop - Reading Images One by One
+# =============================================================================
+counter = 0  # Keep track of which image (frame) we're looking at
+
+while True:  # This loop continues until we've seen all the images in the video
+    print(f"Processing frame {counter} (this is just image #{counter} from the video)")
+    counter += 1
+
+    # -------------------------------------------------------------------------
+    # Read the next image (frame) from the video
+    # -------------------------------------------------------------------------
+    ret, frame = cap.read()
+    # ret = True if we successfully got an image, False if video is finished
+    # frame = the actual image data (a NumPy array of pixel values)
+
+    if not ret:
+        print("No more images in the video - we've reached the end!")
+        break  # Exit the loop when there are no more frames
+
+    # -------------------------------------------------------------------------
+    # Process the image (frame)
+    # -------------------------------------------------------------------------
+    # Convert the image from BGR color format to RGB color format
+    # (OpenCV reads images in BGR, but we typically work with RGB)
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    # At this point, 'image' is just a regular image (NumPy array)
+    # You can apply any image processing techniques here:
+    # - Color detection
+    # - Object tracking
+    # - Filtering
+    # - Shape detection
+    # - etc.
+
+    # For now, we're just displaying the image as-is to show the video
+
+    # -------------------------------------------------------------------------
+    # Display the processed image
+    # -------------------------------------------------------------------------
+    # Convert back to BGR for OpenCV display
+    image_display = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+    # Show this frame (image) in the window
+    cv2.imshow("Video Frames (Images in Sequence)", image_display)
+
+    # Wait a short time before showing the next image
+    # This creates the illusion of motion when images are shown rapidly
+    key = cv2.waitKey(30)  # Wait 30 milliseconds (about 33 frames per second)
+    if key == ord("q"):
+        print("Exiting video processing loop.")
+        break  # Exit the loop if 'q' is pressed
+
+
+# =============================================================================
+# STEP 3: Cleanup when done
+# =============================================================================
+cv2.destroyAllWindows()  # Close all display windows
+
+print("\nVideo processing complete!")
+print("What you just saw:")
+print("- Each frame of the video is actually just a separate image")
+print("- We read one image at a time in a loop")
+print("- When displayed quickly in sequence, images create the illusion of motion")
+print("- This is the foundation of all video processing!")
+```
+
+<Figure
+    src="/learn/cv/01/cv0401.gif"
+    alt="Video processing loop (GIF)"
+    caption="Video processing loop (GIF)"
+    width="560"
+/>
+
+
+## Main Object Tracking Algorithm
+
+This is our complete red object tracking implementation. Here's how it works:
+
+**Algorithm Overview:**
+
+1. **Initialize** - Set starting position and color of the object we want to track
+2. **Read frame** - Get the next frame from the video
+3. **Crop** - <Mark type="underline" color="sky">Focus on a small area around where we last saw the object (saves computation)</Mark>
+4. **Detect** - Find pixels that match our target color using color similarity
+5. **Update** - Calculate the new position and update the color to handle lighting changes
+6. **Visualize** - Draw rectangles to show old and new positions
+7. **Repeat** - Continue until the video ends
+
+**Key Concepts:**
+
+- **Color Distance**: We find similar colors by calculating how "far apart" RGB values are
+- **Cropping**: We only search in a small area around the last known position (much faster!)
+- **Adaptive Color**: The target color updates each frame to handle changing lighting
+- **Real-time Display**: We show the results immediately using OpenCV windows
+
+**Controls:**
+
+- Press **'q'** to quit the video early
+- The video will pause on each frame (press any key to continue)
+
+**Note**: Make sure you have a video file at `'data/red_object.mp4'` for this to work!
+
+```python showLineNumbers {4,7,36,44-58,66,69,73,87,94,97,101,118,121.131}
+# INITIALIZATION: Set up starting parameters for tracking
+# Starting position (x, y) of the red object we want to track
+# x=298 pixels from left, y=90 pixels from top
+prev_xy = [298, 90]
+# Starting RGB color values of the object we're tracking
+# [145, 0, 0] represents a dark red color (R=145, G=0, B=0)
+prev_rgb = [145, 0, 0]
+
+
+# Create a VideoCapture object to read the video file
+cap = cv2.VideoCapture("data/red_object.mp4")
+
+# Check if the video file was opened successfully
+if not cap.isOpened():
+    print("Error: Could not open video.")
+    exit()  # Stop the program if video can't be opened
+
+# Create OpenCV windows for displaying results
+cv2.namedWindow("Original Image", cv2.WINDOW_NORMAL)  # Main tracking display
+cv2.namedWindow("Debug", cv2.WINDOW_NORMAL)  # Debug mask display
+
+# =============================================================================
+# MAIN TRACKING LOOP: Process each frame of the video
+# =============================================================================
+
+counter = 0  # Keep track of which frame we're processing
+
+while True:  # Continue until video ends or user presses 'q'
+    print(f"Processing frame {counter}")
+    counter += 1
+
+    # -------------------------------------------------------------------------
+    # FRAME READING: Get the next frame from the video
+    # -------------------------------------------------------------------------
+
+    ret, frame = cap.read()  # ret=True if frame read successfully, frame=image data
+    if not ret:
+        break  # Exit loop if no more frames (video ended)
+
+    # Convert from BGR (Blue-Green-Red) to RGB (Red-Green-Blue)
+    # OpenCV uses BGR by default, but our color detection expects RGB
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    # -------------------------------------------------------------------------
+    # REGION OF INTEREST: Crop image around previous object position
+    # -------------------------------------------------------------------------
+    # This optimization only searches a small area instead of the entire frame
+
+    width = 200  # Search area: 200 pixels in each direction from last position
+
+    # Calculate crop boundaries, making sure we don't go outside image borders
+    y_start = max(0, prev_xy[1] - width)  # Top boundary
+    y_end = min(image.shape[0], prev_xy[1] + width)  # Bottom boundary
+    x_start = max(0, prev_xy[0] - width)  # Left boundary
+    x_end = min(image.shape[1], prev_xy[0] + width)  # Right boundary
+
+    # Extract the cropped region from the full image
+    cropped_image = image[y_start:y_end, x_start:x_end]
+
+    # -------------------------------------------------------------------------
+    # COLOR DETECTION: Find pixels similar to our target color
+    # -------------------------------------------------------------------------
+
+    # Create a mask identifying pixels similar to our target red color
+    # threshold=50 means colors within distance 50 are considered "similar"
+    mask = get_near_color_mask(cropped_image, np.array(prev_rgb), threshold=50)
+
+    # Extract the actual color values of all detected pixels
+    colors = cropped_image[mask]  # Get RGB values where mask is True
+
+    # Calculate the average color of detected pixels
+    # This helps us adapt to changing lighting conditions
+    new_rgb = np.mean(colors, axis=0)
+    print(f"Mean RGB Color: {new_rgb}")
+
+    # -------------------------------------------------------------------------
+    # DEBUG VISUALIZATION: Show what pixels were detected
+    # -------------------------------------------------------------------------
+
+    # Create a black image the same size as our cropped region
+    mask_display = np.zeros_like(cropped_image, dtype=np.uint8)
+
+    # Set detected pixels to white (255) to visualize the mask
+    mask_display[mask] = 255
+
+    # Display the debug mask (white = detected pixels, black = not detected)
+    cv2.imshow("Debug", mask_display)
+
+    # -------------------------------------------------------------------------
+    # POSITION CALCULATION: Find the center of detected pixels
+    # -------------------------------------------------------------------------
+
+    # Get coordinates of all pixels that matched our color
+    mask_positions = np.argwhere(mask)  # Returns array of (y, x) positions
+
+    # Calculate the average position (centroid) of detected pixels
+    local_position_mean = np.mean(mask_positions, axis=0).astype(int)  # (y, x) format
+
+    # Convert from local coordinates (within crop) to global coordinates (full image)
+    # Note: we swap from (y, x) to (x, y) format for consistency
+    new_position = (local_position_mean[1] + x_start, local_position_mean[0] + y_start)
+
+    # -------------------------------------------------------------------------
+    # VISUALIZATION: Draw rectangles to show tracking results
+    # -------------------------------------------------------------------------
+
+    # Draw cyan rectangle around the OLD position (where we expected the object)
+    image_rect = draw_rect(image, prev_xy, color=(0, 255, 255))
+
+    # Draw green rectangle around the NEW position (where we found the object)
+    image_rect = draw_rect(image_rect, new_position, color=(0, 255, 0))
+
+    # -------------------------------------------------------------------------
+    # UPDATE: Prepare for next frame by updating our tracking parameters
+    # -------------------------------------------------------------------------
+
+    # Update position for next frame
+    prev_xy = new_position
+
+    # Update target color for next frame (adapts to lighting changes)
+    prev_rgb = new_rgb
+
+    # -------------------------------------------------------------------------
+    # DISPLAY: Show the final result
+    # -------------------------------------------------------------------------
+
+    # Convert back to BGR format for OpenCV display
+    image_display = cv2.cvtColor(image_rect, cv2.COLOR_RGB2BGR)
+
+    # Show the image with tracking rectangles
+    cv2.imshow("Original Image", image_display)
+
+    # Wait for user input (1 milliseconds = effectively pause until key press)
+    key = cv2.waitKey(100)
+
+    # Exit if user presses 'q'
+    if key == ord("q"):
+        break
+
+# =============================================================================
+# CLEANUP: Close all windows when done
+# =============================================================================
+cv2.destroyAllWindows()
+
+```
+
+<Figure
+    src="/learn/cv/01/cv0402.gif"
+    alt="Object tracking (GIF)"
+    caption="Object tracking (GIF)"
+    width="960"
+/>

@@ -6,7 +6,7 @@ import { InlineCode } from '@/components/code/inline-code';
 import {
   AnnotatedHeading,
   type MdxHeadingLevel,
-} from '@/components/mdx/heading';
+} from '@/components/mdx/typography';
 import { cn } from '@/lib/utils';
 
 export type GuideHeadingLevel = 2 | 3 | 4;
@@ -102,12 +102,12 @@ export function Guide({
         headingLevel,
         stepHeadingLevel: resolvedStepLevel,
       }}>
-      <div className={cn('not-prose my-10', className)}>
+      <div className={cn('not-prose mb-8', className)}>
         {title && (
           <GuideHeading
             level={headingLevel}
             id={slugifyHeading(title)}
-            className="mb-6 scroll-m-28 tracking-tight">
+            className="mb-4 scroll-m-28 tracking-tight">
             {renderTitle(title)}
           </GuideHeading>
         )}
@@ -155,7 +155,7 @@ export function GuideStep({
         </GuideHeading>
       </div>
       {children && (
-        <div className="mt-4 flex flex-col gap-4 [&_.code-block]:my-0 [&>:first-child]:mt-0">
+        <div className="mt-4 flex flex-col gap-4 [&_.code-block]:mb-0 [&>:first-child]:mt-0">
           {children}
         </div>
       )}

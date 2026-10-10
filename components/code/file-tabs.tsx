@@ -42,7 +42,7 @@ export function FileTabs({
   if (items.length === 0) {
     if (!emptyMessage) return null;
     return (
-      <CodeContainer className="code-file-tabs not-prose my-6 p-5 text-sm text-muted-foreground">
+      <CodeContainer className="code-file-tabs not-prose mb-6 p-5 text-sm text-muted-foreground">
         <p>{emptyMessage}</p>
       </CodeContainer>
     );
@@ -52,7 +52,7 @@ export function FileTabs({
   // Wrapping FileTabsProvider would hide that header.
   if (items.length === 1) {
     return (
-      <div className={cn('code-file-tabs not-prose my-6', className)}>
+      <div className={cn('code-file-tabs not-prose mb-6', className)}>
         {items[0].element}
       </div>
     );
@@ -62,7 +62,7 @@ export function FileTabs({
 
   return (
     <FileTabsProvider>
-      <CodeContainer className={cn('code-file-tabs code-block not-prose my-6', className)}>
+      <CodeContainer className={cn('code-file-tabs code-block not-prose mb-6', className)}>
         <Tabs value={selectedTab} onValueChange={setActiveTab} className="gap-0">
           <CodeContainerHeader className="gap-1 overflow-hidden px-0 py-0 pr-3">
             <div className="flex min-w-0 flex-1 items-center overflow-x-auto">

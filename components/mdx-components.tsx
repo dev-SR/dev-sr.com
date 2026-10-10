@@ -9,4 +9,6 @@ export { CopyButton } from './mdx/copy-button';
 export { CodeFrame } from './mdx/code-frame';
 export { CodeCustom, PreCustom } from './mdx/code-elements';
 export { CodeTabs, MultiFileCodeBlock } from './mdx/code-tabs';
-export { Figure, MdxImage, Paragraph } from './mdx/figure';
+export { Figure, MdxImage } from './mdx/figure';
+export { MDX_SPACE } from './mdx/spacing';
+export { Paragraph } from './mdx/typography';

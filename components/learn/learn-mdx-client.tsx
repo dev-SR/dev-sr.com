@@ -22,7 +22,7 @@ import { gsapDemoComponents } from './gsap-demos/mdx-registry';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
   loading: () => (
-    <div className="my-6 flex h-48 items-center justify-center rounded-xl border border-border bg-card/35 text-sm text-muted-foreground">
+    <div className="mb-6 flex h-48 items-center justify-center rounded-xl border border-border bg-card/35 text-sm text-muted-foreground">
       Loading path visualizer…
     </div>
   ),

@@ -232,7 +232,7 @@ function TocItemButton({
         onNavigate(node.id);
       }}
       className={cn(
-        'block w-full rounded-md text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35',
+        'block min-w-0 w-full rounded-md text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/35',
         variant === 'compact' ? 'px-2 py-1 text-xs' : 'px-2 py-1.5 text-sm',
         isActive
           ? 'border-l-2 border-accent bg-muted pl-1.5 font-medium text-foreground'
@@ -240,7 +240,7 @@ function TocItemButton({
             ? 'font-medium text-foreground/80 hover:bg-muted/40 hover:text-foreground'
             : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
       )}>
-      <span className="line-clamp-2 leading-snug">{node.text}</span>
+      <span className="block truncate leading-snug">{node.text}</span>
     </a>
   );
 }
@@ -259,13 +259,13 @@ function TocTreeNav({
   variant: 'default' | 'compact';
 }) {
   return (
-    <div className={cn('flex flex-col', variant === 'compact' ? 'gap-0.5' : 'gap-1')}>
+    <div className={cn('flex min-w-0 flex-col', variant === 'compact' ? 'gap-0.5' : 'gap-1')}>
       {nodes.map((node) => {
         const isActive = activeId === node.id;
         const isAncestor = !isActive && ancestorIds.has(node.id);
 
         return (
-          <div key={node.id} className="flex flex-col gap-0.5">
+          <div key={node.id} className="flex min-w-0 flex-col gap-0.5">
             <TocItemButton
               node={node}
               isActive={isActive}
@@ -274,7 +274,7 @@ function TocTreeNav({
               variant={variant}
             />
             {node.children.length > 0 && (
-              <div className="ml-2 flex flex-col gap-0.5 border-l border-border/70 pl-2">
+              <div className="ml-2 flex min-w-0 flex-col gap-0.5 border-l border-border/70 pl-2">
                 <TocTreeNav
                   nodes={node.children}
                   activeId={activeId}
@@ -310,7 +310,7 @@ function TocPanel({
   collapsible?: boolean;
   onNavigate?: (id: string) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const ancestorIds = useMemo(() => collectAncestorIds(tree, activeId), [tree, activeId]);
   const activeIndex = findActiveIndex(tocItems, activeId);
@@ -374,11 +374,11 @@ function TocPanel({
   return (
     <div className={cn('relative mb-8', className)}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <div className="relative rounded-lg bg-background/20 py-3 backdrop-blur-sm">
+        <div className="relative rounded-lg py-3">
           <CollapsibleTrigger asChild>
             <Button
               variant="ghost"
-              className="mb-1 h-auto w-full justify-between rounded-md px-2 py-1.5 text-left hover:bg-foreground/5">
+              className="mb-1 h-auto w-full justify-between rounded-md px-2 py-1.5 text-left dark:bg-background">
               <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground/85">
                 <List className="size-4 text-muted-foreground" />
                 <span className="truncate">On this page</span>

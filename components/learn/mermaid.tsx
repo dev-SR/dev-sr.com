@@ -461,7 +461,7 @@ export function Mermaid({ chart, className }: MermaidProps) {
   const body = mode === 'preview' ? previewPane : codePane;
 
   const shell = (
-    <CodeContainer className={cn('not-prose my-6', maximized && 'invisible', className)}>
+    <CodeContainer className={cn('not-prose mb-6', maximized && 'invisible', className)}>
       <CodeContainerHeader className="h-10">
         <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
           mermaid

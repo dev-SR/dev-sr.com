@@ -40,7 +40,7 @@ export function InstallTabs({
 
   return (
     <InstallTabContext.Provider value={{ value, setValue }}>
-      <div className={cn('my-8', className)}>
+      <div className={cn('mb-8', className)}>
         <div className="mb-4 inline-flex rounded-lg border border-border bg-muted/30 p-1">
           {tabs.map((tab) => (
             <button

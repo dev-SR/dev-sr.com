@@ -1,4 +1,5 @@
 'use client';
+import { Children, isValidElement } from 'react';
 
 import {
   useRef,
@@ -13,6 +14,9 @@ import {
   useRoughAnnotation,
   type MarkType,
 } from './mark';
+import { MDX_SPACE } from './spacing';
+
+export { MDX_SPACE } from './spacing';
 
 const CORAL = '#F08F87';
 const SLATE = '#ACC5D3';
@@ -29,11 +33,11 @@ type HeadingMarkConfig = {
 };
 
 const HEADING_MARKS: Partial<Record<MdxHeadingLevel, HeadingMarkConfig>> = {
-  h2: { type: 'underline', color: CORAL, padding: 2, strokeWidth: 1.5 },
-  h3: { type: 'highlight', color: CORAL, padding: 4 },
+  h2: { type: 'underline', color: SLATE, padding: 2, strokeWidth: 3 },
+  h3: { type: 'highlight', color: "#64748b", padding: 4 },
   h4: {
     type: 'bracket',
-    color: SLATE,
+    color: CORAL,
     brackets: ['left', 'right'],
     padding: 4,
     strokeWidth: 1.5,
@@ -50,23 +54,38 @@ const SIZE_CLASSES: Record<MdxHeadingLevel, string> = {
   h6: 'text-lg font-semibold leading-snug',
 };
 
+/** Shared heading → body gap (tight). Section gap comes from `mt-*`. */
+const HEADING_BOTTOM: Record<MdxHeadingLevel, string> = {
+  h1: 'mb-6',
+  h2: 'mb-4',
+  h3: 'mb-3',
+  h4: 'mb-3',
+  h5: 'mb-2',
+  h6: 'mb-2',
+};
+
 const BLOG_RHYTHM: Record<MdxHeadingLevel, string> = {
-  h1: 'mb-7 mt-16 scroll-mt-24',
-  h2: 'mb-5 mt-14 scroll-mt-24',
-  h3: 'mb-4 mt-10 scroll-mt-24',
-  h4: 'mb-3 mt-8 scroll-mt-24',
-  h5: 'mb-3 mt-6 scroll-mt-24',
-  h6: 'mb-2 mt-5 scroll-mt-24',
+  h1: cn('mt-16 scroll-mt-24', HEADING_BOTTOM.h1),
+  h2: cn('mt-12 scroll-mt-24', HEADING_BOTTOM.h2),
+  h3: cn('mt-10 scroll-mt-24', HEADING_BOTTOM.h3),
+  h4: cn('mt-8 scroll-mt-24', HEADING_BOTTOM.h4),
+  h5: cn('mt-6 scroll-mt-24', HEADING_BOTTOM.h5),
+  h6: cn('mt-6 scroll-mt-24', HEADING_BOTTOM.h6),
 };
 
 const LEARN_RHYTHM: Record<MdxHeadingLevel, string> = {
-  h1: 'mb-6 mt-2 scroll-mt-28',
-  h2: 'mb-4 mt-12 scroll-mt-28',
-  h3: 'mb-3 mt-8 scroll-mt-28',
-  h4: 'mb-2 mt-6 scroll-mt-28',
-  h5: 'mb-2 mt-5 scroll-mt-28',
-  h6: 'mb-2 mt-4 scroll-mt-28',
+  h1: cn('mt-2 scroll-mt-28', HEADING_BOTTOM.h1),
+  h2: cn('mt-12 scroll-mt-28', HEADING_BOTTOM.h2),
+  h3: cn('mt-10 scroll-mt-28', HEADING_BOTTOM.h3),
+  h4: cn('mt-8 scroll-mt-28', HEADING_BOTTOM.h4),
+  h5: cn('mt-6 scroll-mt-28', HEADING_BOTTOM.h5),
+  h6: cn('mt-6 scroll-mt-28', HEADING_BOTTOM.h6),
 };
+
+const PARAGRAPH_CLASS = cn(
+  MDX_SPACE.block,
+  'text-[1.03rem] leading-8 text-muted-foreground'
+);
 
 export type MdxHeadingProps = {
   as: MdxHeadingLevel;
@@ -165,9 +184,9 @@ export function MdxHeading({
 export function createMdxHeadings(variant: MdxHeadingVariant = 'blog') {
   const make =
     (as: MdxHeadingLevel) =>
-    (props: ComponentPropsWithoutRef<'h1'>) => (
-      <MdxHeading as={as} variant={variant} {...props} />
-    );
+      (props: ComponentPropsWithoutRef<'h1'>) => (
+        <MdxHeading as={as} variant={variant} {...props} />
+      );
 
   return {
     h1: make('h1'),
@@ -177,4 +196,88 @@ export function createMdxHeadings(variant: MdxHeadingVariant = 'blog') {
     h5: make('h5'),
     h6: make('h6'),
   };
+}
+function getComponentName(type: unknown): string | undefined {
+  if (typeof type !== 'function') {
+    return undefined;
+  }
+
+  // React 19 types `JSXElementConstructor` as a call/construct signature,
+  // which has no `displayName` or `name` on the type even though functions do at runtime.
+  const component = type as { displayName?: string; name?: string };
+  return component.displayName || component.name || undefined;
+}
+
+
+function isBlockElement(child: React.ReactElement): boolean {
+  const type = child.type;
+
+  if (typeof type === 'string') {
+    return ['img', 'figure', 'pre', 'div', 'blockquote', 'table', 'ul', 'ol', 'hr'].includes(type);
+  }
+
+  if (typeof type === 'function') {
+    const name = getComponentName(type);
+    if (
+      name === 'MdxImage' ||
+      name === 'Figure' ||
+      name === 'PreCustom' ||
+      name === 'LearnPreCustom' ||
+      name === 'PrettyCodeFigure' ||
+      name === 'DocsPrettyFigure' ||
+      name === 'CodeTabs' ||
+      name === 'CodeFrame' ||
+      name === 'CodeBlock' ||
+      name === 'DocsCodeBlock'
+    ) {
+      return true;
+    }
+  }
+
+  return typeof (child.props as { src?: unknown }).src === 'string';
+}
+
+
+function splitParagraphChildren(children: React.ReactNode) {
+  const meaningfulChildren = Children.toArray(children).filter(
+    (child) => typeof child !== 'string' || child.trim().length > 0
+  );
+
+  const blockChildren: React.ReactNode[] = [];
+  const inlineChildren: React.ReactNode[] = [];
+
+  meaningfulChildren.forEach((child) => {
+    if (isValidElement(child) && isBlockElement(child)) {
+      blockChildren.push(child);
+      return;
+    }
+    inlineChildren.push(child);
+  });
+
+  return { blockChildren, inlineChildren };
+}
+
+export function Paragraph({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) {
+  const { blockChildren, inlineChildren } = splitParagraphChildren(children);
+
+  if (blockChildren.length === 0) {
+    return (
+      <p className={PARAGRAPH_CLASS} {...props}>
+        {children}
+      </p>
+    );
+  }
+
+  if (inlineChildren.length === 0) {
+    return <>{children}</>;
+  }
+
+  return (
+    <>
+      <p className={PARAGRAPH_CLASS} {...props}>
+        {inlineChildren}
+      </p>
+      {blockChildren}
+    </>
+  );
 }

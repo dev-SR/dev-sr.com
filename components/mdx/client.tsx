@@ -23,7 +23,7 @@ import { FlowDiagram } from '@/components/learn/flow-diagram';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
   loading: () => (
-    <div className="my-8 flex h-48 items-center justify-center rounded-lg border border-border bg-card/35 text-sm text-muted-foreground">
+    <div className="mb-8 flex h-48 items-center justify-center rounded-lg border border-border bg-card/35 text-sm text-muted-foreground">
       Loading path visualizer…
     </div>
   ),
@@ -68,5 +68,6 @@ export { CodeFrame } from './code-frame';
 export { CodeCustom, PreCustom } from './code-elements';
 export { CodeTabs, MultiFileCodeBlock } from './code-tabs';
 export { PrettyCodeFigure } from './pretty-code-figure';
-export { Figure, MdxImage, Paragraph } from './figure';
+export { Figure, MdxImage } from './figure';
 export type { FigureProps } from './figure';
+export { Paragraph } from './typography';

@@ -87,7 +87,7 @@ export function FlowDiagram({ script, height = 420, className }: FlowDiagramProp
     return (
       <div
         className={cn(
-          'my-6 flex items-center justify-center rounded-xl border border-border bg-card/40 text-sm text-muted-foreground',
+          'mb-6 flex items-center justify-center rounded-xl border border-border bg-card/40 text-sm text-muted-foreground',
           className
         )}
         style={{ height }}>
@@ -98,7 +98,7 @@ export function FlowDiagram({ script, height = 420, className }: FlowDiagramProp
 
   return (
     <div
-      className={cn('not-prose my-6 overflow-hidden rounded-xl border border-border bg-card/30', className)}
+      className={cn('not-prose mb-6 overflow-hidden rounded-xl border border-border bg-card/30', className)}
       style={{ height }}>
       <ReactFlow nodes={nodes} edges={edges} fitView proOptions={{ hideAttribution: true }}>
         <Background gap={16} color="var(--border)" />

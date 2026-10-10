@@ -66,7 +66,7 @@ export function ComponentPreview({
     align === 'start' ? 'justify-start' : align === 'end' ? 'justify-end' : 'justify-center';
 
   return (
-    <div className={cn('not-prose my-8', className)}>
+    <div className={cn('not-prose mb-8', className)}>
       <Tabs value={tab} onValueChange={(value) => setTab(value as 'preview' | 'code')}>
         {/* Tab chrome sits outside the preview/code bodies so code isn't double-wrapped */}
         <div className="mb-3 flex items-center justify-between gap-3">
@@ -110,7 +110,7 @@ export function ComponentPreview({
 
         <TabsContent value="code" className="m-0">
           {/* No outer card — FileTabs / CodeBlock own the container */}
-          <div className="[&_.code-block]:my-0 [&_.code-file-tabs]:my-0">{codeNodes}</div>
+          <div className="[&_.code-block]:mb-0 [&_.code-file-tabs]:mb-0">{codeNodes}</div>
         </TabsContent>
       </Tabs>
     </div>

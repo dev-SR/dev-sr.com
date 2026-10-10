@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import type React from 'react';
 import { Children, isValidElement } from 'react';
+import { MDX_SPACE } from './spacing';
 import { cn } from '@/lib/utils';
 import { ImageZoom } from './image-zoom';
 
@@ -162,7 +163,7 @@ export function Figure({
   return (
     <figure
       className={cn(
-        'my-10',
+        MDX_SPACE.media,
         exact ? 'w-fit max-w-full' : 'w-full',
         !exact && figureSizeClass[resolvedSize],
         figureAlignClass[align],
@@ -228,85 +229,3 @@ export function MdxImage({ src, alt, ...props }: React.ComponentPropsWithoutRef<
   );
 }
 
-function getComponentName(type: unknown): string | undefined {
-  if (typeof type !== 'function') {
-    return undefined;
-  }
-
-  // React 19 types `JSXElementConstructor` as a call/construct signature,
-  // which has no `displayName` or `name` on the type even though functions do at runtime.
-  const component = type as { displayName?: string; name?: string };
-  return component.displayName || component.name || undefined;
-}
-
-function isBlockElement(child: React.ReactElement): boolean {
-  const type = child.type;
-
-  if (typeof type === 'string') {
-    return ['img', 'figure', 'pre', 'div', 'blockquote', 'table', 'ul', 'ol', 'hr'].includes(type);
-  }
-
-  if (typeof type === 'function') {
-    const name = getComponentName(type);
-    if (
-      name === 'MdxImage' ||
-      name === 'Figure' ||
-      name === 'PreCustom' ||
-      name === 'LearnPreCustom' ||
-      name === 'PrettyCodeFigure' ||
-      name === 'DocsPrettyFigure' ||
-      name === 'CodeTabs' ||
-      name === 'CodeFrame' ||
-      name === 'CodeBlock' ||
-      name === 'DocsCodeBlock'
-    ) {
-      return true;
-    }
-  }
-
-  return typeof (child.props as { src?: unknown }).src === 'string';
-}
-
-function splitParagraphChildren(children: React.ReactNode) {
-  const meaningfulChildren = Children.toArray(children).filter(
-    (child) => typeof child !== 'string' || child.trim().length > 0
-  );
-
-  const blockChildren: React.ReactNode[] = [];
-  const inlineChildren: React.ReactNode[] = [];
-
-  meaningfulChildren.forEach((child) => {
-    if (isValidElement(child) && isBlockElement(child)) {
-      blockChildren.push(child);
-      return;
-    }
-    inlineChildren.push(child);
-  });
-
-  return { blockChildren, inlineChildren };
-}
-
-export function Paragraph({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) {
-  const { blockChildren, inlineChildren } = splitParagraphChildren(children);
-
-  if (blockChildren.length === 0) {
-    return (
-      <p className="mb-6 text-[1.03rem] leading-8 text-muted-foreground" {...props}>
-        {children}
-      </p>
-    );
-  }
-
-  if (inlineChildren.length === 0) {
-    return <>{children}</>;
-  }
-
-  return (
-    <>
-      <p className="mb-6 text-[1.03rem] leading-8 text-muted-foreground" {...props}>
-        {inlineChildren}
-      </p>
-      {blockChildren}
-    </>
-  );
-}

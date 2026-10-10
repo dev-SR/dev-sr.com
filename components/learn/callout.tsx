@@ -47,7 +47,7 @@ export function Callout({ variant = 'note', title, children, className }: Callou
   return (
     <div
       className={cn(
-        'not-prose my-6 flex gap-3 rounded-lg border px-4 py-3 text-sm',
+        'not-prose mb-6 flex gap-3 rounded-lg border px-4 py-3 text-sm',
         config.border,
         config.bg,
         className

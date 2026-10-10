@@ -180,7 +180,7 @@ export function CodeBlock({
   return (
     <CodeContainer
       className={cn(
-        'code-block not-prose my-6',
+        'code-block not-prose mb-6',
         isPlain && 'code-block--plain',
         isCollapsed && 'code-block--collapsed',
         className

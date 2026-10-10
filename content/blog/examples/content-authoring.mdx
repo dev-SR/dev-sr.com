@@ -392,7 +392,11 @@ Hand-drawn underlines, circles, boxes, and optional arrow sidenotes — powered 
 | `arrow` | `true` | Show L-shaped connector |
 | `brackets` | — | `left` \| `right` \| `top` \| `bottom` (or array) when `type="bracket"` |
 
-**Color presets:** `default` (`#F08F87`), `note`, `tip`, `info`, `warning`, `danger`, `success`, `accent` — or a manual hex like `#2563eb`.
+**Color presets**
+
+- Semantic: `default` (`#F08F87`), `note`, `tip`, `info`, `warning`, `danger`, `success`, `accent`
+- Tailwind names (`*-500`): `slate`, `gray`, `zinc`, `neutral`, `stone`, `red`, `orange`, `amber`, `yellow`, `lime`, `green`, `emerald`, `teal`, `cyan`, `sky`, `blue`, `indigo`, `violet`, `purple`, `fuchsia`, `pink`, `rose`
+- Or any CSS color: `#2563eb`, `rgb(14 165 233)`, …
 
 ### Stroke types
 
@@ -420,7 +424,7 @@ Hand-drawn underlines, circles, boxes, and optional arrow sidenotes — powered 
 <Mark type="bracket" brackets="left">bracket left</Mark> ·
 <Mark type="bracket" brackets={['left', 'right']}>bracket both</Mark>
 
-### Color presets + manual hex
+### Color presets + Tailwind names + CSS
 
 **Source**
 
@@ -434,6 +438,24 @@ Default <Mark>coral</Mark> ·
 <Mark color="danger">danger</Mark> ·
 <Mark color="success">success</Mark> ·
 <Mark color="accent">accent</Mark> ·
+<Mark color="red">red</Mark> ·
+<Mark color="orange">orange</Mark> ·
+<Mark color="amber">amber</Mark> ·
+<Mark color="yellow">yellow</Mark> ·
+<Mark color="lime">lime</Mark> ·
+<Mark color="green">green</Mark> ·
+<Mark color="emerald">emerald</Mark> ·
+<Mark color="teal">teal</Mark> ·
+<Mark color="cyan">cyan</Mark> ·
+<Mark color="sky">sky</Mark> ·
+<Mark color="blue">blue</Mark> ·
+<Mark color="indigo">indigo</Mark> ·
+<Mark color="violet">violet</Mark> ·
+<Mark color="purple">purple</Mark> ·
+<Mark color="fuchsia">fuchsia</Mark> ·
+<Mark color="pink">pink</Mark> ·
+<Mark color="rose">rose</Mark> ·
+<Mark color="slate">slate</Mark> ·
 <Mark color="#2563eb">#2563eb</Mark> ·
 <Mark color="rgb(14 165 233)">rgb()</Mark>
 ````
@@ -449,6 +471,24 @@ Default <Mark>coral</Mark> ·
 <Mark color="danger">danger</Mark> ·
 <Mark color="success">success</Mark> ·
 <Mark color="accent">accent</Mark> ·
+<Mark color="red">red</Mark> ·
+<Mark color="orange">orange</Mark> ·
+<Mark color="amber">amber</Mark> ·
+<Mark color="yellow">yellow</Mark> ·
+<Mark color="lime">lime</Mark> ·
+<Mark color="green">green</Mark> ·
+<Mark color="emerald">emerald</Mark> ·
+<Mark color="teal">teal</Mark> ·
+<Mark color="cyan">cyan</Mark> ·
+<Mark color="sky">sky</Mark> ·
+<Mark color="blue">blue</Mark> ·
+<Mark color="indigo">indigo</Mark> ·
+<Mark color="violet">violet</Mark> ·
+<Mark color="purple">purple</Mark> ·
+<Mark color="fuchsia">fuchsia</Mark> ·
+<Mark color="pink">pink</Mark> ·
+<Mark color="rose">rose</Mark> ·
+<Mark color="slate">slate</Mark> ·
 <Mark color="#2563eb">#2563eb</Mark> ·
 <Mark color="rgb(14 165 233)">rgb()</Mark>
 

@@ -17,8 +17,12 @@ import { cn } from '@/lib/utils';
 
 const DEFAULT_MARK_COLOR = '#F08F87';
 
-/** Named ink presets — also accept any CSS color string (`#abc`, `rgb()`, …). */
+/**
+ * Named ink presets — also accept any CSS color string (`#abc`, `rgb()`, …).
+ * Tailwind names map to the default palette `*-500` shades.
+ */
 export const MARK_COLOR_PRESETS = {
+  // Semantic
   default: DEFAULT_MARK_COLOR,
   note: '#64748b',
   tip: '#16a34a',
@@ -27,6 +31,29 @@ export const MARK_COLOR_PRESETS = {
   danger: '#dc2626',
   success: '#16a34a',
   accent: '#a855f7',
+  // Tailwind (500)
+  slate: '#64748b',
+  gray: '#6b7280',
+  zinc: '#71717a',
+  neutral: '#737373',
+  stone: '#78716c',
+  red: '#ef4444',
+  orange: '#f97316',
+  amber: '#f59e0b',
+  yellow: '#eab308',
+  lime: '#84cc16',
+  green: '#22c55e',
+  emerald: '#10b981',
+  teal: '#14b8a6',
+  cyan: '#06b6d4',
+  sky: '#0ea5e9',
+  blue: '#3b82f6',
+  indigo: '#6366f1',
+  violet: '#8b5cf6',
+  purple: '#a855f7',
+  fuchsia: '#d946ef',
+  pink: '#ec4899',
+  rose: '#f43f5e',
 } as const;
 
 export type MarkColorPreset = keyof typeof MARK_COLOR_PRESETS;
@@ -45,9 +72,9 @@ export interface MarkProps {
   children: ReactNode;
   type?: MarkType;
   /**
-   * Stroke / ink color. Use a preset (`warning`, `tip`, `info`, `danger`,
-   * `note`, `success`, `accent`, `default`) or any CSS color (`#F08F87`).
-   * Defaults to `#F08F87`.
+   * Stroke / ink color. Use a semantic preset (`warning`, `tip`, …), a
+   * Tailwind name (`red`, `blue`, `emerald`, … → `*-500`), or any CSS color
+   * (`#F08F87`). Defaults to `#F08F87`.
    */
   color?: MarkColorPreset | (string & {});
   animate?: boolean;

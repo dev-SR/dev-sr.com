@@ -19,7 +19,7 @@ export function Steps({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
       className={cn(
-        'steps mb-10 [counter-reset:step] md:ml-2 md:border-l md:border-border/70 md:pl-8 [&>h3]:step',
+        'steps mb-8 [counter-reset:step] md:ml-2 md:border-l md:border-border/70 md:pl-8 [&>h3]:step',
         className
       )}
       {...props}

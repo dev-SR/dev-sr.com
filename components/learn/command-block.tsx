@@ -37,7 +37,7 @@ export function CommandBlock({ pnpm, npm, yarn, bun, className }: CommandBlockPr
   }
 
   return (
-    <CodeContainer className={cn('my-6', className)}>
+    <CodeContainer className={cn('mb-6', className)}>
       <Tabs value={active} onValueChange={(value) => setActive(value as PackageManager)}>
         <CodeContainerHeader>
           <div className="flex items-center gap-2">

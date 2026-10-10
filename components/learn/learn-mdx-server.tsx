@@ -1,42 +1,69 @@
 'use client';
 
 import type React from 'react';
-import { Figure, MdxImage, Paragraph } from '@/components/mdx/figure';
-import { createMdxHeadings } from '@/components/mdx/heading';
+import { cn } from '@/lib/utils';
+import { Figure, MdxImage } from '@/components/mdx/figure';
+import { MDX_SPACE } from '@/components/mdx/spacing';
+import { createMdxHeadings, Paragraph } from '@/components/mdx/typography';
 import { MdxLink } from '@/components/mdx/mdx-link';
 
 const headings = createMdxHeadings('learn');
+
+const LIST_NESTED = '[&_p]:mb-0 [&_ul]:mb-0 [&_ol]:mb-0';
+/** Tight gap between items; last item keeps the list’s outer `mb-6` only. */
+const LIST_ITEM_GAP = '[&>li:not(:last-child)]:mb-1';
 
 export const learnMdxServerComponents = {
   ...headings,
   p: Paragraph,
   ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
-    <ul className="mb-6 flex list-disc flex-col gap-2 pl-6 text-muted-foreground" {...props}>
+    <ul
+      className={cn(
+        MDX_SPACE.block,
+        LIST_NESTED,
+        LIST_ITEM_GAP,
+        'flex list-disc flex-col pl-6 text-muted-foreground marker:text-accent/70 [&>li]:leading-8'
+      )}
+      {...props}>
       {children}
     </ul>
   ),
   ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
-    <ol className="mb-6 flex list-decimal flex-col gap-2 pl-6 text-muted-foreground" {...props}>
+    <ol
+      className={cn(
+        MDX_SPACE.block,
+        LIST_NESTED,
+        LIST_ITEM_GAP,
+        'flex list-decimal flex-col pl-6 text-muted-foreground marker:font-mono marker:text-accent/80 [&>li]:leading-8'
+      )}
+      {...props}>
       {children}
     </ol>
   ),
   li: ({ children, ...props }: React.ComponentPropsWithoutRef<'li'>) => (
-    <li className="leading-7" {...props}>
+    <li className="pl-1" {...props}>
       {children}
     </li>
   ),
   blockquote: ({ children, ...props }: React.ComponentPropsWithoutRef<'blockquote'>) => (
     <blockquote
-      className="my-6 rounded-r-lg border-l-4 border-accent bg-muted/30 px-5 py-4 text-muted-foreground"
+      className={cn(
+        MDX_SPACE.media,
+        'rounded-r-lg border-l-4 border-accent bg-muted/30 px-5 py-4 text-muted-foreground [&_p]:mb-0 [&_p+p]:mt-3'
+      )}
       {...props}>
       {children}
     </blockquote>
   ),
   hr: (props: React.ComponentPropsWithoutRef<'hr'>) => (
-    <hr className="my-10 border-0 border-t border-border/70" {...props} />
+    <hr className={cn(MDX_SPACE.rule, 'border-0 border-t border-border/70')} {...props} />
   ),
   table: ({ children, ...props }: React.ComponentPropsWithoutRef<'table'>) => (
-    <div className="my-6 overflow-x-auto rounded-xl border border-border bg-card/40">
+    <div
+      className={cn(
+        MDX_SPACE.block,
+        'overflow-x-auto rounded-xl border border-border bg-card/40'
+      )}>
       <table className="w-full border-collapse text-sm" {...props}>
         {children}
       </table>
