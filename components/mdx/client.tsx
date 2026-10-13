@@ -16,6 +16,13 @@ import { Callout } from '@/components/learn/callout';
 import { CommandBlock } from '@/components/learn/command-block';
 import { DocsFileTabs } from '@/components/learn/docs-file-tabs';
 import { InstallTab, InstallTabs } from '@/components/learn/install-tabs';
+import {
+  ItemList,
+  LineItem,
+  ListItem,
+  ListSubtitle,
+  ListTitle,
+} from '@/components/learn/item-list';
 import { Step, Steps } from '@/components/learn/steps';
 import { Guide, GuideStep } from '@/components/learn/guide';
 import { Mermaid } from '@/components/learn/mermaid';
@@ -47,6 +54,11 @@ export const mdxClientComponents = {
   CommandBlock,
   InstallTabs,
   InstallTab,
+  ItemList,
+  ListItem,
+  ListTitle,
+  ListSubtitle,
+  LineItem,
   Step,
   Steps,
   Guide,

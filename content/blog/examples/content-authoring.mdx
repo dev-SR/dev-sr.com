@@ -720,6 +720,7 @@ Learn uses the same **`CodeBlock`** card shell as blog posts. Learn-specific wra
 | --- | --- |
 | `ComponentPreview` | Preview \| Code tabs. Props: `replay`, `flush`, `previewClassName`, `align`. Tab chrome sits **above** the body so code is not double-wrapped. |
 | `Callout` | `variant`: `note` \| `tip` \| `warning` \| `dont`; optional `title` |
+| `ItemList` + `ListItem` + `ListTitle` + `ListSubtitle` + `LineItem` | Icon-led list card. `ListItem`: optional `icon`, `size` (`sm` \| `md`, default `md`); title/subtitle/body are MDX children. Nested `LineItem`s indent. |
 | `DocsFileTabs` | Multi-file code — prefer over blog `CodeTabs` on Learn |
 | `InstallTabs` + `InstallTab` | CLI \| Manual install sections |
 | `Guide` + `GuideStep` | Step-by-step tutorials |
@@ -775,6 +776,120 @@ Do **not** use blog-only names `CodeFrame`, `CodeTabs`, or `MultiFileCodeBlock` 
 <Callout variant="dont" title="Do not ease-in on dropdowns">
   `ease-in` starts slow. On a 200ms menu it feels unresponsive.
 </Callout>
+
+---
+
+### `ItemList`
+
+Icon-led rows in one card. **No `title=` / `subtitle=` props** — use `ListTitle`, `ListSubtitle`, and nestable `LineItem` children (same idea as `Callout` body content).
+
+`ListItem` `icon` is a Lucide name string. Supported: `BookOpen`, `FlaskConical`, `Boxes`, `Package`, `Terminal`, `Cloud`, `SlidersHorizontal`, `ChartNoAxesCombined`, `Copy`, `Tag`, `Layers`, `Server`, `Workflow` (unknown → `BookOpen`).
+
+**Source**
+
+````mdx
+<ItemList>
+  <ListItem icon="FlaskConical">
+    <ListTitle>Part A — Tracking and experiments</ListTitle>
+    <ListSubtitle>Topics 3, 4, 5, 6, 7, and 13</ListSubtitle>
+    <LineItem>
+      Experiments, runs, parameters, metrics, artifacts, logging functions,
+      autologging, concurrent runs, tracking servers, and the Python client.
+    </LineItem>
+    <LineItem>
+      i.e. `mlflow.log_param()` and `mlflow.log_params()`
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Boxes">
+    <ListTitle>Part B — Models and evaluation</ListTitle>
+    <ListSubtitle>Topics 8, 9, and 10</ListSubtitle>
+    <LineItem>
+      Log and load models, custom Python models, preprocessing pipelines,
+      model signatures, input examples, evaluation metrics, and model comparisons.
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Package">
+    <ListTitle>Part C — Registry and deployment lifecycle</ListTitle>
+    <ListSubtitle>Topic 11</ListSubtitle>
+    <LineItem>
+      Register a trained model, create versions, add aliases, load the selected
+      version, and promote a model for production use.
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Terminal">
+    <ListTitle>Part D — Reproducible projects and commands</ListTitle>
+    <ListSubtitle>Topics 12 and 14</ListSubtitle>
+    <LineItem>
+      Package training code with MLproject
+      <LineItem>Run named entry points, pass parameters, and use the MLflow CLI.</LineItem>
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Cloud">
+    <ListTitle>Part E — AWS end-to-end project</ListTitle>
+    <ListSubtitle>Topic 15</ListSubtitle>
+    <LineItem>
+      Store artifacts in S3, use a remote tracking server backed by a database,
+      configure IAM permissions, and connect training, registry, and deployment workflows.
+    </LineItem>
+  </ListItem>
+</ItemList>
+````
+
+**Result**
+
+<ItemList>
+  <ListItem icon="FlaskConical">
+    <ListTitle>Part A — Tracking and experiments</ListTitle>
+    <ListSubtitle>Topics 3, 4, 5, 6, 7, and 13</ListSubtitle>
+    <LineItem>
+      Experiments, runs, parameters, metrics, artifacts, logging functions,
+      autologging, concurrent runs, tracking servers, and the Python client.
+    </LineItem>
+    <LineItem>
+      i.e. `mlflow.log_param()` and `mlflow.log_params()`
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Boxes">
+    <ListTitle>Part B — Models and evaluation</ListTitle>
+    <ListSubtitle>Topics 8, 9, and 10</ListSubtitle>
+    <LineItem>
+      Log and load models, custom Python models, preprocessing pipelines,
+      model signatures, input examples, evaluation metrics, and model comparisons.
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Package">
+    <ListTitle>Part C — Registry and deployment lifecycle</ListTitle>
+    <ListSubtitle>Topic 11</ListSubtitle>
+    <LineItem>
+      Register a trained model, create versions, add aliases, load the selected
+      version, and promote a model for production use.
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Terminal">
+    <ListTitle>Part D — Reproducible projects and commands</ListTitle>
+    <ListSubtitle>Topics 12 and 14</ListSubtitle>
+    <LineItem>
+      Package training code with MLproject
+      <LineItem>Run named entry points, pass parameters, and use the MLflow CLI.</LineItem>
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Cloud">
+    <ListTitle>Part E — AWS end-to-end project</ListTitle>
+    <ListSubtitle>Topic 15</ListSubtitle>
+    <LineItem>
+      Store artifacts in S3, use a remote tracking server backed by a database,
+      configure IAM permissions, and connect training, registry, and deployment workflows.
+    </LineItem>
+  </ListItem>
+</ItemList>
 
 ---
 

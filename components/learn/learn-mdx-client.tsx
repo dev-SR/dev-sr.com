@@ -12,6 +12,13 @@ import { CommandBlock } from './command-block';
 import { DocsFileTabs } from './docs-file-tabs';
 import { LearnCodeCustom, LearnPreCustom, DocsPrettyFigure } from './learn-code-elements';
 import { InstallTab, InstallTabs } from './install-tabs';
+import {
+  ItemList,
+  LineItem,
+  ListItem,
+  ListSubtitle,
+  ListTitle,
+} from './item-list';
 import { Step, Steps } from './steps';
 import { Guide, GuideStep } from './guide';
 import { Mermaid } from './mermaid';
@@ -40,6 +47,11 @@ export const learnMdxClientComponents = {
   CommandBlock,
   InstallTabs,
   InstallTab,
+  ItemList,
+  ListItem,
+  ListTitle,
+  ListSubtitle,
+  LineItem,
   Step,
   Steps,
   Guide,

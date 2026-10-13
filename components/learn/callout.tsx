@@ -1,7 +1,7 @@
 import { AlertCircle, Ban, Info, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type CalloutVariant = 'note' | 'tip' | 'warning' | 'dont';
+type CalloutVariant = 'note' | 'info' | 'tip' | 'warning' | 'dont';
 
 interface CalloutProps {
   variant?: CalloutVariant;
@@ -19,6 +19,12 @@ const VARIANTS: Record<
     border: 'border-border',
     bg: 'bg-muted/30',
     iconColor: 'text-muted-foreground',
+  },
+  info: {
+    icon: Info,
+    border: 'border-sky-500/40',
+    bg: 'bg-sky-500/5',
+    iconColor: 'text-sky-600 dark:text-sky-400',
   },
   tip: {
     icon: Lightbulb,
@@ -41,7 +47,7 @@ const VARIANTS: Record<
 };
 
 export function Callout({ variant = 'note', title, children, className }: CalloutProps) {
-  const config = VARIANTS[variant];
+  const config = VARIANTS[variant] ?? VARIANTS.note;
   const Icon = config.icon;
 
   return (

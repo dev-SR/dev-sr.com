@@ -1347,6 +1347,14 @@ Allow / Forbid
 </Guide>
 
 
+
+<Callout variant="info" title="MyApp reference implementation">
+The monolith demo on branch <code>auth</code> wires these pieces under
+<code>Features/Auth/Authorization/</code>, seeds <code>Permission</code> / <code>RolePermission</code>,
+gates Products mutations with <code>Permissions.Products.*</code>, and demos invoices + WorkingHours /
+EnhancedSecurity. Multi-service YARP + shared <code>AddMyAppAuth</code> continues in the next lesson.
+</Callout>
+
 ## References
 
 - [🧠 Implementing a Custom Authorization Handler in ASP.NET Core 10 | Permission Authorization](https://blog.stackademic.com/implementing-a-custom-authorization-handler-in-asp-net-core-10-permission-authorization-4cbf2a9330a2)

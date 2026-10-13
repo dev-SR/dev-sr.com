@@ -44,14 +44,14 @@ const HEADING_MARKS: Partial<Record<MdxHeadingLevel, HeadingMarkConfig>> = {
   },
 };
 
-/** Standard scale tokens so Tailwind always emits CSS (arbitrary rem sizes in new files can miss the scan). */
+/** MDX heading scale — `@theme` tokens `--text-heading-*` in globals.css. */
 const SIZE_CLASSES: Record<MdxHeadingLevel, string> = {
-  h1: 'text-4xl font-bold leading-tight sm:text-5xl',
-  h2: 'text-3xl font-semibold leading-tight sm:text-4xl',
-  h3: 'text-2xl font-semibold leading-snug sm:text-3xl',
-  h4: 'text-xl font-semibold leading-snug sm:text-2xl',
-  h5: 'text-xl font-semibold leading-snug',
-  h6: 'text-lg font-semibold leading-snug',
+  h1: 'text-heading-1 font-bold sm:text-5xl',
+  h2: 'text-heading-2 font-semibold sm:text-4xl',
+  h3: 'text-heading-3 font-semibold sm:text-3xl',
+  h4: 'text-heading-4 font-semibold sm:text-2xl',
+  h5: 'text-heading-5 font-semibold',
+  h6: 'text-heading-6 font-semibold',
 };
 
 /** Shared heading → body gap (tight). Section gap comes from `mt-*`. */
@@ -82,10 +82,7 @@ const LEARN_RHYTHM: Record<MdxHeadingLevel, string> = {
   h6: cn('mt-6 scroll-mt-28', HEADING_BOTTOM.h6),
 };
 
-const PARAGRAPH_CLASS = cn(
-  MDX_SPACE.block,
-  'text-[1.03rem] leading-8 text-muted-foreground'
-);
+const PARAGRAPH_CLASS = cn(MDX_SPACE.block, 'text-prose text-muted-foreground');
 
 export type MdxHeadingProps = {
   as: MdxHeadingLevel;

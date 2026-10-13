@@ -898,7 +898,7 @@ namespace MyApp.Features.Auth;
 
 public interface ITokenService
 {
-    string CreateAccessToken(User user, IEnumerable<string> roles);
+    string CreateAccessToken(User user, IEnumerable<string> roles, IEnumerable<string> permissions);
     (string Raw, string Hash, DateTime ExpiresAt) GenerateRefreshToken();
     string Hash(string raw);
     int AccessTokenExpiresInSeconds { get; }
@@ -907,7 +907,11 @@ public interface ITokenService
     /// Creates access + refresh entity (caller Adds the entity and maps to TokenResponse;
     /// SaveChanges via TransactionBehavior).
     /// </summary>
-    IssuedTokens IssueTokens(User user, IEnumerable<string> roles, Guid familyId);
+    IssuedTokens IssueTokens(
+        User user,
+        IEnumerable<string> roles,
+        IEnumerable<string> permissions,
+        Guid familyId);
 }
 ```
 
@@ -937,7 +941,10 @@ public sealed class TokenService : ITokenService
         _creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
     }
 
-    public string CreateAccessToken(User user, IEnumerable<string> roles)
+    public string CreateAccessToken(
+        User user,
+        IEnumerable<string> roles,
+        IEnumerable<string> permissions)
     {
         var now = _clock.GetUtcNow();
         var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
@@ -952,6 +959,8 @@ public sealed class TokenService : ITokenService
         };
         // Short name "role" — JwtBearer RoleClaimType must match (see Step 6).
         claims.AddRange(roles.Select(r => new Claim(AuthClaims.Role, r)));
+        // Permission claims — see Authorization lesson (PermissionPolicyProvider).
+        claims.AddRange(permissions.Select(p => new Claim(AuthClaims.Permission, p)));
 
         var descriptor = new SecurityTokenDescriptor
         {
@@ -983,9 +992,12 @@ public sealed class TokenService : ITokenService
     public int AccessTokenExpiresInSeconds => _jwt.AccessTokenMinutes * 60;
 
     public IssuedTokens IssueTokens(
-        User user, IEnumerable<string> roles, Guid familyId)
+        User user,
+        IEnumerable<string> roles,
+        IEnumerable<string> permissions,
+        Guid familyId)
     {
-        var accessToken = CreateAccessToken(user, roles);
+        var accessToken = CreateAccessToken(user, roles, permissions);
         var (rawRefreshToken, hash, expiresAt) = GenerateRefreshToken();
         var now = _clock.GetUtcNow().UtcDateTime;
 
@@ -1363,12 +1375,21 @@ internal sealed class LoginCommandHandler(
         user.AccessFailedCount = 0;
         user.LockoutEnd = null;
 
-        var roles = await db.UserRoles
+        var roleRows = await db.UserRoles
             .Apply(new UserRolesByUserIdSpecification(user.Id))
-            .Select(ur => ur.Role.Name)
+            .Select(ur => new { ur.RoleId, ur.Role.Name })
             .ToListAsync(ct);
 
-        var issued = tokens.IssueTokens(user, roles, Guid.NewGuid());
+        var roles = roleRows.Select(r => r.Name).ToList();
+        // Load permission names once at issue time (see Authorization lesson).
+        var permissions = await db.RolePermissions
+            .Apply(new RolePermissionsByRoleIdsSpecification(roleRows.Select(r => r.RoleId))
+                .And(RolePermissionsWithPermissionSpecification.Instance))
+            .Select(rp => rp.Permission.Name)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var issued = tokens.IssueTokens(user, roles, permissions, Guid.NewGuid());
         db.RefreshTokens.Add(issued.RefreshToken);
         return new TokenResponse(
             issued.AccessToken,
@@ -1585,8 +1606,16 @@ internal sealed class RefreshTokenCommandHandler(
             return Error.Unauthorized("AUTH.INVALID_TOKEN", "Invalid refresh token.");
         }
 
-        var roles = stored.User.UserRoles.Select(ur => ur.Role.Name);
-        var issued = tokens.IssueTokens(stored.User, roles, stored.FamilyId);
+        var roles = stored.User.UserRoles.Select(ur => ur.Role.Name).ToList();
+        var roleIds = stored.User.UserRoles.Select(ur => ur.RoleId);
+        var permissions = await db.RolePermissions
+            .Apply(new RolePermissionsByRoleIdsSpecification(roleIds)
+                .And(RolePermissionsWithPermissionSpecification.Instance))
+            .Select(rp => rp.Permission.Name)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var issued = tokens.IssueTokens(stored.User, roles, permissions, stored.FamilyId);
         db.RefreshTokens.Add(issued.RefreshToken);
         return new TokenResponse(
             issued.AccessToken,

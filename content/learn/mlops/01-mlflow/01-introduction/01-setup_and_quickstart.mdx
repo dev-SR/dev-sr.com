@@ -1,0 +1,326 @@
+---
+title: "Setup and Quickstart"
+excerpt: "Learn how to setup MLflow and run a quickstart"
+tags: ['mlops', 'mlflow', 'python', 'machine-learning']
+---
+
+## Curriculum map
+
+<ItemList>
+  <ListItem icon="FlaskConical">
+    <ListTitle>Part A — Tracking and experiments</ListTitle>
+    <ListSubtitle>Topics 3, 4, 5, 6, 7, and 13</ListSubtitle>
+    <LineItem>
+      Experiments, runs, parameters, metrics, artifacts, logging functions,
+      autologging, concurrent runs, tracking servers, and the Python client.
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Boxes">
+    <ListTitle>Part B — Models and evaluation</ListTitle>
+    <ListSubtitle>Topics 8, 9, and 10</ListSubtitle>
+    <LineItem>
+      Log and load models, custom Python models, preprocessing pipelines,
+      model signatures, input examples, evaluation metrics, and model comparisons.
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Package">
+    <ListTitle>Part C — Registry and deployment lifecycle</ListTitle>
+    <ListSubtitle>Topic 11</ListSubtitle>
+    <LineItem>
+      Register a trained model, create versions, add aliases, load the selected
+      version, and promote a model for production use.
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Terminal">
+    <ListTitle>Part D — Reproducible projects and commands</ListTitle>
+    <ListSubtitle>Topics 12 and 14</ListSubtitle>
+    <LineItem>
+      Package training code with MLproject
+      <LineItem>Run named entry points, pass parameters, and use the MLflow CLI.</LineItem>
+    </LineItem>
+  </ListItem>
+
+  <ListItem icon="Cloud">
+    <ListTitle>Part E — AWS end-to-end project</ListTitle>
+    <ListSubtitle>Topic 15</ListSubtitle>
+    <LineItem>
+      Store artifacts in S3, use a remote tracking server backed by a database,
+      configure IAM permissions, and connect training, registry, and deployment workflows.
+    </LineItem>
+  </ListItem>
+</ItemList>
+
+## Local setup 
+
+```txt title="requirements.txt"
+pandas==2.3.3
+numpy==2.2.6
+scikit-learn==1.7.2
+joblib==1.5.2
+pyyaml==6.0.3
+python-dotenv==1.2.3
+mlflow==3.17.1
+```
+
+Install the packages:
+
+```bash
+# create project venv
+uv venv
+
+# install only packages listed in requirements.txt (plus their transitive deps)
+uv pip install -r requirements.txt
+
+# optional: install pip so MLflow can pin it in conda.yaml when logging models
+uv pip install pip
+
+# activate (optional if you use `uv run`)
+source .venv/bin/activate
+```
+
+<Guide title="Quickstart" numbered headingLevel={2} stepHeadingLevel={3}>
+<GuideStep title="Step 1. Define baseline ML code">
+
+- [MLflow Quickstart](https://mlflow.org/docs/latest/ml/getting-started/quickstart/)
+
+```python title="mlflow_base.py"
+import argparse
+import mlflow
+import pandas as pd
+import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.linear_model import ElasticNet
+
+# Load the Iris dataset
+X, y = datasets.load_iris(return_X_y=True)
+
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+parser = argparse.ArgumentParser()
+parser.add_argument("--alpha", type=float, required=False, default=0.7)
+parser.add_argument("--l1_ratio", type=float, required=False, default=0.7)
+args = parser.parse_args()
+
+# Define the model hyperparameters
+params = {
+    "random_state": 8888,
+    "alpha": args.alpha,
+    "l1_ratio": args.l1_ratio,
+}
+
+
+# evaluation function
+def eval_metrics(actual, pred):
+    rmse = np.sqrt(mean_squared_error(actual, pred))
+    mae = mean_absolute_error(actual, pred)
+    r2 = r2_score(actual, pred)
+    return rmse, mae, r2
+```
+</GuideStep>
+
+
+<GuideStep title="Step 2. Setup MLflow">
+
+```python title="mlflow_base.py" showLineNumbers {2-3}
+# mlflow mendatory configs
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("my-first-experiment")
+```
+Here, we Set the tracking URI to a local database URI (e.g., `sqlite:///mlflow.db`). This is recommended option for quickstart and local development.
+And set the experiment name to `my-first-experiment`.
+
+- [https://mlflow.org/docs/latest/ml/getting-started/running-notebooks/](https://mlflow.org/docs/latest/ml/getting-started/running-notebooks/)
+
+
+</GuideStep>
+
+<GuideStep title="Step 3 - Train a model with MLflow Autologging">
+
+In this step, we train the model on the training data loaded in the previous step, and log the model and its metadata to MLflow. The easiest way to do this is to using MLflow's `Autologging` feature.
+
+
+```python title="mlflow_base.py" showLineNumbers {2}
+# Enable autologging for scikit-learn
+mlflow.sklearn.autolog()  # this will log the dataset, model, params, metrics, etc.
+
+# Just train the model normally
+lr = ElasticNet(**params)
+lr.fit(X_train, y_train)
+
+# Evaluate the model
+y_pred = lr.predict(X_test)
+(rmse, mae, r2) = eval_metrics(y_test, y_pred)
+
+print("Elasticnet model (alpha={:f}, l1_ratio={:f}):".format(args.alpha, args.l1_ratio))
+print("  RMSE: %s" % rmse)
+print("  MAE: %s" % mae)
+print("  R2: %s" % r2)
+```
+
+
+With just one line of additional code `mlflow.sklearn.autolog()`, now you get the best of both worlds: you can focus on training the model, and MLflow will take care of the rest:
+
+- Saving the trained model.
+- Recording the model's performance metrics during training, such as accuracy, precision, AUC curve.
+- Logging hyperparameter values used to train the model.
+- Track metadata such as input data format, user, timestamp, etc.
+
+To learn more about autologging and supported libraries, see the [Autologging documentation](https://mlflow.org/docs/latest/ml/tracking/autolog/).
+
+
+
+Full code:
+
+
+```python title="mlflow_base.py"
+import argparse
+import mlflow
+import pandas as pd
+import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.linear_model import ElasticNet
+
+# Load the Iris dataset
+X, y = datasets.load_iris(return_X_y=True)
+
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+parser = argparse.ArgumentParser()
+parser.add_argument("--alpha", type=float, required=False, default=0.7)
+parser.add_argument("--l1_ratio", type=float, required=False, default=0.7)
+args = parser.parse_args()
+
+# Define the model hyperparameters
+params = {
+    "random_state": 8888,
+    "alpha": args.alpha,
+    "l1_ratio": args.l1_ratio,
+}
+
+
+# evaluation function
+def eval_metrics(actual, pred):
+    rmse = np.sqrt(mean_squared_error(actual, pred))
+    mae = mean_absolute_error(actual, pred)
+    r2 = r2_score(actual, pred)
+    return rmse, mae, r2
+
+
+# mlflow mendatory configs
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+mlflow.set_experiment("my-first-experiment")
+# Enable autologging for scikit-learn
+mlflow.sklearn.autolog()  # this will log the dataset, model, params, metrics, etc.
+
+# Just train the model normally
+lr = ElasticNet(**params)
+lr.fit(X_train, y_train)
+
+# Evaluate the model
+y_pred = lr.predict(X_test)
+(rmse, mae, r2) = eval_metrics(y_test, y_pred)
+
+print("Elasticnet model (alpha={:f}, l1_ratio={:f}):".format(args.alpha, args.l1_ratio))
+print("  RMSE: %s" % rmse)
+print("  MAE: %s" % mae)
+print("  R2: %s" % r2)
+```
+
+<GuideStep title="Step 4. Run the training and open the MLflow UI">
+
+```bash 
+uv run python mlflow_base.py
+# Run multiple times with different arguments to the script. e.g. --alpha 0.01 --l1_ratio 0.01
+uv run python mlflow_base.py --alpha 0.01 --l1_ratio 0.01
+uv run python mlflow_base.py --alpha 0.02 --l1_ratio 0.02
+```
+
+Open the MLflow UI:
+
+```bash
+uv run mlflow ui
+```
+
+</GuideStep>
+
+</GuideStep>
+
+<GuideStep title="Step 5. Explore the runs in the MLflow UI">
+
+Open http://127.0.0.1:5000 and you should see the runs.
+
+
+Here are some screenshots of the MLflow UI:
+
+<Figure
+    src="/learn/mlops/mlflow/mlflow1.png"
+    alt="Vist: Model Training -> Experiments --> my-first-experiment"
+    caption="Vist: Model Training -> Experiments --> my-first-experiment"
+    width="960"
+
+/>
+
+<Figure
+    src="/learn/mlops/mlflow/mlflow2.png"
+    alt="Vist: Model Training -> Experiments --> my-first-experiment --> Runs"
+    caption="Vist: Model Training -> Experiments --> my-first-experiment --> Runs"
+    width="960"
+
+/>
+
+<Figure
+    src="/learn/mlops/mlflow/mlflow3.png"
+    alt="Add more columns to the runs table"
+    caption="Add more columns to the runs table"
+    width="960"
+
+/>
+<Figure
+    src="/learn/mlops/mlflow/mlflow4.png"
+    alt="Vist: Model Training -> Experiments --> my-first-experiment --> Runs --> Run Details"
+    caption="Vist: Model Training -> Experiments --> my-first-experiment --> Runs --> Run Details"
+    width="960"
+
+/>
+<Figure
+    src="/learn/mlops/mlflow/mlflow5.png"
+    alt="Chart View of the runs"
+    caption="Chart View of the runs"
+    width="960"
+
+/>
+<Figure
+    src="/learn/mlops/mlflow/mlflow6.png"
+    alt="Select multiple runs and compare them"
+    caption="Select multiple runs and compare them"
+    width="960"
+
+/>
+
+<Figure
+    src="/learn/mlops/mlflow/mlflow7.png"
+    alt="Multiple runs comparison"
+    caption="Multiple runs comparison"
+    width="960"
+
+/>
+
+
+</GuideStep>
+
+
+</Guide>
+
+
+
