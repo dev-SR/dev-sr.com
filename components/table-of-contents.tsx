@@ -159,6 +159,8 @@ function useTocSpy(tocItems: TocItem[]) {
   const [activeId, setActiveId] = useState('');
   const didScrollToHashRef = useRef(false);
 
+  // Initial hash / first heading only — do NOT keep pinning activeId to
+  // location.hash (that fought IntersectionObserver after TOC clicks).
   useEffect(() => {
     if (tocItems.length === 0) return;
 
@@ -166,40 +168,63 @@ function useTocSpy(tocItems: TocItem[]) {
     if (hashId && tocItems.some((item) => item.id === hashId)) {
       if (!didScrollToHashRef.current) {
         didScrollToHashRef.current = true;
+        setActiveId(hashId);
         const element = document.getElementById(hashId);
         if (element) {
           const y = element.getBoundingClientRect().top + window.pageYOffset + SCROLL_OFFSET;
           window.scrollTo({ top: y, behavior: 'auto' });
         }
       }
-      if (activeId !== hashId) setActiveId(hashId);
       return;
     }
 
-    if (!activeId || !tocItems.some((item) => item.id === activeId)) {
-      setActiveId(tocItems[0].id);
-    }
-  }, [activeId, tocItems]);
+    setActiveId((current) =>
+      current && tocItems.some((item) => item.id === current) ? current : tocItems[0].id
+    );
+  }, [tocItems]);
 
   useEffect(() => {
     if (tocItems.length === 0) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntries = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+    const headingElements = tocItems.map((item) => item.element);
 
-        if (visibleEntries.length > 0) {
-          setActiveId(visibleEntries[0].target.id);
+    const updateActiveFromScroll = () => {
+      // Pick the last heading whose top has crossed the offset line.
+      const marker = -SCROLL_OFFSET + 8;
+      let current = tocItems[0]?.id ?? '';
+
+      for (const item of tocItems) {
+        const top = item.element.getBoundingClientRect().top;
+        if (top <= marker) {
+          current = item.id;
+        } else {
+          break;
         }
+      }
+
+      setActiveId((prev) => (prev === current ? prev : current));
+    };
+
+    updateActiveFromScroll();
+
+    // Lenis/root smooth scroll: rAF-friendly scroll listener beats IO alone.
+    window.addEventListener('scroll', updateActiveFromScroll, { passive: true });
+    window.addEventListener('resize', updateActiveFromScroll);
+
+    const observer = new IntersectionObserver(
+      () => {
+        updateActiveFromScroll();
       },
-      { rootMargin: '-18% 0% -55% 0%', threshold: 0 }
+      { rootMargin: '-18% 0% -55% 0%', threshold: [0, 1] }
     );
 
-    tocItems.forEach((item) => observer.observe(item.element));
+    headingElements.forEach((el) => observer.observe(el));
 
-    return () => observer.disconnect();
+    return () => {
+      window.removeEventListener('scroll', updateActiveFromScroll);
+      window.removeEventListener('resize', updateActiveFromScroll);
+      observer.disconnect();
+    };
   }, [tocItems]);
 
   const scrollToHeading = useCallback((id: string) => {
