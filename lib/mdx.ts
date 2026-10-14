@@ -28,6 +28,7 @@ export interface BlogPost {
   title: string;
   date: string;
   excerpt?: string;
+  excerptMdxSource?: MDXRemoteSerializeResult;
   tags?: string[];
   coverImage?: string;
   coverImageAlt?: string;
@@ -125,6 +126,19 @@ export async function getAllPosts(): Promise<BlogPost[]> {
   return posts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
+/** Lightweight serialize for frontmatter excerpts (inline code, links, emphasis — no Shiki). */
+export const renderExcerptMDX = cache(async (excerpt: string): Promise<MDXRemoteSerializeResult> => {
+  return serialize(excerpt, {
+    blockJS: false,
+    mdxOptions: {
+      remarkPlugins: [remarkGfm, remarkMath],
+      rehypePlugins: [[rehypeKatex, { strict: false }]],
+      format: 'mdx',
+    },
+    parseFrontmatter: false,
+  });
+});
+
 export const renderMDX = cache(async (content: string): Promise<MDXRemoteSerializeResult> => {
   /** @type {import('rehype-pretty-code').Options} */
   const rehypePrettyCodeOptions = {
@@ -205,11 +219,14 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | undefined>
     const { data, content } = matter(fileContents);
 
     const mdxSource = await renderMDX(content);
+    const excerpt = typeof data.excerpt === 'string' ? data.excerpt : undefined;
+    const excerptMdxSource = excerpt ? await renderExcerptMDX(excerpt) : undefined;
     return {
       slug,
       title: data.title || 'Untitled',
       date: data.date || new Date().toISOString(),
-      excerpt: data.excerpt,
+      excerpt,
+      excerptMdxSource,
       tags: data.tags || [],
       coverImage: data.coverImage,
       coverImageAlt: data.coverImageAlt,

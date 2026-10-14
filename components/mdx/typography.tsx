@@ -56,12 +56,12 @@ const SIZE_CLASSES: Record<MdxHeadingLevel, string> = {
 
 /** Shared heading → body gap (tight). Section gap comes from `mt-*`. */
 const HEADING_BOTTOM: Record<MdxHeadingLevel, string> = {
-  h1: 'mb-6',
-  h2: 'mb-4',
-  h3: 'mb-3',
-  h4: 'mb-3',
-  h5: 'mb-2',
-  h6: 'mb-2',
+  h1: 'mb-10',
+  h2: 'mb-8',
+  h3: 'mb-6',
+  h4: 'mb-6',
+  h5: 'mb-4',
+  h6: 'mb-4',
 };
 
 const BLOG_RHYTHM: Record<MdxHeadingLevel, string> = {
@@ -219,13 +219,10 @@ function isBlockElement(child: React.ReactElement): boolean {
       name === 'MdxImage' ||
       name === 'Figure' ||
       name === 'PreCustom' ||
-      name === 'LearnPreCustom' ||
       name === 'PrettyCodeFigure' ||
-      name === 'DocsPrettyFigure' ||
       name === 'CodeTabs' ||
       name === 'CodeFrame' ||
-      name === 'CodeBlock' ||
-      name === 'DocsCodeBlock'
+      name === 'CodeBlock'
     ) {
       return true;
     }

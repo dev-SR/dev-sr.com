@@ -1,8 +1,12 @@
 export {
   mdxComponents,
+  learnMdxComponents,
   mdxClientComponents,
-  mdxServerComponents,
+  createMdxComponents,
+  createMdxProseComponents,
+  mdxProseComponents,
   type FigureProps,
+  type MdxHeadingVariant,
 } from './mdx';
 
 export { CopyButton } from './mdx/copy-button';

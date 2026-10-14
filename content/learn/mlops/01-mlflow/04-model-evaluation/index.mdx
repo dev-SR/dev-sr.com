@@ -1,0 +1,607 @@
+--- 
+title: "Model Evaluation"
+excerpt: "This tutorial covers the full workflow for evaluating classical ML Models with MLflow, from the fundamentals of `mlflow.models.evaluate()` through custom metrics, validation gates, and cross-run comparison. It includes complete, runnable examples and highlights what autologging handles automatically."
+tags: ['mlops', 'mlflow', 'python', 'machine-learning']
+---
+
+## Introduction to Model Evaluation
+
+MLflow's evaluation framework provides automated model assessment for classification and regression tasks. <Mark type="underline" color="tip"> It generates *performance metrics*, *visualizations*, and *diagnostic* information through a unified API</Mark>.
+
+**Key capabilities:**
+
+- **Unified Evaluation API** — Evaluate models, Python functions, or static datasets with `mlflow.models.evaluate()` using a consistent interface.
+- **Automated Metrics & Visualizations** — Generate task-specific metrics and plots automatically, including confusion matrices, ROC curves, and feature importance with SHAP integration.
+- **Custom Metrics** — Define domain-specific evaluation criteria with `make_metric()` for business-specific performance measures.
+- **Plugin Architecture** — Extend evaluation with specialized frameworks like Giskard and Trubrics.
+
+For classification tasks, the default evaluator automatically generates accuracy, precision, recall, F1-score, ROC-AUC, precision-recall AUC, log loss, Brier score, a confusion matrix, and a classification report. For regression tasks, it generates MAE, MSE, RMSE, R², and related visualizations.
+
+---
+
+## 2. The `mlflow.models.evaluate()` Function: Parameters Explained
+
+The `evaluate()` function signature accepts the following key parameters:
+
+| Parameter | Type | Description |
+|---|---|---|
+| `model` | str / callable / pyfunc | Model URI, callable, or loaded pyfunc model. If `None`, `data` must contain a `predictions` column. |
+| `data` | DataFrame / Dataset / Spark DF | Evaluation dataset containing features and optionally targets. |
+| `model_type` | str | One of the `_ModelType` constants: `"classifier"`, `"regressor"`, etc. |
+| `targets` | str / array | Target column name or array of ground-truth labels. |
+| `evaluators` | str / list | Evaluator name(s). Use `"default"` for the built-in evaluator. |
+| `evaluator_config` | dict | Additional configurations (e.g., `col_mapping` to rename columns). |
+| `extra_metrics` | list[EvaluationMetric] | Additional metrics beyond defaults. In MLflow 3.x, custom metrics **must** go here. |
+| `custom_artifacts` | list[callable] | Functions that produce custom artifacts (plots, CSVs, etc.). |
+| `inference_params` | dict | Inference parameters (e.g., `{"max_tokens": 100}`) for deployment endpoints. |
+| `validation_thresholds` | dict | Threshold rules for promotion gating (see Section 5). |
+| `baseline_model` | str | **Removed in MLflow 3.x** — use `validate_evaluation_results` instead. |
+| `custom_metrics` | list | **Removed in MLflow 3.x** — use `extra_metrics` instead. |
+
+Key sources: `evaluators`, `evaluator_config`, `extra_metrics`, `custom_artifacts` definitions. The `inference_params` parameter. Parameter table overview.
+
+> **MLflow 3.x breaking changes:** `baseline_model=` and `custom_metrics=` were removed from `evaluate()`. Baseline comparison is now handled explicitly via `mlflow.validate_evaluation_results()`. `MetricThreshold`'s `higher_is_better` was renamed to `greater_is_better`. Custom metrics are now built with `mlflow.models.make_metric()` and passed via `extra_metrics`.
+
+---
+
+## 3. Implementing `evaluate()`: Full Working Example
+
+Below is a complete, runnable classification example using XGBoost and the breast cancer dataset. It trains a model, logs it with MLflow, evaluates it, and prints the results.
+
+```python
+"""
+Full working example: MLflow model evaluation (classification)
+Requires: mlflow>=3.0, xgboost, scikit-learn, shap
+"""
+
+import mlflow
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_breast_cancer
+from mlflow.models import infer_signature
+
+# ------------------------------------------------------------------
+# 1. Load and split data
+# ------------------------------------------------------------------
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# ------------------------------------------------------------------
+# 2. Train a model
+# ------------------------------------------------------------------
+model = xgb.XGBClassifier(
+    n_estimators=100,
+    max_depth=3,
+    learning_rate=0.1,
+    random_state=42,
+)
+model.fit(X_train, y_train)
+
+# ------------------------------------------------------------------
+# 3. Build the evaluation dataset
+# ------------------------------------------------------------------
+eval_data = X_test.copy()
+eval_data["label"] = y_test
+
+# ------------------------------------------------------------------
+# 4. Log the model and run evaluation inside a single MLflow run
+# ------------------------------------------------------------------
+with mlflow.start_run(run_name="xgb_breast_cancer_eval"):
+
+    # Infer the model signature from training data
+    signature = infer_signature(X_test, model.predict(X_test))
+
+    # Log the model artifact
+    model_info = mlflow.sklearn.log_model(
+        model,
+        name="model",
+        signature=signature,
+    )
+
+    # Run the built-in evaluation
+    result = mlflow.models.evaluate(
+        model_info.model_uri,
+        eval_data,
+        targets="label",
+        model_type="classifier",
+    )
+
+    # Access metrics programmatically
+    print(f"Accuracy:       {result.metrics['accuracy_score']:.3f}")
+    print(f"Precision:      {result.metrics['precision_score']:.3f}")
+    print(f"Recall:         {result.metrics['recall_score']:.3f}")
+    print(f"F1 Score:       {result.metrics['f1_score']:.3f}")
+    print(f"ROC AUC:        {result.metrics['roc_auc']:.3f}")
+
+    # List all generated artifacts
+    print("\nArtifacts generated:")
+    for name in result.artifacts:
+        print(f"  - {name}")
+
+    # Access the evaluation results table
+    print("\nFirst 5 rows of evaluation results:")
+    print(result.tables["eval_results_head"].head())
+```
+
+**What this example produces automatically:**
+
+- **Metrics:** accuracy, precision, recall, F1-score, ROC-AUC, precision-recall AUC, log loss, Brier score.
+- **Artifacts:** confusion matrix, ROC curve, precision-recall curve, classification report, SHAP feature importance (if `shap` is installed).
+- **Tables:** the full evaluation DataFrame with predictions and targets.
+
+For regression tasks, change `model_type="regressor"` and the evaluator will produce MAE, MSE, RMSE, R², and residual plots instead.
+
+---
+
+## 4. Custom Metrics and Artifacts
+
+### 4.1 Custom Metrics with `make_metric()`
+
+Custom metrics let you encode domain-specific performance criteria — for example, a weighted error that penalizes certain misclassifications more heavily, or a business KPI such as revenue impact.
+
+The workflow is:
+
+1. Define an `eval_fn(eval_df, builtin_metrics)` function.
+2. Wrap it with `mlflow.models.make_metric()`.
+3. Pass the resulting `EvaluationMetric` object into `extra_metrics` of `evaluate()`.
+
+The `eval_fn` receives a DataFrame with `prediction` and `target` columns plus a dictionary of built-in metrics, and must return a scalar or a tuple `(score, aggregate_score)`.
+
+```python
+"""
+Custom metric example: weighted error where false negatives cost 5x
+more than false positives (common in medical screening).
+"""
+
+import mlflow
+import numpy as np
+import pandas as pd
+from mlflow.models import make_metric
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from mlflow.models import infer_signature
+
+
+# ------------------------------------------------------------------
+# 1. Define the custom metric function
+# ------------------------------------------------------------------
+def weighted_error_fn(eval_df, _builtin_metrics):
+    """
+    Weighted error: FN cost = 5.0, FP cost = 1.0.
+    Lower is better.
+    """
+    predictions = eval_df["prediction"].values
+    targets = eval_df["target"].values
+
+    false_negatives = np.sum((targets == 1) & (predictions == 0))
+    false_positives = np.sum((targets == 0) & (predictions == 1))
+
+    total_cost = (5.0 * false_negatives) + (1.0 * false_positives)
+    normalized_cost = total_cost / len(eval_df)
+    return normalized_cost
+
+
+# Wrap the function into an MLflow EvaluationMetric
+weighted_error_metric = make_metric(
+    eval_fn=weighted_error_fn,
+    greater_is_better=False,
+    name="weighted_error",
+)
+
+
+# ------------------------------------------------------------------
+# 2. Train a model and evaluate with the custom metric
+# ------------------------------------------------------------------
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+eval_data = X_test.copy()
+eval_data["label"] = y_test
+
+with mlflow.start_run(run_name="rf_custom_metric"):
+    signature = infer_signature(X_test, model.predict(X_test))
+    model_info = mlflow.sklearn.log_model(model, name="model", signature=signature)
+
+    result = mlflow.models.evaluate(
+        model_info.model_uri,
+        eval_data,
+        targets="label",
+        model_type="classifier",
+        extra_metrics=[weighted_error_metric],
+    )
+
+    print(f"Accuracy:          {result.metrics['accuracy_score']:.3f}")
+    print(f"Weighted error:    {result.metrics['weighted_error']:.3f}")
+```
+
+The `make_metric()` signature and `eval_fn` contract are documented in the MLflow API reference.
+
+### 4.2 Custom Artifacts
+
+Custom artifacts allow you to log any diagnostic plot, CSV, or JSON file alongside your evaluation. The artifact function signature is:
+
+```python
+def custom_artifact(
+    eval_df: Union[pandas.DataFrame, pyspark.sql.DataFrame],
+    builtin_metrics: Dict[str, float],
+    artifacts_dir: str,
+) -> Dict[str, Any]:
+    ...
+```
+
+It receives the evaluation DataFrame, a dictionary of built-in metric values, and a temporary directory for storing files. It must return a dictionary mapping artifact names to artifact objects or file paths.
+
+Supported artifact object types include strings (file URIs), JSON objects, Pandas DataFrames (saved as CSV), NumPy arrays (saved as `.npy`), and Matplotlib Figures (saved as images). Other objects are pickled with the default protocol.
+
+```python
+"""
+Custom artifact example: scatter plot of predictions vs. targets
+and a sample of the evaluation DataFrame.
+"""
+
+import os
+import mlflow
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from mlflow.models import infer_signature
+
+
+# ------------------------------------------------------------------
+# 1. Define custom artifact functions
+# ------------------------------------------------------------------
+def scatter_plot(eval_df, builtin_metrics, artifacts_dir):
+    """Log a target-vs-prediction scatter plot."""
+    plt.scatter(eval_df["prediction"], eval_df["target"], alpha=0.4)
+    plt.xlabel("Prediction")
+    plt.ylabel("Target")
+    plt.title("Targets vs. Predictions")
+    plt.savefig(os.path.join(artifacts_dir, "pred_target_scatter.png"))
+    plt.close()
+    return {
+        "pred_target_scatter": os.path.join(
+            artifacts_dir, "pred_target_scatter.png"
+        )
+    }
+
+
+def prediction_sample(eval_df, _builtin_metrics, _artifacts_dir):
+    """Log the first 20 rows of the evaluation DataFrame as a CSV."""
+    return {"prediction_sample": eval_df.head(20)}
+
+
+# ------------------------------------------------------------------
+# 2. Train and evaluate with custom artifacts
+# ------------------------------------------------------------------
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+model = LogisticRegression(max_iter=1000, random_state=42)
+model.fit(X_train, y_train)
+
+eval_data = X_test.copy()
+eval_data["label"] = y_test
+
+with mlflow.start_run(run_name="lr_custom_artifacts"):
+    signature = infer_signature(X_test, model.predict(X_test))
+    model_info = mlflow.sklearn.log_model(model, name="model", signature=signature)
+
+    result = mlflow.models.evaluate(
+        model_info.model_uri,
+        eval_data,
+        targets="label",
+        model_type="classifier",
+        custom_artifacts=[scatter_plot, prediction_sample],
+    )
+
+    print("Custom artifacts logged:")
+    for name in result.artifacts:
+        print(f"  - {name}")
+```
+
+Custom artifacts are deep-copied for each function call, so mutating `eval_df` inside one artifact function does not affect others. [2†L40-L43]
+
+---
+
+## 5. Setting Validation Thresholds and Building Promotion Gates
+
+In MLflow 3.x, validation thresholds are no longer passed directly to `evaluate()`. Instead, you evaluate the candidate and baseline models separately, then call `mlflow.validate_evaluation_results()` to assert that thresholds are met. This function raises `ModelValidationFailedException` when a threshold fails — making it the natural CI gate before promoting a model version.
+
+The `MetricThreshold` class supports the following parameters:
+
+- `threshold` — a fixed numeric value the metric must meet.
+- `min_absolute_change` — the minimum absolute improvement over the baseline.
+- `min_relative_change` — the minimum relative improvement over the baseline.
+- `greater_is_better` — boolean indicating the direction of the metric.
+
+> **Note:** `MetricThreshold`'s `higher_is_better` was renamed to `greater_is_better` in MLflow 3.x.
+
+```python
+"""
+Validation threshold / promotion gate example.
+Evaluates a candidate model against a champion baseline and
+asserts that F1 improves by at least 0.01.
+"""
+
+import mlflow
+from mlflow.models import MetricThreshold
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from mlflow.models import infer_signature
+
+
+# ------------------------------------------------------------------
+# 1. Prepare data
+# ------------------------------------------------------------------
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+holdout_df = X_test.copy()
+holdout_df["churned"] = y_test
+
+
+# ------------------------------------------------------------------
+# 2. Train candidate and baseline models
+# ------------------------------------------------------------------
+candidate_model = RandomForestClassifier(n_estimators=200, random_state=42)
+candidate_model.fit(X_train, y_train)
+
+baseline_model = LogisticRegression(max_iter=1000, random_state=42)
+baseline_model.fit(X_train, y_train)
+
+
+# ------------------------------------------------------------------
+# 3. Log both models and evaluate separately
+# ------------------------------------------------------------------
+with mlflow.start_run(run_name="candidate_model"):
+    sig = infer_signature(X_test, candidate_model.predict(X_test))
+    candidate_info = mlflow.sklearn.log_model(
+        candidate_model, name="model", signature=sig
+    )
+    candidate_result = mlflow.models.evaluate(
+        model=candidate_info.model_uri,
+        data=holdout_df,
+        targets="churned",
+        model_type="classifier",
+    )
+
+with mlflow.start_run(run_name="baseline_model"):
+    sig = infer_signature(X_test, baseline_model.predict(X_test))
+    baseline_info = mlflow.sklearn.log_model(
+        baseline_model, name="model", signature=sig
+    )
+    baseline_result = mlflow.models.evaluate(
+        model=baseline_info.model_uri,
+        data=holdout_df,
+        targets="churned",
+        model_type="classifier",
+    )
+
+
+# ------------------------------------------------------------------
+# 4. Validate: candidate must beat baseline by >= 0.01 F1
+# ------------------------------------------------------------------
+try:
+    mlflow.validate_evaluation_results(
+        candidate_result=candidate_result,
+        baseline_result=baseline_result,
+        validation_thresholds={
+            "f1_score": MetricThreshold(
+                min_absolute_change=0.01,
+                greater_is_better=True,
+            ),
+        },
+    )
+    print("✅ Validation passed — candidate is ready for promotion.")
+except mlflow.exceptions.ModelValidationFailedException as e:
+    print(f"❌ Validation failed — candidate NOT ready for promotion: {e}")
+```
+
+**How it works in CI:** The `validate_evaluation_results` call raises `ModelValidationFailedException` when a threshold is not met, which is the natural CI gate before a `copy_model_version` promotion.
+
+---
+
+## 6. Comparing Runs of an Experiment
+
+MLflow offers two ways to compare evaluation runs: the **UI** and the **SDK**.
+
+### 6.1 UI Comparison
+
+In the MLflow UI:
+
+1. Click **Experiments** in the sidebar.
+2. Click the experiment name to open it.
+3. In the left sidebar, click **Evaluation runs**.
+4. Check the boxes for the runs you want to compare.
+5. From the **Actions** dropdown, select **Compare**.
+
+The right pane displays a comparison of each trace in the selected runs. Click a request identifier to see full traces side by side, or click **See details** for assessment details and **See detailed trace view** for trace details.
+
+### 6.2 Programmatic Comparison with the SDK
+
+You can fetch runs with `mlflow.search_runs()` and compare metrics programmatically. This is useful for automated reports or CI dashboards.
+
+```python
+"""
+Programmatic comparison of two evaluation runs.
+"""
+
+import mlflow
+import pandas as pd
+
+# Replace with the actual run IDs from your evaluation runs
+run_id_v1 = "your_run_id_v1"
+run_id_v2 = "your_run_id_v2"
+
+# Fetch runs separately (mlflow.search_runs does not support IN/OR on run_id)
+run_v1_df = mlflow.search_runs(filter_string=f"run_id = '{run_id_v1}'")
+run_v2_df = mlflow.search_runs(filter_string=f"run_id = '{run_id_v2}'")
+
+# Identify metric columns (they start with "metrics.")
+metric_cols = [col for col in run_v1_df.columns if col.startswith("metrics.")]
+
+# Build a comparison table
+comparison_data = []
+for metric in metric_cols:
+    metric_name = metric.replace("metrics.", "")
+    v1_score = run_v1_df[metric].iloc[0]
+    v2_score = run_v2_df[metric].iloc[0]
+    improvement = v2_score - v1_score
+    comparison_data.append({
+        "Metric": metric_name,
+        "V1 Score": f"{v1_score:.4f}",
+        "V2 Score": f"{v2_score:.4f}",
+        "Improvement": f"{improvement:+.4f}",
+        "Improved": "✓" if improvement >= 0 else "✗",
+    })
+
+comparison_df = pd.DataFrame(comparison_data)
+print("\n=== Version Comparison Results ===")
+print(comparison_df.to_string(index=False))
+
+# Overall improvement
+avg_v1 = run_v1_df[metric_cols].mean(axis=1).iloc[0]
+avg_v2 = run_v2_df[metric_cols].mean(axis=1).iloc[0]
+print(f"\nOverall average improvement: {avg_v2 - avg_v1:+.4f}")
+```
+
+This pattern — fetching runs with `mlflow.search_runs()` and comparing metric columns — is the standard programmatic approach for evaluation-run comparison.
+
+---
+
+## 7. What Autologging Handles Automatically
+
+MLflow's autologging captures a wide range of information during training with a single call to `mlflow.autolog()` or a framework-specific call such as `mlflow.sklearn.autolog()`.
+
+### 7.1 What Gets Logged Automatically
+
+When you call `mlflow.autolog()`, MLflow captures:
+
+- **Model parameters and hyperparameters** — e.g., `n_estimators`, `max_depth`, `learning_rate`.
+- **Training and validation metrics** — e.g., accuracy, loss, F1 score, and any custom metrics computed during training.
+- **Model artifacts and checkpoints** — the fitted model, weights, and configuration files.
+- **Training plots and visualizations** — where supported by the framework.
+- **Datasets** — input datasets used for training (when `log_datasets=True`).
+- **GenAI traces** — in MLflow 3.x, `log_traces=True` is enabled by default, capturing traces for GenAI and LLM workloads.
+
+### 7.2 Supported Frameworks
+
+Autologging supports a broad range of frameworks, including **TensorFlow, PyTorch, scikit-learn, XGBoost, PySpark ML, and AutoGluon**. For a full list, see the MLflow autologging documentation.
+
+### 7.3 Default Autolog Configuration
+
+The default configuration when you call `mlflow.autolog()` is:
+
+```python
+mlflow.autolog(
+    log_input_examples=False,
+    log_model_signatures=True,
+    log_models=True,
+    log_datasets=True,
+    log_traces=True,
+    disable=False,
+    exclusive=True,
+    disable_for_unsupported_versions=True,
+    silent=True,
+    extra_tags=None,
+    exclude_flavors=None,
+)
+```
+
+This configuration means models are logged automatically, signatures are inferred, datasets are tracked, and traces are captured — all without additional instrumentation.
+
+### 7.4 What Autologging Does NOT Handle
+
+Autologging is **not a replacement for `evaluate()`**. It captures training-time metrics and artifacts, but it does **not**:
+
+- Run a held-out evaluation with a separate test dataset.
+- Generate confusion matrices, ROC curves, or SHAP explanations for the evaluation set.
+- Compute custom evaluation metrics defined with `make_metric()`.
+- Enforce validation thresholds or promotion gates.
+- Compare candidate vs. baseline model performance.
+
+In practice, you use autologging during **training** and `mlflow.models.evaluate()` during **evaluation**. They are complementary: autologging gives you a complete training record, while `evaluate()` gives you a rigorous, reproducible assessment on held-out data.
+
+### 7.5 Customizing Autologging
+
+To log additional metrics, parameters, or tags alongside autologged data, set `exclusive=False`:
+
+```python
+mlflow.autolog(exclusive=False)
+
+# Then log additional items with the standard tracking API
+mlflow.log_param("custom_param", 42)
+mlflow.log_metric("custom_metric", 0.95)
+mlflow.set_tag("team", "fraud-detection")
+```
+
+Setting `exclusive=False` allows the tracking API to coexist with autologging, so you can enrich the run with domain-specific metadata without disabling autologging.
+
+---
+
+## 8. Best Practices for MLflow 3.x
+
+### 8.1 Use `extra_metrics`, Not `custom_metrics`
+
+In MLflow 3.x, `custom_metrics=` was removed from `evaluate()`. All custom metrics must be built with `mlflow.models.make_metric()` and passed via `extra_metrics=`. This is a hard breaking change from MLflow 2.x.
+
+### 8.2 Separate Candidate and Baseline Evaluation
+
+Instead of passing `baseline_model=` to `evaluate()`, evaluate the candidate and baseline models in separate runs, then compare them with `mlflow.validate_evaluation_results()`. This is more explicit, easier to debug, and integrates cleanly with CI pipelines.
+
+### 8.3 Pin the Evaluation Dataset
+
+Always evaluate on a fixed, versioned holdout set. Log the evaluation dataset as an MLflow artifact or dataset so that every run is reproducible and auditable.
+
+### 8.4 Use `evaluator_config` for Column Mapping
+
+If your dataset uses different column names than the evaluator expects (e.g., `prediction` instead of `pred`, or `target` instead of `label`), use `evaluator_config={"col_mapping": {"prediction": "pred", "target": "label"}}` to map them without renaming columns in the DataFrame. [1†L27-L30]
+
+### 8.5 Install Optional Dependencies
+
+The default evaluator uses SHAP for feature importance plots. Install `shap` alongside MLflow to unlock those visualizations:
+
+```bash
+pip install mlflow shap
+```
+
+### 8.6 Distinguish Classical vs. GenAI Evaluation
+
+If your model is an LLM, agent, or RAG application, use `mlflow.genai.evaluate()` with `Scorer` objects instead of `mlflow.models.evaluate()` with `EvaluationMetric` objects. The two systems are explicitly non-interoperable.
+
+### 8.7 Log the Model Signature
+
+Always pass `signature=infer_signature(X_test, model.predict(X_test))` when logging the model. This ensures the evaluation harness can validate input/output schemas and prevents silent failures at inference time.
+
+---
+
+## Summary
+
+This tutorial covered the complete MLflow 3.x model evaluation workflow:
+
+| Topic | Key API | MLflow 3.x Note |
+|---|---|---|
+| Built-in evaluation | `mlflow.models.evaluate()` | Use `model_type="classifier"` or `"regressor"` |
+| Custom metrics | `make_metric()` → `extra_metrics` | `custom_metrics=` removed in 3.x |
+| Custom artifacts | `custom_artifacts=[fn]` | Supports plots, CSVs, JSON, NumPy |
+| Validation thresholds | `mlflow.validate_evaluation_results()` | Replaces `baseline_model=` in `evaluate()` |
+| Run comparison | `mlflow.search_runs()` + pandas | UI also supports side-by-side comparison |
+| Autologging | `mlflow.autolog()` | Captures training metrics/models; complement with `evaluate()` |
+
+For the latest API details, always refer to the official MLflow Model Evaluation documentation and the `mlflow.models.evaluate()` API reference.

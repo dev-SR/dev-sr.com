@@ -11,6 +11,8 @@ import { PageTopGlow } from '@/components/page-top-glow';
 import { CompactTableOfContents, TableOfContents } from '@/components/table-of-contents';
 import { DocsSidebar } from '@/components/learn/docs-sidebar';
 import { LearnFloatingNav } from '@/components/learn/learn-floating-nav';
+import { MdxExcerpt } from '@/components/mdx/excerpt';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { MdxContentSkeleton } from '@/components/loading-skeleton';
 import {
@@ -20,8 +22,8 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 
-const LearnMdxRenderer = dynamic(
-  () => import('@/components/learn/learn-mdx-renderer').then((mod) => mod.LearnMdxRenderer),
+const MdxRenderer = dynamic(
+  () => import('@/components/mdx/renderer').then((mod) => mod.MdxRenderer),
   {
     ssr: false,
     loading: () => <MdxContentSkeleton />,
@@ -49,15 +51,21 @@ export function LearnArticleClient({
     <div className="relative bg-background">
       <PageTopGlow />
       <Header />
-      <div className="mx-auto mt-28 px-4 pb-16 sm:px-6 lg:px-16">
-        <div className="grid items-start gap-8 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]">
-          <div className="sticky top-28 hidden 2xl:block">
+      <div className="mx-auto mt-28 max-w-[100rem] px-4 pb-20 sm:px-6 lg:px-10 xl:px-12">
+        {/*
+          Mobile: 1 col (article)
+          lg: 2 col — article | TOC
+          2xl: 3 col — chapters | article | TOC
+          Hidden asides use display:none so they don't occupy tracks.
+        */}
+        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_16rem] 2xl:grid-cols-[18rem_minmax(0,1fr)_18rem]">
+          <aside className="sticky top-28 hidden self-start 2xl:block">
             {courseNav && <DocsSidebar course={courseNav} />}
-          </div>
+          </aside>
 
           <article className="min-w-0">
-            <header className="mb-8 border-b border-border/60 pb-6">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+            <header className="mb-10 border-b border-border/60 pb-8">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
                   <Link
                     href="/learn"
@@ -82,25 +90,46 @@ export function LearnArticleClient({
                   Raw
                 </Link>
               </div>
-              <ViewTransition name={`learn-title-${transitionSlug}`} share="post-title">
-                <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                  {page.title}
-                </h1>
-              </ViewTransition>
-              {page.excerpt && (
-                <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
-                  <p className="mt-3 max-w-3xl text-lg leading-relaxed text-muted-foreground">
-                    {page.excerpt}
-                  </p>
-                </ViewTransition>
-              )}
+
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+                <div className="min-w-0">
+                  <ViewTransition name={`learn-title-${transitionSlug}`} share="post-title">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                      {page.title}
+                    </h1>
+                  </ViewTransition>
+                  {page.excerptMdxSource && (
+                    <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
+                      <MdxExcerpt
+                        mdxSource={page.excerptMdxSource}
+                        className="mt-3 max-w-3xl text-md font-light leading-relaxed text-muted-foreground"
+                      />
+                    </ViewTransition>
+                  )}
+                </div>
+
+                {(page.badge || (page.tags && page.tags.length > 0)) && (
+                  <div className="flex flex-wrap gap-2 lg:justify-end lg:pb-1">
+                    {page.badge && (
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {page.badge}
+                      </Badge>
+                    )}
+                    {page.tags?.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
             </header>
 
             <div className="prose prose-lg max-w-none mdx-content learn-content">
-              <LearnMdxRenderer mdxSource={page.mdxSource} />
+              <MdxRenderer mdxSource={page.mdxSource} variant="learn" />
             </div>
 
-            <div className="mt-12 grid gap-4 border-t border-border/60 pt-8 md:grid-cols-2">
+            <div className="mt-12 grid gap-4 border-t border-border/60 pt-8 sm:grid-cols-2">
               {previous ? (
                 <Card className="group hover:shadow-md">
                   <CardContent className="p-4">
@@ -120,7 +149,7 @@ export function LearnArticleClient({
                 <div />
               )}
               {next && (
-                <Card className="group hover:shadow-md md:col-start-2">
+                <Card className="group hover:shadow-md sm:col-start-2">
                   <CardContent className="p-4">
                     <div className="mb-2 flex items-center justify-end gap-2 text-sm text-muted-foreground">
                       Next
@@ -138,7 +167,7 @@ export function LearnArticleClient({
             </div>
           </article>
 
-          <aside className="sticky top-28 hidden 2xl:block">
+          <aside className="sticky top-28 hidden self-start lg:block">
             <TableOfContents className="mb-0" />
           </aside>
         </div>

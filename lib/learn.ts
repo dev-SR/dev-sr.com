@@ -4,7 +4,7 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import { cache } from 'react';
 import type { MDXRemoteSerializeResult } from 'next-mdx-remote';
-import { renderMDX } from '@/lib/mdx';
+import { renderExcerptMDX, renderMDX } from '@/lib/mdx';
 
 const learnDirectory = path.join(process.cwd(), 'content', 'learn');
 
@@ -21,6 +21,7 @@ export interface LearnPage {
   slug: string;
   title: string;
   excerpt?: string;
+  excerptMdxSource?: MDXRemoteSerializeResult;
   tags?: string[];
   icon?: string;
   order?: number;
@@ -229,12 +230,14 @@ async function loadLearnPageFromPath(relativePath: string): Promise<LearnPage | 
     const courseSlug = slug.split('/')[0] ?? slug;
     const mdxSource = await renderMDX(content);
     const excerpt = resolveExcerpt(data as Record<string, unknown>);
+    const excerptMdxSource = excerpt ? await renderExcerptMDX(excerpt) : undefined;
     const tags = parseTags(data.tags);
 
     return {
       slug,
       title: data.title || 'Untitled',
       excerpt,
+      excerptMdxSource,
       tags,
       icon: data.icon,
       order: data.order,

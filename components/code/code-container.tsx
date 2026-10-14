@@ -11,7 +11,7 @@ export function CodeContainer({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn('overflow-hidden rounded-xl border border-border bg-card/80', className)}>
+    <div className={cn('overflow-hidden rounded-xl border border-border bg-card/80 my-6', className)}>
       {children}
     </div>
   );

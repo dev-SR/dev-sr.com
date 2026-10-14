@@ -217,3 +217,102 @@ Here are some screenshots of the MLflow UI:
 />
 
 
+## 🍟 Autologging
+
+Auto logging is a powerful feature that allows you to log metrics, parameters, and models without the need for explicit log statements. All you need to do is to call `mlflow.autolog()` before your training code.
+
+
+```python
+import mlflow
+
+mlflow.autolog()
+
+with mlflow.start_run():
+    # your training code goes here
+    ...
+```
+
+This will enable MLflow to automatically log various information about your run, including:
+
+- `Metrics` - MLflow pre-selects a set of metrics to log, based on what model and library you use
+- `Parameters` - hyper params specified for the training, plus default values provided by the library if not explicitly set
+- `Model Signature` - logs Model signature instance, which describes input and output schema of the model
+- `Artifacts` - e.g. model checkpoints
+- `Dataset` - dataset object used for training (if applicable), such as tensorflow.data.Dataset
+
+autologging function signature:
+
+```python
+def autolog(
+    log_input_examples: bool = False,
+    log_model_signatures: bool = True,
+    log_models: bool = True,
+    log_datasets: bool = True,
+    log_traces: bool = True,
+    disable: bool = False,
+    exclusive: bool = False,
+    disable_for_unsupported_versions: bool = False,
+    silent: bool = False,
+    extra_tags: dict[str, str] | None = None,
+    exclude_flavors: list[str] | None = None
+) -> None
+```
+
+### 📝 Example
+
+```python showLineNumbers {7,13}
+import mlflow
+
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_diabetes
+from sklearn.ensemble import RandomForestRegressor
+
+mlflow.autolog(log_input_examples=True)
+
+db = load_diabetes()
+X_train, X_test, y_train, y_test = train_test_split(db.data, db.target)
+
+rf = RandomForestRegressor(n_estimators=100, max_depth=6, max_features=3)
+# MLflow triggers logging automatically upon model fitting
+rf.fit(X_train, y_train)
+```
+
+
+### 📝 Best Practice Example
+
+Even with autologging, start an explicit run if you want to add custom tags or parameters.
+
+```python showLineNumbers {2,10-12,29}
+# Enable autologging
+mlflow.autolog(log_input_examples=True)
+
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+# Best practice:
+# Even with autologging, start an explicit run
+# if you want to add custom tags or parameters.
+with mlflow.start_run(run_name="rf_classifier_autolog") as run:
+    mlflow.set_tags(
+        {
+            "project": "mlflow_examples",
+            "logging_mode": "autolog",
+            "owner": "data_science_team",
+        }
+    )
+
+    model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+
+    model.fit(X_train, y_train)
+
+    train_accuracy = model.score(X_train, y_train)
+    test_accuracy = model.score(X_test, y_test)
+
+    # Manual logging can still be combined with autologging
+    mlflow.log_metric("custom_train_accuracy", train_accuracy)
+    mlflow.log_metric("custom_test_accuracy", test_accuracy)
+
+```

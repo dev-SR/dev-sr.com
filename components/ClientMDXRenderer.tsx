@@ -1,9 +1,8 @@
 'use client';
 
-import { MDXRemote } from 'next-mdx-remote';
+import { MdxRenderer } from '@/components/mdx/renderer';
 import type { MDXRemoteSerializeResult } from 'next-mdx-remote';
-import { mdxComponents } from '@/components/mdx';
 
 export default function ClientMDXRenderer({ mdxSource }: { mdxSource: MDXRemoteSerializeResult }) {
-  return <MDXRemote {...mdxSource} components={mdxComponents} />;
+  return <MdxRenderer mdxSource={mdxSource} variant="blog" />;
 }

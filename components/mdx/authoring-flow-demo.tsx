@@ -1,6 +1,6 @@
 'use client';
 
-import { FlowDiagram } from '@/components/learn/flow-diagram';
+import { FlowDiagram } from './flow-diagram';
 
 /** Hardcoded demo — avoids MDX stripping inline `script={\`...\`}` props. */
 const AUTHORING_FLOW_SCRIPT = `nodes:

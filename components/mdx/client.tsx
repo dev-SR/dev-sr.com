@@ -11,22 +11,23 @@ import { PrettyCodeFigure } from './pretty-code-figure';
 import { AuthoringPathDemo } from './authoring-path-demo';
 import { AuthoringFlowDemo } from './authoring-flow-demo';
 import { Mark, Sidenote } from './mark';
-import { ComponentPreview } from '@/components/learn/component-preview';
-import { Callout } from '@/components/learn/callout';
-import { CommandBlock } from '@/components/learn/command-block';
-import { DocsFileTabs } from '@/components/learn/docs-file-tabs';
-import { InstallTab, InstallTabs } from '@/components/learn/install-tabs';
+import { ComponentPreview } from './component-preview';
+import { Callout } from './callout';
+import { CommandBlock } from './command-block';
+import { DocsFileTabs } from './docs-file-tabs';
+import { InstallTab, InstallTabs } from './install-tabs';
 import {
   ItemList,
   LineItem,
   ListItem,
   ListSubtitle,
   ListTitle,
-} from '@/components/learn/item-list';
-import { Step, Steps } from '@/components/learn/steps';
-import { Guide, GuideStep } from '@/components/learn/guide';
-import { Mermaid } from '@/components/learn/mermaid';
-import { FlowDiagram } from '@/components/learn/flow-diagram';
+} from './item-list';
+import { Step, Steps } from './steps';
+import { Guide, GuideStep } from './guide';
+import { Mermaid } from './mermaid';
+import { FlowDiagram } from './flow-diagram';
+import { gsapDemoComponents } from './gsap-demos/mdx-registry';
 
 const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
   loading: () => (
@@ -36,6 +37,7 @@ const PathVisualizer = dynamic(() => import('@/components/PathVisualizer'), {
   ),
 });
 
+/** Shared MDX shortcodes + code elements — one look for blog and learn. */
 export const mdxClientComponents = {
   figure: PrettyCodeFigure,
   code: CodeCustom,
@@ -47,7 +49,6 @@ export const mdxClientComponents = {
   AuthoringFlowDemo,
   Mark,
   Sidenote,
-  // Learn components — available so the authoring guide can show live results
   ComponentPreview,
   Callout,
   DocsFileTabs,
@@ -65,6 +66,7 @@ export const mdxClientComponents = {
   GuideStep,
   Mermaid,
   FlowDiagram,
+  ...gsapDemoComponents,
   Button,
   Badge,
   Card,

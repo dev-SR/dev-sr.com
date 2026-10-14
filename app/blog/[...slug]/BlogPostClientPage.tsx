@@ -12,6 +12,7 @@ import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
 import { PageTopGlow } from '@/components/page-top-glow';
 import { MdxContentSkeleton } from '@/components/loading-skeleton';
+import { MdxExcerpt } from '@/components/mdx/excerpt';
 import { ViewTransition } from 'react';
 
 const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
@@ -95,9 +96,12 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
             </ViewTransition>
 
             {/* Excerpt */}
-            {post.excerpt && (
+            {post.excerptMdxSource && (
               <ViewTransition name={`post-excerpt-${transitionSlug}`} share="post-excerpt">
-                <p className="mb-6 text-xl leading-relaxed text-muted-foreground">{post.excerpt}</p>
+                <MdxExcerpt
+                  mdxSource={post.excerptMdxSource}
+                  className="mb-6 text-xl leading-relaxed text-muted-foreground"
+                />
               </ViewTransition>
             )}
 

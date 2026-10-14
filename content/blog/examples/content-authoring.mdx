@@ -1019,7 +1019,7 @@ Tab chrome is detached from the body: Preview gets the card; Code uses the code 
 
 One-shot motion (page load, stagger in) should set `replay` so readers can remount without a refresh. Interactive demos (click / drag) usually omit `replay`. Scroll/pin demos use `flush` and a tall `previewClassName`.
 
-**GSAP lessons:** always pair the TSX tab with an **HTML markup tab** inside `DocsFileTabs`. `ComponentPreview` routes `DocsFileTabs` to the Code tab automatically. Custom preview components are registered in `components/learn/gsap-demos/mdx-registry.tsx` — do not import them in the MDX file.
+**GSAP lessons:** always pair the TSX tab with an **HTML markup tab** inside `DocsFileTabs`. `ComponentPreview` routes `DocsFileTabs` to the Code tab automatically. Custom preview components are registered in `components/mdx/gsap-demos/mdx-registry.tsx` — do not import them in the MDX file.
 
 **Source** (GSAP multi-file pattern)
 

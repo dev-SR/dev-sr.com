@@ -1,0 +1,78 @@
+---
+title: 'Content authoring (minimal)'
+date: '2026-10-14'
+excerpt: 'Agent-sized MDX rules for this site — what Learn courses actually use.'
+tags: ['meta', 'mdx', 'authoring']
+---
+
+Minimal rules for writing MDX that matches this site.
+
+## Native MD
+
+all native MDX features are supported, including:
+- headings
+- lists
+- code blocks
+- tables
+- images
+- links
+- bold, italic, underline, etc.
+
+
+
+## Custom components
+
+### Code
+
+```python title="train.py"
+with mlflow.start_run():
+    mlflow.log_param("lr", 0.01)
+```
+
+### Mark
+
+```mdx
+<Mark type="underline" color="tip">key phrase</Mark>
+```
+
+### Guide
+
+<Guide title="Setup" numbered>
+  <GuideStep title="Install">
+
+```bash
+dotnet new aspire-starter -n ShopApp
+```
+
+  </GuideStep>
+</Guide>
+
+### DocsFileTabs (Learn multi-file)
+
+<DocsFileTabs title="Files">
+
+```csharp title="AppHost/Program.cs"
+var builder = DistributedApplication.CreateBuilder(args);
+```
+
+```ts title="lib/utils.ts"
+export function cn(...inputs: ClassValue[]) {}
+```
+</DocsFileTabs>
+
+### Callout / install
+
+<Callout variant="tip" title="Tip">Prefer transforms over layout props.</Callout>
+
+<InstallTabs>
+  <InstallTab value="cli" label="CLI">
+    <CommandBlock npm="npx foo init" pnpm="pnpm dlx foo init" />
+  </InstallTab>
+  <InstallTab value="manual" label="Manual">
+    <Steps>
+      <Step>Add the package.</Step>
+      <Step>Wire the host.</Step>
+    </Steps>
+  </InstallTab>
+</InstallTabs>
+

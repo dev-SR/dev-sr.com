@@ -1,13 +1,20 @@
 'use client';
 
 import { mdxClientComponents } from './client';
-import { mdxServerComponents } from './server';
+import { createMdxProseComponents } from './prose';
+import type { MdxHeadingVariant } from './typography';
 
-export const mdxComponents = {
-  ...mdxServerComponents,
-  ...mdxClientComponents,
-};
+export function createMdxComponents(variant: MdxHeadingVariant = 'blog') {
+  return {
+    ...createMdxProseComponents(variant),
+    ...mdxClientComponents,
+  };
+}
+
+export const mdxComponents = createMdxComponents('blog');
+export const learnMdxComponents = createMdxComponents('learn');
 
 export { mdxClientComponents } from './client';
-export { mdxServerComponents } from './server';
+export { createMdxProseComponents, mdxProseComponents } from './prose';
 export type { FigureProps } from './figure';
+export type { MdxHeadingVariant } from './typography';

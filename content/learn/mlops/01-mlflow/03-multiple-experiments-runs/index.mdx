@@ -4,6 +4,9 @@ excerpt: "Learn how to use multiple experiments and runs"
 tags: ['mlops', 'mlflow', 'python', 'machine-learning']
 ---
 
+## 🤖 Creating Multiple Experiments & Runs
+
+
 You can create many `experiments` and nested/child `runs`. Where:
 
 <ItemList>
@@ -57,10 +60,9 @@ You can create many `experiments` and nested/child `runs`. Where:
     </ListItem>
 </ItemList>
 
+## 📝 Example Code
 
-## 🤖 Creating Multiple Experiments & Runs
-
-```python showLineNumbers {1}
+```python showLineNumbers {11-14,22,34,38-42,61-64,72,84,88-92}
 import numpy as np
 import mlflow
 from sklearn.datasets import load_diabetes, load_breast_cancer
@@ -170,534 +172,49 @@ with mlflow.start_run(run_name="rf_classifier_sweep") as parent_run_c:
 
 ```
 
+In the code above, we created two experiments: `02_regression_experiment` and `02_classification_experiment`. We also created a nested run for the regression experiment.
 
-### Autologging
-
-Add one line to automatically log parameters, metrics, and models.
-
-```python
-import mlflow
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.datasets import load_diabetes
-from sklearn.model_selection import train_test_split
-
-mlflow.autolog()
-
-db = load_diabetes()
-X_train, X_test, y_train, y_test = train_test_split(db.data, db.target)
-
-rf = RandomForestRegressor(n_estimators=100, max_depth=6)
-rf.fit(X_train, y_train)  # MLflow logs automatically
+```text
+02_regression_experiment
+├── rf_regression_baseline
+├── rf_regression_sweep
+    ├── rf_reg_50_3
+    ├── rf_reg_50_5
+    ├── rf_reg_100_3
+    └── rf_reg_100_5
 ```
 
-**Supported libraries:** Scikit-learn, XGBoost, LightGBM, PyTorch, Keras/TensorFlow, Spark, and more.
-
-**Customize autologging:**
-
-```python
-mlflow.autolog(
-    log_model_signatures=False,
-    extra_tags={"team": "data-science"}
-)
+```text
+02_classification_experiment
+├── rf_classifier_baseline
+├── rf_classifier_sweep
+    ├── rf_clf_50_3
+    ├── rf_clf_50_7
+    ├── rf_clf_100_3
+    └── rf_clf_100_7
 ```
 
-📖 **Official docs:** [Automatic Logging](https://mlflow.org/docs/latest/ml/tracking/autolog/)
 
----
 
-## 🖥️ 7 – Tracking Server
+## 📊 Visualizing Multiple Experiments & Runs
 
-Start a central server for team collaboration.
-
-### CLI
+You can visualize multiple experiments and runs using the MLflow UI.
 
 ```bash
-# Basic server with SQLite backend and local artifact root
-mlflow server \
-  --backend-store-uri sqlite:///mlflow.db \
-  --default-artifact-root ./mlruns \
-  --host 0.0.0.0 \
-  --port 5000
+mlflow ui
 ```
 
-```bash
-# Production server with PostgreSQL + S3
-mlflow server \
-  --backend-store-uri postgresql://user:pass@localhost:5432/mlflow \
-  --default-artifact-root s3://my-bucket/mlflow-artifacts \
-  --host 0.0.0.0 \
-  --port 5000
-```
+<Figure
+    src="/learn/mlops/mlflow/exp_run.png"
+    alt="MLflow UI showing two experiments we created in the previous example code."    
+    caption="MLflow UI showing two experiments we created in the previous example code."
+    width="960"
+/>
+
+<Figure
+    src="/learn/mlops/mlflow/exp_run2.png"
+    alt="Classification experiment showing the baseline run and the nested runs of the hyperparameter sweep."
+    caption="Classification experiment showing the baseline run and the nested runs of the hyperparameter sweep of the classification experiment."
+    width="960"
+/>
 
-### Docker Compose Example
-
-```yaml
-version: '3.8'
-services:
-  mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.10.2
-    ports:
-      - "5000:5000"
-    environment:
-      - MLFLOW_BACKEND_STORE_URI=sqlite:///mlflow.db
-      - MLFLOW_DEFAULT_ARTIFACT_ROOT=./mlruns
-    command: >
-      mlflow server --host 0.0.0.0 --port 5000
-```
-
-### Client Connection
-
-```python
-import mlflow
-mlflow.set_tracking_uri("http://localhost:5000")
-```
-
-📖 **Official docs:** [Tracking Server Architecture](https://mlflow.org/docs/latest/self-hosting/architecture/tracking-server/)
-
----
-
-## 📦 8 & 9 – Models & Custom Models
-
-### Logging a Built-in Model
-
-```python
-import mlflow.sklearn
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import load_iris
-from mlflow.models import infer_signature
-
-X, y = load_iris(return_X_y=True, as_frame=True)
-model = RandomForestClassifier().fit(X, y)
-
-signature = infer_signature(X, model.predict(X))
-
-with mlflow.start_run():
-    mlflow.sklearn.log_model(
-        sk_model=model,
-        artifact_path="model",
-        signature=signature,
-        input_example=X.iloc[[0]]
-    )
-```
-
-### Custom PyFunc Model
-
-```python
-import mlflow
-import pandas as pd
-
-class CustomModel(mlflow.pyfunc.PythonModel):
-    def predict(self, context, model_input):
-        # Custom logic: return square of input
-        return model_input ** 2
-
-with mlflow.start_run():
-    model_info = mlflow.pyfunc.log_model(
-        artifact_path="model",
-        python_model=CustomModel()
-    )
-
-loaded_model = mlflow.pyfunc.load_model(model_info.model_uri)
-print(loaded_model.predict(pd.DataFrame([2, 3, 4])))  # [4, 9, 16]
-```
-
-**Custom model with artifacts:**
-
-```python
-class ModelWithArtifacts(mlflow.pyfunc.PythonModel):
-    def load_context(self, context):
-        import pickle
-        with open(context.artifacts["model_file"], "rb") as f:
-            self.model = pickle.load(f)
-
-    def predict(self, context, model_input):
-        return self.model.predict(model_input)
-
-mlflow.pyfunc.log_model(
-    artifact_path="model",
-    python_model=ModelWithArtifacts(),
-    artifacts={"model_file": "path/to/model.pkl"}
-)
-```
-
-📖 **Official docs:** [Custom PyFunc Models](https://mlflow.org/docs/latest/ml/model/custom-pyfunc/)
-
----
-
-## 📊 10 – Model Evaluation
-
-Automated metrics and visualizations for classification/regression.
-
-### Classification Example
-
-```python
-import mlflow
-import xgboost as xgb
-from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
-from mlflow.models import infer_signature
-
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-
-model = xgb.XGBClassifier().fit(X_train, y_train)
-
-eval_data = X_test.copy()
-eval_data["label"] = y_test
-
-with mlflow.start_run():
-    signature = infer_signature(X_test, model.predict(X_test))
-    model_info = mlflow.sklearn.log_model(model, "model", signature=signature)
-
-    result = mlflow.models.evaluate(
-        model_info.model_uri,
-        eval_data,
-        targets="label",
-        model_type="classifier"
-    )
-
-    print(f"Accuracy: {result.metrics['accuracy_score']:.3f}")
-    print(f"F1 Score: {result.metrics['f1_score']:.3f}")
-    print(f"ROC AUC: {result.metrics['roc_auc']:.3f}")
-```
-
-### Regression Example
-
-```python
-from sklearn.datasets import fetch_california_housing
-from sklearn.linear_model import LinearRegression
-
-X, y = fetch_california_housing(return_X_y=True, as_frame=True)
-model = LinearRegression().fit(X, y)
-
-eval_data = X.copy()
-eval_data["target"] = y
-
-result = mlflow.models.evaluate(
-    model_info.model_uri,
-    eval_data,
-    targets="target",
-    model_type="regressor"
-)
-```
-
-**Auto‑generated:** accuracy, precision, recall, F1, ROC‑AUC (classification); MSE, RMSE, R², MAE (regression); confusion matrix, ROC curve, SHAP feature importance.
-
-📖 **Official docs:** [Model Evaluation](https://mlflow.org/docs/latest/ml/evaluation/)
-
----
-
-## 🗂️ 11 – Model Registry
-
-Central catalog for versioning and stage management.
-
-### Register a Model
-
-```python
-import mlflow
-from mlflow.tracking import MlflowClient
-
-with mlflow.start_run() as run:
-    # ... train and log model ...
-    model_uri = f"runs:/{run.info.run_id}/model"
-    model_version = mlflow.register_model(model_uri, "iris-classifier")
-    print(f"Name: {model_version.name}, Version: {model_version.version}")
-```
-
-### Transition Stages
-
-```python
-client = MlflowClient()
-
-# Promote to Staging
-client.transition_model_version_stage(
-    name="iris-classifier",
-    version=1,
-    stage="Staging"
-)
-
-# Promote to Production (archive old production versions)
-client.transition_model_version_stage(
-    name="iris-classifier",
-    version=1,
-    stage="Production",
-    archive_existing_versions=True
-)
-```
-
-### Load Model by Stage
-
-```python
-import mlflow.pyfunc
-model = mlflow.pyfunc.load_model("models:/iris-classifier/Production")
-predictions = model.predict(X_test)
-```
-
-📖 **Official docs:** [Model Registry](https://mlflow.org/docs/latest/ml/model-registry/)
-
----
-
-## 📁 12 – MLflow Projects
-
-Package code for reproducible runs.
-
-### `MLproject` File
-
-```yaml
-name: my-ml-project
-python_env: python_env.yaml
-
-entry_points:
-  main:
-    parameters:
-      alpha: {type: float, default: 0.5}
-      data_file: path
-    command: "python train.py --alpha {alpha} --data {data_file}"
-
-  validate:
-    parameters:
-      model_path: path
-      test_data: path
-    command: "python validate.py {model_path} {test_data}"
-```
-
-### `python_env.yaml`
-
-```yaml
-python: "3.10"
-dependencies:
-  - mlflow
-  - scikit-learn
-  - pandas
-```
-
-### Run the Project
-
-```bash
-# From local directory
-mlflow run . -P alpha=0.3 -P data_file=data.csv
-
-# From GitHub
-mlflow run https://github.com/user/repo.git -P alpha=0.5
-
-# Specific entry point
-mlflow run . -e validate -P model_path=model.pkl -P test_data=test.csv
-```
-
-### Programmatic Execution
-
-```python
-import mlflow
-result = mlflow.run(
-    "https://github.com/user/repo.git",
-    parameters={"alpha": 0.5},
-    experiment_name="elasticnet-experiment"
-)
-```
-
-📖 **Official docs:** [MLflow Projects](https://mlflow.org/docs/latest/ml/projects/)
-
----
-
-## 🧰 13 – MLflow Client
-
-Low‑level CRUD API for full control.
-
-### Initialization & Run Management
-
-```python
-from mlflow import MlflowClient
-
-client = MlflowClient(tracking_uri="http://localhost:5000")
-
-# Create a run under experiment id "0" (default)
-run = client.create_run(experiment_id="0")
-run_id = run.info.run_id
-
-# Log data to the run
-client.log_param(run_id, "learning_rate", 0.01)
-client.log_metric(run_id, "accuracy", 0.95)
-
-# End the run
-client.set_terminated(run_id)
-```
-
-### Search Experiments & Runs
-
-```python
-experiments = client.search_experiments()
-for exp in experiments:
-    print(exp.name)
-
-runs = client.search_runs(
-    experiment_ids=["0"],
-    filter_string="metrics.accuracy > 0.9",
-    order_by=["metrics.accuracy DESC"],
-    max_results=5
-)
-for r in runs:
-    print(r.info.run_id, r.data.metrics)
-```
-
-### Model Registry Operations
-
-```python
-# Create a registered model
-client.create_registered_model("my-model")
-
-# Create a model version
-client.create_model_version(
-    name="my-model",
-    source="runs:/<run_id>/model",
-    run_id="<run_id>"
-)
-
-# Transition stage
-client.transition_model_version_stage(
-    name="my-model",
-    version=1,
-    stage="Production"
-)
-```
-
-📖 **Official docs:** [MlflowClient API](https://mlflow.org/docs/latest/python_api/mlflow.client.html)
-
----
-
-## ⌨️ 14 – MLflow CLI Commands
-
-Essential commands for terminal workflows.
-
-```bash
-# Start tracking server
-mlflow server --backend-store-uri sqlite:///mlflow.db --port 5000
-
-# Run a project
-mlflow run https://github.com/mlflow/mlflow-example.git -P alpha=0.5
-
-# Create experiment
-mlflow experiments create --experiment-name "my-experiment"
-
-# List experiments
-mlflow experiments search
-
-# List runs in an experiment
-mlflow runs list --experiment-id 1
-
-# Describe a run
-mlflow runs describe --run-id <run_id>
-
-# Download artifacts
-mlflow artifacts download --run-id <run_id> --artifact-path model --dst-path ./downloads
-
-# Serve a model locally
-mlflow models serve -m runs:/<run_id>/model -p 1234
-
-# Build a Docker image for a model
-mlflow models build-docker -m runs:/<run_id>/model -n my-model-image
-
-# Register a model
-mlflow models register -m runs:/<run_id>/model -n my-model
-```
-
-📖 **Official docs:** [Command‑Line Interface](https://mlflow.org/docs/latest/cli.html)
-
----
-
-## ☁️ 15 – AWS Integration: End‑to‑End Project
-
-Full workflow: train locally, log to S3, register, and deploy to SageMaker.
-
-### 1. Install AWS MLflow Plugin
-
-```bash
-pip install sagemaker-mlflow
-```
-
-### 2. Connect to SageMaker MLflow Tracking Server
-
-```python
-import mlflow
-
-# Your SageMaker MLflow tracking server ARN
-tracking_server_arn = "arn:aws:sagemaker:region:account:mlflow-tracking-server/your-server"
-mlflow.set_tracking_uri(tracking_server_arn)
-mlflow.set_experiment("aws-end-to-end")
-```
-
-### 3. Train & Log Model
-
-```python
-import mlflow.sklearn
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
-from mlflow.models import infer_signature
-
-X, y = load_iris(return_X_y=True, as_frame=True)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-with mlflow.start_run(run_name="sagemaker-rf"):
-    model = RandomForestClassifier(n_estimators=100)
-    model.fit(X_train, y_train)
-
-    signature = infer_signature(X_train, model.predict(X_train))
-    mlflow.sklearn.log_model(
-        sk_model=model,
-        artifact_path="model",
-        signature=signature,
-        registered_model_name="iris-sagemaker"
-    )
-```
-
-### 4. Deploy to SageMaker Endpoint
-
-```python
-import sagemaker_mlflow
-
-# Log inference specification for SageMaker
-sagemaker_mlflow.log_inference_specification(
-    model_info.model_id,
-    inference_specification={
-        "supported_content_types": ["text/csv"],
-        "supported_response_types": ["text/csv"]
-    }
-)
-
-# Register and deploy
-model_version = mlflow.register_model(
-    f"models:/iris-sagemaker/1",
-    "iris-sagemaker-prod"
-)
-```
-
-### 5. Batch Inference with SageMaker
-
-```python
-from sagemaker.predictor import Predictor
-
-predictor = Predictor(
-    endpoint_name="iris-sagemaker-endpoint",
-    sagemaker_session=sagemaker.Session()
-)
-
-# Predict
-result = predictor.predict(X_test.iloc[:5].to_csv(index=False))
-print(result)
-```
-
-**AWS services used:** SageMaker MLflow Tracking Server, S3 (artifact store), SageMaker Endpoints (serving), IAM (permissions).
-
-📖 **Official docs:** [Integrate MLflow with your environment](https://docs.aws.amazon.com/sagemaker/latest/dg/mlflow-track-experiments.html)
-
----
-
-## 🧭 Summary of Merged Topics
-
-| Merged Topic | Original Topics | Why Merged |
-|---|---|---|
-| **Tracking & Logging** | 3 & 4 | Logging functions are the core API of the Tracking component. |
-| **Experiments, Runs & Autologging** | 5 & 6 | Autologging is a shortcut for creating runs and logging metrics. |
-| **Models & Custom Models** | 8 & 9 | Custom models are a specialized way to use the Model component. |
-
-Each section above provides runnable code, key concepts, and direct links to the official MLflow documentation for deeper exploration.
