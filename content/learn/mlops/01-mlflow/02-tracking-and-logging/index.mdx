@@ -1,0 +1,219 @@
+---
+title: "MLflow Tracking & Logging Functions"
+excerpt: "Learn how to use the MLflow Tracking & Logging functions"
+tags: ['mlops', 'mlflow', 'python', 'machine-learning']
+---
+
+
+## 🔍 MLflow Tracking
+
+The MLflow Tracking component is used to record:
+- Experiment name
+- Run name
+- Run ID
+- Parameters
+- Metrics
+- Artifacts
+- Metadata
+- Dataset lineage
+- Source code information
+- Start/end time
+- Run status
+
+A typical hierarchy is:
+
+```
+Tracking Server / Local Store
+└── Experiment
+    └── Run
+        ├── Parameters
+        ├── Metrics
+        ├── Tags
+        ├── Artifacts
+        ├── Dataset info
+        └── Model metadata
+```
+
+### 📝 Logging Functions
+
+The **logging functions** are the core APIs for this.
+
+| Function | Purpose | Example |
+|---|---|---|
+| `mlflow.log_param()` | Log a single hyperparameter | `mlflow.log_param("learning_rate", 0.01)` |
+| `mlflow.log_params()` | Log a batch of hyperparameters | `mlflow.log_params({"lr": 0.01, "batch_size": 32})` |
+| `mlflow.log_metric()` | Log a single metric | `mlflow.log_metric("accuracy", 0.94)` |
+| `mlflow.log_metrics()` | Log a batch of metrics | `mlflow.log_metrics({"mse": 2500, "rmse": 50})` |
+| `mlflow.log_artifact()` | Log a file (e.g., plot, pickle) | `mlflow.log_artifact("model.pkl")` |
+| `mlflow.log_model()` | Log a model with signature | `mlflow.sklearn.log_model(model, "model")` |
+| `mlflow.log_text()` | Log a text string as a file | `mlflow.log_text("notes", "notes.txt")` |
+
+### 💻 Example
+
+
+```python showLineNumbers {22,25,28-31,33-41,43-53,65-76,78-79,81-84,86-91,93-102,104-113,115-123}
+import json
+import os
+import pickle
+
+import matplotlib.pyplot as plt
+import numpy as np
+import mlflow
+from mlflow.data.code_dataset_source import CodeDatasetSource
+from sklearn.datasets import load_diabetes
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Load data
+X, y = load_diabetes(return_X_y=True, as_frame=True)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Set tracking location
+mlflow.set_tracking_uri("sqlite:///mlflow.db")
+
+# Create or set experiment
+mlflow.set_experiment("my-first-experiment")
+
+
+# Start MLflow run
+with mlflow.start_run(run_name="linear_regression_baseline") as run:
+    print("Run ID:", run.info.run_id)
+    print("Experiment ID:", run.info.experiment_id)
+
+    # Log tags
+    mlflow.set_tags(
+        {
+            "project": "mlflow_examples",
+            "owner": "data_science_team",
+            "environment": "local",
+            "model_type": "linear_regression",
+        }
+    )
+
+    # Log parameters
+    mlflow.log_param("model", "LinearRegression")
+    mlflow.log_param("test_size", 0.2)
+    mlflow.log_params(
+        {
+            "n_features": X_train.shape[1],
+            "train_samples": len(X_train),
+            "test_samples": len(X_test),
+            "random_state": 42,
+        }
+    )
+
+    # Train model
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    # Predict
+    y_pred = model.predict(X_test)
+    # Calculate metrics
+    rmse = float(np.sqrt(mean_squared_error(y_test, y_pred)))
+    mae = float(np.mean(np.abs(y_test - y_pred)))
+    r2 = float(r2_score(y_test, y_pred))
+
+    # Log metrics
+    mlflow.log_metric("rmse", rmse)
+    mlflow.log_metric("mae", mae)
+    mlflow.log_metric("r2", r2)
+    mlflow.log_metrics(
+        {
+            "rmse_v2": rmse,
+            "mae_v2": mae,
+            "r2_v2": r2,
+        },
+        step=0,
+    )
+
+    # Log model
+    mlflow.sklearn.log_model(model, "model")
+
+    # Log artifact (pickle file)
+    with open("my_model.pkl", "wb") as f:
+        pickle.dump(model, f)
+    mlflow.log_artifact("my_model.pkl")
+
+    # Log a JSON artifact
+    os.makedirs("artifacts", exist_ok=True)
+    coefficients = dict(zip(X.columns, model.coef_.tolist()))
+    with open("artifacts/coefficients.json", "w") as f:
+        json.dump(coefficients, f, indent=2)
+    mlflow.log_artifact("artifacts/coefficients.json")
+
+    # Log a Matplotlib figure
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.scatter(y_test, y_pred)
+    ax.plot([y.min(), y.max()], [y.min(), y.max()], "r--", label="Ideal prediction")
+    ax.set_xlabel("Actual")
+    ax.set_ylabel("Predicted")
+    ax.set_title("Actual vs Predicted")
+    ax.legend()
+    mlflow.log_figure(fig, "actual_vs_predicted.png")
+    plt.close(fig)
+
+    # Log a text artifact
+    summary = f"""
+    Linear Regression Baseline
+    --------------------------
+
+    RMSE: {rmse:.4f}
+    MAE: {mae:.4f}
+    R2: {r2:.4f}
+    """
+    mlflow.log_text(summary, "summary.txt")
+
+    # Log dataset metadata (CodeDatasetSource for in-memory / code-loaded data)
+    train_df = X_train.assign(target=y_train)
+    train_dataset = mlflow.data.from_pandas(
+        train_df,
+        source=CodeDatasetSource(tags={"dataset": "sklearn.load_diabetes"}),
+        targets="target",
+        name="diabetes_train",
+    )
+    mlflow.log_input(train_dataset, context="training")
+
+    print("Logging completed successfully.")
+
+```
+
+**Key concepts:**
+- `mlflow.start_run()` creates a **run** inside the active **experiment**.
+- Use `mlflow.set_tracking_uri()` to point to a remote server or local database.
+- All logs are associated with the run's unique `run_id`.
+
+📖 **Official docs:** [MLflow Tracking APIs](https://mlflow.org/docs/latest/ml/tracking/tracking-api/)
+
+---
+
+## 🔍 View Results in MLflow UI
+
+Open http://127.0.0.1:5000 and you should see the runs.
+
+Here are some screenshots of the MLflow UI:
+
+<Figure
+    src="/learn/mlops/mlflow/mlflow-track-1.png"
+    alt="Run table: Experiment name, Run name, Tag columns"
+    caption="Vist: Model Training -> Experiments --> my-first-experiment"
+    width="960"
+/>
+
+<Figure
+    src="/learn/mlops/mlflow/mlflow-track-2.png"
+    alt="Run details:  Metrics, Parameters,  Dataset info, Model metadata"
+    caption="Run details:  Metrics, Parameters,  Dataset info, Model metadata"
+    width="960"
+/>
+
+<Figure
+    src="/learn/mlops/mlflow/mlflow-track-3.png"
+    alt="Run details: Artifacts"
+    caption="Run details: Artifacts"
+    width="960"
+/>
+
+

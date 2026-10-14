@@ -9,7 +9,7 @@ const headings = createMdxHeadings('blog');
 
 const LIST_NESTED = '[&_p]:mb-0 [&_ul]:mb-0 [&_ol]:mb-0';
 /** Tight gap between items; last item keeps the list’s outer `mb-6` only. */
-const LIST_ITEM_GAP = '[&>li:not(:last-child)]:mb-1';
+const LIST_ITEM_GAP = '[&>li:not(:last-child)]:mb-0';
 
 export const mdxServerComponents = {
   ...headings,
@@ -20,7 +20,7 @@ export const mdxServerComponents = {
         MDX_SPACE.block,
         LIST_NESTED,
         LIST_ITEM_GAP,
-        'flex list-disc flex-col pl-6 text-muted-foreground marker:text-[#ACC5D3]/70 [&>li]:leading-8'
+        'flex list-disc flex-col pl-6 text-muted-foreground marker:text-[#ACC5D3]/70 [&>li]:leading-6'
       )}
       {...props}>
       {children}
@@ -32,7 +32,7 @@ export const mdxServerComponents = {
         MDX_SPACE.block,
         LIST_NESTED,
         LIST_ITEM_GAP,
-        'flex list-decimal flex-col pl-6 text-muted-foreground marker:font-mono marker:text-[#F08F87]/80 [&>li]:leading-8'
+        'flex list-decimal flex-col pl-6 text-muted-foreground marker:font-mono marker:text-[#F08F87]/80 [&>li]:leading-6'
       )}
       {...props}>
       {children}

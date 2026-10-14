@@ -158,8 +158,9 @@ export function LineItem({ children, className }: LineItemProps) {
         'block font-light',
         // Nested LineItems: indent only — do not change font size/weight.
         '[&_[data-slot=line-item]]:mt-1.5 [&_[data-slot=line-item]]:block [&_[data-slot=line-item]]:pl-8',
-        // Unwrap MDX <p> and force its type to inherit (Paragraph uses ~1.03rem).
-        '[&>p]:contents  [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-foreground',
+        // Unwrap MDX <p>. Inline code chrome comes from globals (`p code` / `span code`);
+        // fenced blocks are reset via `pre code` after those rules.
+        '[&>p]:contents',
         className
       )}>
       {children}

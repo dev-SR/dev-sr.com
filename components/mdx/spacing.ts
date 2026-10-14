@@ -4,9 +4,9 @@
  */
 export const MDX_SPACE = {
   /** Body copy, lists, tables, code, callouts, diagrams */
-  block: 'mb-6',
+  block: 'mb-1',
   /** Figures, blockquotes, guides, previews */
-  media: 'mb-8',
+  media: 'my-6',
   /** Thematic breaks */
   rule: 'my-10',
 } as const;
