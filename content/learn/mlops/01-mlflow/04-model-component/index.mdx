@@ -1,0 +1,362 @@
+---
+title: "Model Component"
+excerpt: "Learn how to use the model component"
+tags: ['mlops', 'mlflow', 'python', 'machine-learning']
+---
+
+## Introduction to Model Components
+
+### What is an MLflow Model?
+
+An **MLflow Model** is a standard packaging format for machine learning models. It is a directory containing:
+- Model artifacts (weights, code, etc.)
+- An `MLmodel` YAML file that describes the model
+- Environment files for reproducibility
+- Optional signature and input examples
+
+The key idea is **flavors**: different ways to view/load the same model. Every model has at least the `python_function` (pyfunc) flavor so it can be used by generic tools (serving, batch inference, etc.). Flavors specific to libraries (e.g., `sklearn`, `pytorch`, `transformers`) allow loading the model in its native form.
+
+#### Why use MLflow Models?
+
+- **Portability**: Deploy the same model to REST endpoints, Spark, SageMaker, Kubernetes, etc.
+- **Reproducibility**: Environment (conda/pip) is captured automatically.
+- **Contract enforcement**: Signatures define exact input/output expectations.
+- **Lineage & governance**: Tied to Tracking runs and Model Registry.
+- **Safety**: Support for pickle-free formats (skops, torch.export, etc.).
+
+#### Types / Flavors
+
+Common built-in flavors include:
+- `python_function` (pyfunc) – universal
+- `sklearn`, `xgboost`, `lightgbm`, `catboost`
+- `pytorch`, `tensorflow` / `keras`
+- `transformers`, `langchain`, `llama_index`
+- `spark`, `onnx`, `paddle`, etc.
+
+You can also create custom models with `mlflow.pyfunc.PythonModel`.
+
+### Storage Format
+
+When you call `save_model` or `log_model`, MLflow creates a directory like this:
+
+```text
+model/
+├── MLmodel                          # Core metadata (flavors, signature, etc.)
+├── model.pkl / model.joblib / ...   # Serialized model (flavor-dependent)
+├── conda.yaml
+├── python_env.yaml
+├── requirements.txt
+├── input_example.json               # (if input_example provided)
+├── serving_input_example.json       # (serving-compatible version)
+├── environment_variables.txt        # (names of env vars used at inference)
+└── metadata/                        # Internal copies of metadata files
+```
+
+**Key fields inside `MLmodel`**:
+- `flavors` – dictionary of supported flavors and their parameters
+- `signature` – input/output/params schema
+- `mlflow_version`
+- `run_id` (when logged via Tracking)
+- `utc_time_created`
+- `metadata` (custom key-value pairs)
+
+**Best practice (3.17+)**: Prefer pickle-free formats when available:
+- Scikit-learn → `serialization_format="skops"`
+- PyTorch → `serialization_format="pt2"` (torch.export)
+
+### Model Signatures
+
+A **Model Signature** is a contract describing:
+1. **Inputs** – expected schema (column-based or tensor-based)
+2. **Outputs** – expected schema
+3. **Params** – optional inference-time parameters (e.g., temperature, max_tokens)
+
+#### Two main signature types
+
+**Column-based** (tabular data – DataFrames, dicts):
+```python
+from mlflow.types.schema import Schema, ColSpec
+from mlflow.models import ModelSignature
+
+input_schema = Schema([
+    ColSpec("double", "sepal_length"),
+    ColSpec("double", "sepal_width"),
+    ColSpec("double", "petal_length"),
+    ColSpec("double", "petal_width"),
+    ColSpec("string", "species", required=False),  # optional
+])
+output_schema = Schema([ColSpec("long", "prediction")])
+signature = ModelSignature(inputs=input_schema, outputs=output_schema)
+```
+
+**Tensor-based** (images, audio, embeddings):
+```python
+from mlflow.types.schema import Schema, TensorSpec
+import numpy as np
+
+input_schema = Schema([
+    TensorSpec(np.dtype(np.float32), (-1, 28, 28, 1), name="images")
+])
+```
+
+Signatures also support Arrays, Objects, and nested structures (MLflow ≥ 2.10).
+
+### Signature Enforcement
+
+When you load a model as a PyFunc (`mlflow.pyfunc.load_model`), MLflow automatically validates inputs against the signature:
+
+- Required fields must be present
+- Optional fields may be missing
+- Extra columns are ignored
+- Safe type conversions are applied (int → long, float → double)
+- Unsafe conversions raise errors
+
+Enforcement also happens in:
+- MLflow Model Serving
+- Databricks Model Serving / Unity Catalog
+- Deployment tools
+
+**Important**: Databricks Unity Catalog **requires** a concrete signature. Models without one are rejected.
+
+### Logging Signatures & Input Examples
+
+**Recommended approach (best practice)**: Always provide an `input_example`. MLflow will:
+1. Infer the signature automatically
+2. Validate that the model can run on the example
+3. Save both the signature and the example
+
+#### Full Example – Automatic Inference
+
+```python showLineNumbers {22-31}
+import mlflow
+import mlflow.sklearn
+from sklearn.datasets import load_iris
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import pandas as pd
+
+# 1. Prepare data
+iris = load_iris(as_frame=True)
+X = iris.data
+y = iris.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 2. Train model
+model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+model.fit(X_train, y_train)
+
+# 3. Log with input example (signature is inferred automatically)
+with mlflow.start_run(run_name="iris_rf_auto_signature") as run:
+    model_info = mlflow.sklearn.log_model(
+        sk_model=model,
+        name="iris_model",  # preferred over artifact_path in newer APIs
+        input_example=X_train.iloc[[0]],  # ← key best practice
+        # signature=...  # optional – will be inferred if omitted
+        registered_model_name="IrisRF",  # optional Model Registry
+        metadata={"dataset": "iris", "purpose": "tutorial"},
+        # Required for tree-based models with newer MLflow + skops serialization
+        skops_trusted_types=["sklearn.tree._tree.Tree"],
+    )
+
+print("Model URI:", model_info.model_uri)
+print("Run ID:", run.info.run_id)
+print("Signature:", model_info.signature)
+
+```
+
+<Figure
+    src="/learn/mlops/mlflow/modelcomponent.png"
+    alt="Signature and input example"
+    caption="Signature and input example"
+    width="960"
+    
+/>
+
+#### Explicit Signature + Input Example
+
+```python showLineNumbers {5-6,17,18}
+model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+model.fit(X_train, y_train)
+
+# Infer signature from real data
+predictions = model.predict(X_test)
+signature = infer_signature(X_test, predictions)
+
+# Or build it manually
+# input_schema = Schema([ColSpec("double", name) for name in X.columns])
+# output_schema = Schema([ColSpec("long")])
+# signature = ModelSignature(inputs=input_schema, outputs=output_schema)
+
+with mlflow.start_run(run_name="iris_rf_explicit_signature"):
+    model_info = mlflow.sklearn.log_model(
+        sk_model=model,
+        name="iris_model",
+        signature=signature,
+        input_example=X_train.iloc[[0]],
+    )
+
+print(model_info.signature)
+```
+
+#### Setting Signature on an Already Logged Model
+
+```python
+from mlflow.models import set_signature, infer_signature
+import mlflow
+
+model_uri = "runs:/<run_id>/iris_model"   # or models:/IrisRF/1
+loaded = mlflow.pyfunc.load_model(model_uri)
+
+# Create correct signature
+X_sample = ...  # your test data
+preds = loaded.predict(X_sample)
+new_signature = infer_signature(X_sample, preds)
+
+set_signature(model_uri, new_signature)
+```
+
+### Model API – `save_model` vs `log_model`
+
+| Method              | Purpose                                      | Tracking Run | Artifacts Location      |
+|---------------------|----------------------------------------------|--------------|-------------------------|
+| `save_model`        | Save to local filesystem                     | No           | Local path              |
+| `log_model`         | Log as artifact of current (or new) run      | Yes          | Tracking store + artifact store |
+
+####  `save_model` Example
+
+```python showLineNumbers {1-10}
+save_path = Path("local_iris_model")
+mlflow.sklearn.save_model(
+    sk_model=model,
+    path=str(save_path),
+    input_example=X.iloc[[0]],
+    serialization_format="skops",  # recommended pickle-free format
+    skops_trusted_types=[
+        "sklearn.tree._tree.Tree"
+    ],  # required for tree-based models with newer MLflow + skops serialization
+)
+
+print(f"Model saved to {save_path.resolve()}")
+print("Contents:", list(save_path.iterdir()))
+
+```
+
+#### Loading the Model
+
+```python showLineNumbers {4-6}
+import mlflow.pyfunc
+import pandas as pd
+    
+loaded = mlflow.pyfunc.load_model(str(save_path))
+example = pd.read_json(save_path / "input_example.json", orient="split")
+print("Prediction:", loaded.predict(example))
+```
+
+#### `log_model` Example (Recommended)
+
+```python showLineNumbers {18-30}
+import mlflow
+import mlflow.sklearn
+#...
+
+model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+acc = accuracy_score(y_test, y_pred)
+
+with mlflow.start_run(run_name="rf_production"):
+    # Log metrics & params manually if desired
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_param("max_depth", 5)
+    mlflow.log_metric("test_accuracy", acc)
+
+    # Log the model (best practice)
+    model_info = mlflow.sklearn.log_model(
+        sk_model=model,
+        name="model",
+        input_example=X_train.iloc[[0]],
+        signature=None,                     # auto-inferred from input_example
+        registered_model_name="IrisRandomForest",
+        metadata={
+            "framework": "scikit-learn",
+            "task": "multiclass classification",
+            "dataset": "iris",
+        },
+        # serialization_format="skops",    # enable for pickle-free
+    )
+
+print("Logged Model URI:", model_info.model_uri)
+print("Registered Model Version:", model_info.registered_model_version)
+```
+
+### What Autolog Automatically Handles
+
+Calling `mlflow.autolog()` (or flavor-specific `mlflow.sklearn.autolog()`) automatically logs:
+
+| Item                        | Default | Notes |
+|----------------------------|---------|-------|
+| **Parameters**             | Yes     | `get_params(deep=True)` |
+| **Metrics**                | Yes     | Training score + common classification/regression metrics |
+| **Model**                  | Yes     | Logged as MLflow Model |
+| **Model Signature**        | Yes     | Inferred when possible (`log_model_signatures=True`) |
+| **Input Example**          | No      | Controlled by `log_input_examples=False` (default) |
+| **Datasets**               | Yes     | Training/validation dataset info |
+| **Tags**                   | Yes     | Estimator class name, fully-qualified name |
+| **Post-training metrics**  | Yes     | Metrics computed after `fit()` via sklearn.metrics |
+| **Environment files**      | Yes     | conda.yaml, requirements.txt, etc. |
+
+#### Full Autolog Example
+
+```python showLineNumbers {1-7}
+# Enable autologging for all supported libraries
+mlflow.autolog(
+    log_input_examples=True,       # also capture input example
+    log_model_signatures=True,     # default True
+    log_models=True,               # default True
+    log_datasets=True,
+)
+
+db = load_diabetes(as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    db.data, db.target, test_size=0.2, random_state=42
+)
+
+with mlflow.start_run(run_name="diabetes_rf_autolog"):
+    model = RandomForestRegressor(n_estimators=100, max_depth=6, random_state=42)
+    model.fit(X_train, y_train)          # ← everything is logged automatically here
+
+    # Optional: extra metrics after training
+    score = model.score(X_test, y_test)
+    print(f"Test R²: {score:.4f}")
+```
+
+You can also use flavor-specific control:
+```python
+mlflow.sklearn.autolog(log_input_examples=True, serialization_format="skops")
+mlflow.pytorch.autolog(disable=True)   # disable for one flavor
+```
+
+### Best Practices Summary (MLflow 3.17+)
+
+1. **Always provide `input_example`** when logging models – this is the single most important practice.
+2. Prefer the modern `name=` argument over the older `artifact_path=`.
+3. Use pickle-free serialization (`skops`, `pt2`) when possible.
+4. Register important models with `registered_model_name`.
+5. Add useful `metadata` for governance.
+6. For custom models, use type hints + Pydantic for automatic signatures (MLflow ≥ 2.20).
+7. Enable `mlflow.autolog()` early in notebooks/scripts for maximum automation.
+8. Review `environment_variables.txt` before deploying models that use secrets.
+
+This covers the complete MLflow Model component for current best practices. You can load any logged model later with:
+
+```python
+loaded = mlflow.pyfunc.load_model("models:/IrisRandomForest/1")
+# or
+loaded = mlflow.pyfunc.load_model(model_info.model_uri)
+preds = loaded.predict(X_test)
+```
+
+Happy modeling!

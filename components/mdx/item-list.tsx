@@ -1,53 +1,20 @@
 import {
-  BookOpen,
-  Boxes,
-  ChartNoAxesCombined,
-  Cloud,
-  Copy,
-  FlaskConical,
-  Layers,
-  Package,
-  Server,
-  SlidersHorizontal,
-  Tag,
-  Terminal,
-  Workflow,
-  type LucideIcon,
-} from 'lucide-react';
-import {
   Children,
   isValidElement,
   type ReactElement,
   type ReactNode,
 } from 'react';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { resolveItemListIcon } from '@/lib/content-icons';
 import { cn } from '@/lib/utils';
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  BookOpen,
-  Boxes,
-  ChartNoAxesCombined,
-  Cloud,
-  Copy,
-  FlaskConical,
-  Layers,
-  Package,
-  Server,
-  SlidersHorizontal,
-  Tag,
-  Terminal,
-  Workflow,
-};
-
-function resolveIcon(name?: string): LucideIcon {
-  if (!name) return BookOpen;
-  return ICON_MAP[name] ?? BookOpen;
-}
+type ItemListLayout = 'stack' | '2col';
 
 interface ItemListProps {
   children: ReactNode;
   className?: string;
+  /** `stack` (default) = single column; `2col` = two-column grid from `sm` up. */
+  layout?: ItemListLayout;
 }
 
 interface ListItemProps {
@@ -56,21 +23,21 @@ interface ListItemProps {
   className?: string;
 }
 
-export function ItemList({ children, className }: ItemListProps) {
+export function ItemList({ children, className, layout = 'stack' }: ItemListProps) {
   const items = Children.toArray(children).filter(isListItemElement);
+  const isTwoCol = layout === '2col';
 
   return (
     <Card
       data-slot="item-list"
+      data-layout={layout}
       className={cn(
         'not-prose mb-6 gap-0 overflow-hidden rounded-xl py-0 shadow-none',
+        isTwoCol && 'grid grid-cols-1 sm:grid-cols-2',
         className
       )}>
       {items.map((item, index) => (
-        <div key={item.key ?? index}>
-          {item}
-          {/* {index < items.length - 1 && <Separator />} */}
-        </div>
+        <div key={item.key ?? index}>{item}</div>
       ))}
     </Card>
   );
@@ -78,12 +45,12 @@ export function ItemList({ children, className }: ItemListProps) {
 
 
 export function ListItem({ icon, children, className }: ListItemProps) {
-  const Icon = icon ? resolveIcon(icon) : null;
+  const Icon = icon ? resolveItemListIcon(icon) : null;
 
   return (
     <div
       data-slot="list-item"
-      className={cn('flex items-start gap-3 px-3.5 py-4 bg-background', className)}>
+      className={cn('flex h-full items-start gap-3 bg-background px-3.5 py-4', className)}>
       {Icon && (
         <div className="flex w-7 shrink-0 justify-center pt-0.5">
           <Icon className="size-4 text-muted-foreground" aria-hidden strokeWidth={1.8} />
@@ -155,7 +122,7 @@ export function LineItem({ children, className }: LineItemProps) {
     <span
       data-slot="line-item"
       className={cn(
-        'block font-light',
+        'block text-prose-sm font-light',
         // Nested LineItems: indent only — do not change font size/weight.
         '[&_[data-slot=line-item]]:mt-1.5 [&_[data-slot=line-item]]:block [&_[data-slot=line-item]]:pl-8',
         // Unwrap MDX <p>. Inline code chrome comes from globals (`p code` / `span code`);

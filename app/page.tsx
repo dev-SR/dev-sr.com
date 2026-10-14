@@ -16,44 +16,15 @@ import { constructMetadata, getPersonSchema } from '@/lib/seo';
 import {
   ArrowRight,
   Binary,
-  BookOpen,
-  Boxes,
   BrainCircuit,
-  Code2,
-  Database,
-  Layers3,
-  MousePointer2,
   Network,
-  Play,
-  ScrollText,
-  Server,
-  Sparkles,
   Workflow,
-  type LucideIcon,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { CourseIcon } from '@/components/learn/course-icon';
 
 const strengthIcons = [BrainCircuit, Binary, Network, Workflow] as const;
-
-const COURSE_ICON_MAP: Record<string, LucideIcon> = {
-  BookOpen,
-  Boxes,
-  Code2,
-  Database,
-  Layers3,
-  MousePointer2,
-  Network,
-  Play,
-  ScrollText,
-  Server,
-  Sparkles,
-};
-
-function courseIcon(name?: string) {
-  if (!name) return BookOpen;
-  return COURSE_ICON_MAP[name] ?? BookOpen;
-}
 
 function featuredCourses(courses: LearnCatalogCourse[], limit = 4) {
   return [...courses].sort((a, b) => b.pageCount - a.pageCount).slice(0, limit);
@@ -188,7 +159,6 @@ export default async function App() {
 
               <div className="grid gap-5 sm:grid-cols-2">
                 {courses.map((course) => {
-                  const Icon = courseIcon(course.icon);
                   return (
                     <Link
                       key={course.slug}
@@ -199,7 +169,7 @@ export default async function App() {
                         <CardHeader>
                           <div className="mb-4 flex items-start justify-between gap-3">
                             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#F08F87]/10 text-[#F08F87]">
-                              <Icon className="h-5 w-5" />
+                              <CourseIcon name={course.icon} className="h-5 w-5" />
                             </div>
                             {course.badge && (
                               <Badge variant="secondary" className="text-xs">

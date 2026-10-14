@@ -89,7 +89,29 @@ export default async function BlogPostPage(props: BlogPostPageProps) {
           ]),
         ]}
       />
-      <BlogPostClientPage post={post} allPosts={allPosts} />
+      <BlogPostClientPage
+        post={{
+          slug: post.slug,
+          title: post.title,
+          date: post.date,
+          excerpt: post.excerpt,
+          excerptMdxSource: post.excerptMdxSource,
+          tags: post.tags,
+          coverImage: post.coverImage,
+          coverImageAlt: post.coverImageAlt,
+          readingTime: post.readingTime,
+          viewCount: post.viewCount,
+          content: '',
+          mdxSource: post.mdxSource,
+          path: post.path,
+        }}
+        allPosts={allPosts.map((p) => ({
+          slug: p.slug,
+          title: p.title,
+          tags: p.tags,
+          readingTime: p.readingTime,
+        }))}
+      />
     </>
   );
 }

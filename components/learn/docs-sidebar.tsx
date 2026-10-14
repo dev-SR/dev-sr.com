@@ -3,44 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  BookOpen,
-  Boxes,
-  ChevronRight,
-  Code2,
-  Database,
-  Layers3,
-  MousePointer2,
-  Network,
-  Play,
-  ScrollText,
-  Server,
-  Sparkles,
-  type LucideIcon,
-} from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Accordion as AccordionPrimitive } from 'radix-ui';
 import type { LearnNavNode } from '@/lib/learn';
+import { resolveLearnIcon } from '@/lib/content-icons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  BookOpen,
-  Boxes,
-  Code2,
-  Database,
-  Layers3,
-  MousePointer2,
-  Network,
-  Play,
-  ScrollText,
-  Server,
-  Sparkles,
-};
-
-function getIcon(name?: string) {
-  if (!name) return BookOpen;
-  return ICON_MAP[name] ?? BookOpen;
-}
 
 function NavLink({ node, depth = 0 }: { node: LearnNavNode; depth?: number }) {
   const pathname = usePathname();
@@ -70,7 +38,7 @@ function NavLink({ node, depth = 0 }: { node: LearnNavNode; depth?: number }) {
 function ChapterHeader({ node, showIcon = false }: { node: LearnNavNode; showIcon?: boolean }) {
   const pathname = usePathname();
   const isActive = pathname === node.href;
-  const Icon = getIcon(node.icon);
+  const Icon = resolveLearnIcon(node.icon);
 
   return (
     <Link
@@ -124,7 +92,7 @@ function ChapterSection({ node, showIcon = false }: { node: LearnNavNode; showIc
 
   if (isFlatPageChapter(node)) {
     const isActive = pathname === node.href;
-    const Icon = getIcon(node.icon);
+    const Icon = resolveLearnIcon(node.icon);
 
     return (
       <AccordionPrimitive.Item value={node.slug} className="border-none">

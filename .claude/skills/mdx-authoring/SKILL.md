@@ -53,7 +53,8 @@ badge: 'New'      # optional
 - `DocsFileTabs` — multi-file code on Learn (not blog `CodeTabs`)
 - `InstallTabs` / `InstallTab` + `Steps` / `Step` — install flows
 - `CommandBlock` — package-manager command switcher
-- `ItemList` / `ListItem` / `ListTitle` / `LineItem` — icon-led concept cards
+- `ItemList` / `ListItem` / `ListTitle` / `LineItem` — icon-led concept cards (`layout="stack"` \| `"2col"`; icons via `IconCatalog set="item-list"`)
+- `IconCatalog` — visual Lucide allow-lists (`set="item-list"` \| `"learn"`)
 - `FlowDiagram` / `Mermaid` — architecture / sequence
 - `ComponentPreview` — live UI demos (GSAP lessons: TSX + HTML markup tabs inside `DocsFileTabs`)
 - `Callout` — `note` | `tip` | `warning` | `dont`

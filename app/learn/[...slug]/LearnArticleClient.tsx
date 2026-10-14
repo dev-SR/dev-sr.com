@@ -11,7 +11,7 @@ import { PageTopGlow } from '@/components/page-top-glow';
 import { CompactTableOfContents, TableOfContents } from '@/components/table-of-contents';
 import { DocsSidebar } from '@/components/learn/docs-sidebar';
 import { LearnFloatingNav } from '@/components/learn/learn-floating-nav';
-import { MdxExcerpt } from '@/components/mdx/excerpt';
+import { ClientMdxExcerpt } from '@/components/mdx/client-excerpt';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { MdxContentSkeleton } from '@/components/loading-skeleton';
@@ -51,21 +51,15 @@ export function LearnArticleClient({
     <div className="relative bg-background">
       <PageTopGlow />
       <Header />
-      <div className="mx-auto mt-28 max-w-[100rem] px-4 pb-20 sm:px-6 lg:px-10 xl:px-12">
-        {/*
-          Mobile: 1 col (article)
-          lg: 2 col — article | TOC
-          2xl: 3 col — chapters | article | TOC
-          Hidden asides use display:none so they don't occupy tracks.
-        */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_16rem] 2xl:grid-cols-[18rem_minmax(0,1fr)_18rem]">
-          <aside className="sticky top-28 hidden self-start 2xl:block">
+      <div className="mx-auto mt-28 px-4 pb-16 sm:px-6 lg:px-16">
+        <div className="grid items-start gap-8 2xl:grid-cols-[20rem_minmax(0,1fr)_22rem]">
+          <div className="sticky top-28 hidden 2xl:block">
             {courseNav && <DocsSidebar course={courseNav} />}
-          </aside>
+          </div>
 
           <article className="min-w-0">
-            <header className="mb-10 border-b border-border/60 pb-8">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <header className="mb-8 border-b border-border/60 pb-6">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
                 <p className="text-sm text-muted-foreground">
                   <Link
                     href="/learn"
@@ -100,7 +94,7 @@ export function LearnArticleClient({
                   </ViewTransition>
                   {page.excerptMdxSource && (
                     <ViewTransition name={`learn-excerpt-${transitionSlug}`} share="post-excerpt">
-                      <MdxExcerpt
+                      <ClientMdxExcerpt
                         mdxSource={page.excerptMdxSource}
                         className="mt-3 max-w-3xl text-md font-light leading-relaxed text-muted-foreground"
                       />

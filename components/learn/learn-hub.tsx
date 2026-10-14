@@ -3,25 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, ViewTransition } from 'react';
 import Link from 'next/link';
 import {
-  BookOpen,
-  Boxes,
   ChevronRight,
-  Code2,
-  Database,
-  Layers3,
   LayoutGrid,
-  MousePointer2,
-  Network,
-  Play,
-  ScrollText,
   Search,
-  Server,
-  Sparkles,
   Tags,
   X,
-  type LucideIcon,
 } from 'lucide-react';
 import type { LearnCatalogCourse, LearnCatalogLesson } from '@/lib/learn';
+import { resolveLearnIcon } from '@/lib/content-icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardFooter, CardTitle } from '@/components/ui/card';
@@ -35,25 +24,6 @@ function toTransitionSlug(value: string) {
 
 function learnSlugFromHref(href: string) {
   return toTransitionSlug(href.replace(/^\/learn\//, ''));
-}
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  BookOpen,
-  Boxes,
-  Code2,
-  Database,
-  Layers3,
-  MousePointer2,
-  Network,
-  Play,
-  ScrollText,
-  Server,
-  Sparkles,
-};
-
-function getIcon(name?: string) {
-  if (!name) return BookOpen;
-  return ICON_MAP[name] ?? BookOpen;
 }
 
 function matchesQuery(query: string, fields: Array<string | undefined>) {
@@ -367,7 +337,7 @@ export function LearnHub({ courses, lessons }: LearnHubProps) {
 }
 
 function CourseCard({ course }: { course: LearnCatalogCourse }) {
-  const Icon = getIcon(course.icon);
+  const Icon = resolveLearnIcon(course.icon);
   const transitionSlug = toTransitionSlug(course.slug);
   return (
     <Link

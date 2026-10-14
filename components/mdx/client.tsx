@@ -16,6 +16,7 @@ import { Callout } from './callout';
 import { CommandBlock } from './command-block';
 import { DocsFileTabs } from './docs-file-tabs';
 import { InstallTab, InstallTabs } from './install-tabs';
+import { IconCatalog } from './icon-catalog';
 import {
   ItemList,
   LineItem,
@@ -55,6 +56,7 @@ export const mdxClientComponents = {
   CommandBlock,
   InstallTabs,
   InstallTab,
+  IconCatalog,
   ItemList,
   ListItem,
   ListTitle,

@@ -5,6 +5,8 @@ excerpt: 'How to write blog posts and Learn lessons — every feature shows Sour
 tags: ['meta', 'mdx', 'authoring', 'docs']
 ---
 
+
+
 How to write posts and Learn materials for this site. Each feature below has **Source** (what you type) then **Result** (what readers see).
 
 Also see: [MDX test](/blog/examples/markdown-all) · [Code features](/blog/examples/advanced-code-examples) · [Shiki transformers](/blog/examples/advanced-rehype-pretty-code-shiki-examples)
@@ -705,12 +707,16 @@ badge: 'New'
 | `excerpt` | required | optional | Short blurb; legacy `description` still works via loader alias |
 | `tags` | **required** | omit | Hub filters/groups by **course-root** tags only |
 | `date` | recommended | omit OK | `YYYY-MM-DD` |
-| `icon` | optional | optional | Lucide name: `BookOpen`, `Boxes`, `Code2`, `Database`, `Layers3`, `Network`, `Server`, `Sparkles` |
+| `icon` | optional | optional | Lucide name from the Learn set (see gallery below). Unknown → `BookOpen`. |
 | `badge` | optional | optional | `New` / `Updated` pill |
 | `order` | optional | optional | Sort override |
 | `coverImage` / `coverImageAlt` | optional | omit OK | Rarely used on Learn |
 
 No need to invent a third summary field — prefer `excerpt`; the loader treats `excerpt ?? description` as the summary. Start body at `##`.
+
+**Learn frontmatter icons** (hub cards, course sidebar, home featured courses) — same allow-list:
+
+<IconCatalog set="learn" />
 
 ### Learn-only MDX components
 
@@ -720,7 +726,8 @@ Learn uses the same **`CodeBlock`** card shell as blog posts. Learn-specific wra
 | --- | --- |
 | `ComponentPreview` | Preview \| Code tabs. Props: `replay`, `flush`, `previewClassName`, `align`. Tab chrome sits **above** the body so code is not double-wrapped. |
 | `Callout` | `variant`: `note` \| `tip` \| `warning` \| `dont`; optional `title` |
-| `ItemList` + `ListItem` + `ListTitle` + `ListSubtitle` + `LineItem` | Icon-led list card. `ListItem`: optional `icon`, `size` (`sm` \| `md`, default `md`); title/subtitle/body are MDX children. Nested `LineItem`s indent. |
+| `ItemList` + `ListItem` + `ListTitle` + `ListSubtitle` + `LineItem` | Icon-led list card. `ItemList` `layout`: `stack` (default) \| `2col`. `ListItem`: optional `icon` (ItemList set). Nested `LineItem`s indent. |
+| `IconCatalog` | Visual allow-list. `set`: `item-list` \| `learn` |
 | `DocsFileTabs` | Multi-file code — prefer over blog `CodeTabs` on Learn |
 | `InstallTabs` + `InstallTab` | CLI \| Manual install sections |
 | `Guide` + `GuideStep` | Step-by-step tutorials |
@@ -783,9 +790,13 @@ Do **not** use blog-only names `CodeFrame`, `CodeTabs`, or `MultiFileCodeBlock` 
 
 Icon-led rows in one card. **No `title=` / `subtitle=` props** — use `ListTitle`, `ListSubtitle`, and nestable `LineItem` children (same idea as `Callout` body content).
 
-`ListItem` `icon` is a Lucide name string. Supported: `BookOpen`, `FlaskConical`, `Boxes`, `Package`, `Terminal`, `Cloud`, `SlidersHorizontal`, `ChartNoAxesCombined`, `Copy`, `Tag`, `Layers`, `Server`, `Workflow` (unknown → `BookOpen`).
+`ItemList` `layout`: `stack` (default, single column) or `2col` (two-column grid from `sm` up).
 
-**Source**
+`ListItem` `icon` is a Lucide name from the ItemList set (unknown → `BookOpen`):
+
+<IconCatalog set="item-list" />
+
+**Source** (`layout="stack"`, default)
 
 ````mdx
 <ItemList>
@@ -887,6 +898,66 @@ Icon-led rows in one card. **No `title=` / `subtitle=` props** — use `ListTitl
     <LineItem>
       Store artifacts in S3, use a remote tracking server backed by a database,
       configure IAM permissions, and connect training, registry, and deployment workflows.
+    </LineItem>
+  </ListItem>
+</ItemList>
+
+**Source** (`layout="2col"`)
+
+````mdx
+<ItemList layout="2col">
+  <ListItem icon="Boxes">
+    <ListTitle>Experiments</ListTitle>
+    <LineItem>
+      A container for related runs — group and compare training attempts for one objective.
+    </LineItem>
+  </ListItem>
+  <ListItem icon="Package">
+    <ListTitle>Runs</ListTitle>
+    <LineItem>
+      One execution of a workflow: parameters, metrics, tags, and artifacts.
+    </LineItem>
+  </ListItem>
+  <ListItem icon="Layers">
+    <ListTitle>Nested runs</ListTitle>
+    <LineItem>
+      Child runs under a parent — useful for sweeps and model comparison.
+    </LineItem>
+  </ListItem>
+  <ListItem icon="Workflow">
+    <ListTitle>Tracking server</ListTitle>
+    <LineItem>
+      Remote store for params, metrics, and artifacts across machines.
+    </LineItem>
+  </ListItem>
+</ItemList>
+````
+
+**Result**
+
+<ItemList layout="2col">
+  <ListItem icon="Boxes">
+    <ListTitle>Experiments</ListTitle>
+    <LineItem>
+      A container for related runs — group and compare training attempts for one objective.
+    </LineItem>
+  </ListItem>
+  <ListItem icon="Package">
+    <ListTitle>Runs</ListTitle>
+    <LineItem>
+      One execution of a workflow: parameters, metrics, tags, and artifacts.
+    </LineItem>
+  </ListItem>
+  <ListItem icon="Layers">
+    <ListTitle>Nested runs</ListTitle>
+    <LineItem>
+      Child runs under a parent — useful for sweeps and model comparison.
+    </LineItem>
+  </ListItem>
+  <ListItem icon="Workflow">
+    <ListTitle>Tracking server</ListTitle>
+    <LineItem>
+      Remote store for params, metrics, and artifacts across machines.
     </LineItem>
   </ListItem>
 </ItemList>

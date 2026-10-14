@@ -1,0 +1,847 @@
+--- 
+title: "Model Evaluation"
+excerpt: "This tutorial covers the full workflow for evaluating classical ML Models with MLflow, from the fundamentals of `mlflow.models.evaluate()` through custom metrics, validation gates, and cross-run comparison. It includes complete, runnable examples and highlights what autologging handles automatically."
+tags: ['mlops', 'mlflow', 'python', 'machine-learning']
+---
+
+
+## Introduction
+
+Model evaluation is a core step in the ML lifecycle: it measures how a model behaves on held-out data, surfaces failure modes early, and turns business goals into numeric gates before promotion.
+
+MLflow's evaluation framework provides automated assessment for classification and regression. It generates performance metrics, visualizations, and diagnostics through a unified API. The framework supports three evaluation modes:
+
+1. Evaluating a **logged model** (URI)
+2. Evaluating a **Python function** directly
+3. Evaluating a **static dataset** with pre-computed predictions
+
+Earlier MLflow versions required a custom `ModelEvaluator` plugin for anything beyond built-ins. Today you pass `extra_metrics` and `custom_artifacts` to `mlflow.models.evaluate()` — no plugin boilerplate.
+
+<ItemList layout="2col">
+    <ListItem icon="Boxes">
+        <ListTitle>Unified Evaluation API</ListTitle>
+        <LineItem>
+            Evaluate models, Python functions, or static datasets with `mlflow.models.evaluate()` using a consistent interface
+        </LineItem>
+    </ListItem>
+    <ListItem icon="ChartNoAxesCombined">
+        <ListTitle>Automated Metrics & Visualizations</ListTitle>
+        <LineItem>
+            Generate task-specific metrics and plots automatically, including confusion matrices, ROC curves, and feature importance with SHAP integration
+        </LineItem>
+    </ListItem>
+    <ListItem icon="FlaskConical">
+        <ListTitle>Custom Metrics</ListTitle>
+        <LineItem>
+            Define domain-specific evaluation criteria with `make_metric()` for business-specific performance measures
+        </LineItem>
+    </ListItem>
+    <ListItem icon="Package">
+        <ListTitle>Plugin Architecture</ListTitle>
+        <LineItem>
+            Extend evaluation with specialized frameworks like Giskard and Trubrics for advanced validation and vulnerability scanning
+        </LineItem>
+    </ListItem>
+</ItemList>
+
+---
+
+## The `evaluate()` API
+
+```python
+mlflow.models.evaluate(
+    model,                    # model URI, callable, or None (static dataset)
+    data,                     # DataFrame / numpy / MLflow Dataset
+    *,
+    targets,                  # column name or array of ground truth
+    model_type,               # "classifier" or "regressor"
+    predictions=None,         # column name when using static predictions
+    evaluators=None,          # ["default"] or list of evaluator names
+    evaluator_config=None,    # dict of options (SHAP, pos_label, average, ...)
+    extra_metrics=None,       # list of EvaluationMetric (from make_metric)
+    custom_artifacts=None,    # list of callable artifact generators
+    # ... other less-common params
+)
+```
+
+## Classification Evaluation (Built-in)
+
+```python showLineNumbers {18-19,27-32,34-36}
+import mlflow
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import load_breast_cancer
+from mlflow.models import infer_signature
+
+# Load dataset
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# Train model
+model = xgb.XGBClassifier().fit(X_train, y_train)
+
+# Create evaluation dataset
+eval_data = X_test.copy()
+eval_data["label"] = y_test
+
+with mlflow.start_run():
+    # Log model
+    signature = infer_signature(X_test, model.predict(X_test))
+    model_info = mlflow.xgboost.log_model(model, name="model", signature=signature)
+
+    # Evaluate
+    result = mlflow.models.evaluate(
+        model_info.model_uri,
+        eval_data,
+        targets="label",
+        model_type="classifier",
+    )
+
+    print(f"Accuracy: {result.metrics['accuracy_score']:.3f}")
+    print(f"F1 Score: {result.metrics['f1_score']:.3f}")
+    print(f"ROC AUC: {result.metrics['roc_auc']:.3f}")
+```
+
+Automatically generates metrics (accuracy, precision, recall, F1, ROC-AUC, PR-AUC, log loss, …) and **built-in plot artifacts** (confusion matrix, ROC, precision-recall, lift, calibration).
+
+With **`shap` and `matplotlib` installed**, MLflow also logs SHAP explainability plots (`shap_beeswarm_plot`, `shap_summary_plot`, `shap_feature_importance_plot`). Without them, metrics and classifier plots still work; SHAP is skipped with a warning.
+
+<Figure
+    src="/learn/mlops/mlflow/modeleval-1.png"
+    alt="Model evaluation for classification"
+    caption="Model evaluation for classification"
+    width="900"
+/>
+
+---
+
+## Regression Evaluation (Built-in + SHAP)
+
+For `model_type="regressor"`, MLflow logs regression metrics (MAE, MSE, RMSE, R², MAPE, max error, …).
+
+**Install `shap` and `matplotlib`** so explainability plots are logged. Without them you still get metrics, but you will see:
+
+> `SHAP or matplotlib package is not installed, so model explainability insights will not be logged.`
+
+With both installed, regressor runs also produce:
+
+- `shap_beeswarm_plot.png`
+- `shap_summary_plot.png`
+- `shap_feature_importance_plot.png`
+
+Residual / predicted-vs-actual plots are **not** built-in (unlike classifier ROC / confusion matrix). Add those later with `custom_artifacts` (see §10).
+
+Use a dataset bundled with scikit-learn so you do not need a remote download:
+
+```python showLineNumbers {16-17,22-27}
+from sklearn.datasets import load_diabetes
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+import mlflow
+
+data = load_diabetes(as_frame=True)
+X = data.data
+y = data.target
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+model = LinearRegression().fit(X_train, y_train)
+
+eval_data = X_test.copy()
+eval_data["target"] = y_test
+
+with mlflow.start_run():
+    model_info = mlflow.sklearn.log_model(model, name="model")
+
+    result = mlflow.models.evaluate(
+        model_info.model_uri,
+        eval_data,
+        targets="target",
+        model_type="regressor",
+    )
+
+    print(f"RMSE: {result.metrics['root_mean_squared_error']:.3f}")
+    print(f"MAE: {result.metrics['mean_absolute_error']:.3f}")
+    print(f"R2: {result.metrics['r2_score']:.3f}")
+
+    for name in result.artifacts:
+        print(f"Artifact: {name}")
+```
+
+
+<Figure
+    src="/learn/mlops/mlflow/modeleval-2.png"
+    alt="Model evaluation for regression"
+    caption="Model evaluation for regression"
+    width="960"
+/>
+
+---
+
+## Custom Metrics
+
+Create domain-specific metrics with `make_metric()`. In MLflow 3, the eval function receives `predictions`, `targets`, and `metrics` (built-ins already computed), and returns a `MetricValue`.
+
+### Business metric from predictions
+
+```python showLineNumbers {1-15,18-22,29-35}
+from mlflow.models import make_metric
+from mlflow.metrics.base import MetricValue
+#...
+def custom_metric_fn(predictions, targets, metrics):
+    """Reward true positives; penalize false positives."""
+    tp = np.sum((predictions == 1) & (targets == 1))
+    fp = np.sum((predictions == 1) & (targets == 0))
+    custom_value = (tp * 100) - (fp * 20)
+
+    return MetricValue(
+        aggregate_results={
+            "custom_value": custom_value,
+            "value_per_prediction": custom_value / len(predictions),
+        },
+    )
+
+
+custom_metric = make_metric(
+    eval_fn=custom_metric_fn,
+    greater_is_better=True,
+    name="custom_metric",
+)
+
+with mlflow.start_run():
+    # Log model
+    signature = infer_signature(X_test, model.predict(X_test))
+    model = mlflow.xgboost.log_model(model, name="model", signature=signature)
+
+    result = mlflow.models.evaluate(
+        model.model_uri,
+        eval_data,
+        targets="label",
+        model_type="classifier",
+        extra_metrics=[custom_metric],
+    )
+
+    print(f"Custom Value: {result.metrics['custom_metric/custom_value']:.2f}")
+    print(f"Per Prediction: {result.metrics['custom_metric/value_per_prediction']:.4f}")
+```
+
+Custom metrics run **in addition to** default `model_type` metrics. Use `model_type=None` to compute only `extra_metrics`.
+
+<Figure
+    src="/learn/mlops/mlflow/custom_metric.png"
+    alt="Custom metric"
+    caption="Custom metric"
+    width="960"
+/>
+
+
+### Compose a metric from built-ins
+
+You can build on values already in `metrics` (same idea as older blogs’ `builtin_metrics["sum_on_target"] / 2`):
+
+```python showLineNumbers {6-8,11-17,20-31}
+import numpy as np
+from mlflow.models import make_metric
+from mlflow.metrics.base import MetricValue
+
+
+def squared_diff_plus_one(predictions, targets, metrics):
+    value = float(np.sum(np.abs(predictions - targets + 1) ** 2))
+    return MetricValue(aggregate_results={"value": value})
+
+
+def half_sum_on_target(predictions, targets, metrics):
+    # Reuse a built-in aggregate (regressor: sum_on_target).
+    # In MLflow 3, values in `metrics` are MetricValue objects, not raw floats.
+    sum_on_target = metrics["sum_on_target"]
+    if isinstance(sum_on_target, MetricValue):
+        sum_on_target = next(iter(sum_on_target.aggregate_results.values()))
+    return MetricValue(aggregate_results={"value": float(sum_on_target) / 2})
+
+
+composed_metrics = [
+    make_metric(
+        eval_fn=squared_diff_plus_one,
+        name="squared_diff_plus_one",
+        greater_is_better=False,
+    ),
+    make_metric(
+        eval_fn=half_sum_on_target,
+        name="half_sum_on_target",
+        greater_is_better=False,
+    ),
+]
+
+# Pass via extra_metrics=[...] on a model_type="regressor" evaluate() call
+```
+
+Logged keys look like `squared_diff_plus_one/value` and `half_sum_on_target/value`.
+
+---
+
+## Custom Artifacts
+
+Custom artifact callables appear alongside built-in plots in the MLflow UI.
+
+**Signature:** `(eval_df, builtin_metrics, artifacts_dir) -> dict[str, path | object]`
+
+- `eval_df`: predictions, targets, and input features
+- `builtin_metrics`: computed metric dict
+- `artifacts_dir`: temp dir for files (they must still exist when `evaluate()` finishes)
+
+**Supported return values:** file path / URI, JSON-like dict/string, Pandas DataFrame (→ CSV), NumPy array (→ `.npy`), Matplotlib Figure (→ PNG), other pickleable objects.
+
+### Plot artifact (file path)
+
+```python showLineNumbers {5-23,31-37}
+import matplotlib.pyplot as plt
+import os
+
+
+def create_custom_plot(eval_df, builtin_metrics, artifacts_dir):
+    plt.figure(figsize=(10, 6))
+    plt.scatter(
+        eval_df["prediction"],
+        eval_df["target"],
+        alpha=0.5,
+        c=eval_df["prediction"] == eval_df["target"],
+        cmap="coolwarm",
+    )
+    plt.xlabel("Predictions")
+    plt.ylabel("Targets")
+    plt.title("Custom Prediction Analysis (Blue = Correct, Red = Incorrect)")
+    plt.colorbar(label="Correct Prediction")
+
+    plot_path = os.path.join(artifacts_dir, "custom_plot.png")
+    plt.savefig(plot_path)
+    plt.close()
+
+    return {"custom_plot": plot_path}
+
+
+with mlflow.start_run():
+    # Log model
+    signature = infer_signature(X_test, model.predict(X_test))
+    model = mlflow.xgboost.log_model(model, name="model", signature=signature)
+
+    result = mlflow.models.evaluate(
+        model.model_uri,
+        eval_data,
+        targets="label",
+        model_type="classifier",
+        custom_artifacts=[create_custom_plot],
+    )
+
+    for artifact_name, path in result.artifacts.items():
+        print(f"Generated artifact: {artifact_name} -> {path}")
+
+```
+
+
+<Figure
+    src="/learn/mlops/mlflow/custom_artifacts.png"
+    alt="Custom artifacts"
+    caption="Custom artifacts"
+    width="960"
+/>
+
+
+### File artifacts (multiple formats)
+
+Save files under `artifacts_dir`, then return paths:
+
+```python
+import json
+import os
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+
+def file_artifacts_fn(eval_df, builtin_metrics, artifacts_dir):
+    np.save(os.path.join(artifacts_dir, "example.npy"), np.array([1, 2, 3]))
+
+    example_df = pd.DataFrame({"test": [2.2, 3.1], "test2": [3, 2]})
+    example_df.to_csv(os.path.join(artifacts_dir, "example.csv"), index=False)
+
+    payload = {"hello": "there", "metrics_snapshot": dict(builtin_metrics)}
+    with open(os.path.join(artifacts_dir, "example.json"), "w") as f:
+        json.dump(payload, f, default=str)
+
+    plt.scatter(eval_df["prediction"], eval_df["target"])
+    plt.xlabel("Predictions")
+    plt.ylabel("Targets")
+    plt.title("Targets vs Predictions")
+    plt.savefig(os.path.join(artifacts_dir, "example.png"))
+    plt.close()
+
+    with open(os.path.join(artifacts_dir, "example.txt"), "w") as f:
+        f.write("hello world!")
+
+    return {
+        "example_npy": os.path.join(artifacts_dir, "example.npy"),
+        "example_csv": os.path.join(artifacts_dir, "example.csv"),
+        "example_json": os.path.join(artifacts_dir, "example.json"),
+        "example_png": os.path.join(artifacts_dir, "example.png"),
+        "example_txt": os.path.join(artifacts_dir, "example.txt"),
+    }
+```
+
+<Figure
+    src="/learn/mlops/mlflow/custom_artifacts_multi.png"
+    alt="Custom artifacts multiple formats"
+    caption="Custom artifacts multiple formats"
+    width="960"
+/>
+
+### Object artifacts (no manual save)
+
+Return Python objects; MLflow serializes them for you:
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+
+class ExampleClass:
+    def __init__(self, x):
+        self.x = x
+
+
+def object_artifacts_fn(eval_df, builtin_metrics, artifacts_dir):
+    fig = plt.figure()
+    plt.scatter(eval_df["prediction"], eval_df["target"])
+    plt.xlabel("Predictions")
+    plt.ylabel("Targets")
+    plt.title("Targets vs Predictions")
+
+    return {
+        "example_np_arr": np.array([1, 2, 3]),
+        "example_df": pd.DataFrame({"test": [2.2, 3.1], "test2": [3, 2]}),
+        "example_dict": {"hello": "there", **{k: float(v) for k, v in builtin_metrics.items() if isinstance(v, (int, float))}},
+        "example_figure": fig,
+        "example_class": ExampleClass(10),
+    }
+```
+
+In MLflow 3, keep **metrics** in `extra_metrics` and **artifacts** in `custom_artifacts` (do not return both from one older-style metric function).
+
+---
+
+### Regression Custom Plot Artifacts (Residuals) Example
+
+§4 already covers built-in regressor metrics and SHAP plots (when `shap` + `matplotlib` are installed). This section adds **residual / predicted-vs-actual** plots via `custom_artifacts` — those are never built-in for regressors.
+
+You can also pass composed `extra_metrics` alongside the plots.
+
+```python showLineNumbers {23-34,37-52,55-60,63-67,75-82}
+import os
+
+import matplotlib.pyplot as plt
+import mlflow
+import numpy as np
+from mlflow.metrics.base import MetricValue
+from mlflow.models import infer_signature, make_metric
+from sklearn.datasets import load_diabetes
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+data = load_diabetes(as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    data.data, data.target, test_size=0.2, random_state=42
+)
+
+model = LinearRegression().fit(X_train, y_train)
+
+eval_data = X_test.copy()
+eval_data["target"] = y_test
+
+
+def residual_plot(eval_df, builtin_metrics, artifacts_dir):
+    residuals = eval_df["target"] - eval_df["prediction"]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.scatter(eval_df["prediction"], residuals, alpha=0.6)
+    ax.axhline(0, color="r", linestyle="--")
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Residual (target − prediction)")
+    ax.set_title("Residual Plot")
+    path = os.path.join(artifacts_dir, "residual_plot.png")
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)
+    return {"residual_plot": path}
+
+
+def predicted_vs_actual(eval_df, builtin_metrics, artifacts_dir):
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.scatter(eval_df["target"], eval_df["prediction"], alpha=0.6)
+    lims = [
+        min(eval_df["target"].min(), eval_df["prediction"].min()),
+        max(eval_df["target"].max(), eval_df["prediction"].max()),
+    ]
+    ax.plot(lims, lims, "r--", label="Ideal")
+    ax.set_xlabel("Actual")
+    ax.set_ylabel("Predicted")
+    ax.set_title("Predicted vs Actual")
+    ax.legend()
+    path = os.path.join(artifacts_dir, "predicted_vs_actual.png")
+    fig.savefig(path, bbox_inches="tight")
+    plt.close(fig)
+    return {"predicted_vs_actual": path}
+
+
+def half_sum_on_target(predictions, targets, metrics):
+    # In MLflow 3, built-ins in `metrics` are MetricValue objects, not raw floats.
+    sum_on_target = metrics["sum_on_target"]
+    if isinstance(sum_on_target, MetricValue):
+        sum_on_target = next(iter(sum_on_target.aggregate_results.values()))
+    return MetricValue(aggregate_results={"value": float(sum_on_target) / 2})
+
+
+half_sum_metric = make_metric(
+    eval_fn=half_sum_on_target,
+    name="half_sum_on_target",
+    greater_is_better=False,
+)
+
+with mlflow.start_run(run_name="diabetes_linreg_eval"):
+    signature = infer_signature(X_train, model.predict(X_train))
+    model_info = mlflow.sklearn.log_model(
+        model, name="model", signature=signature
+    )
+
+    result = mlflow.models.evaluate(
+        model_info.model_uri,
+        eval_data,
+        targets="target",
+        model_type="regressor",
+        extra_metrics=[half_sum_metric],
+        custom_artifacts=[residual_plot, predicted_vs_actual],
+    )
+
+    print(f"MAE:  {result.metrics['mean_absolute_error']:.3f}")
+    print(f"RMSE: {result.metrics['root_mean_squared_error']:.3f}")
+    print(f"R²:   {result.metrics['r2_score']:.3f}")
+    print(f"Half sum: {result.metrics['half_sum_on_target/value']:.3f}")
+
+    for name, artifact in result.artifacts.items():
+        print(f"Artifact: {name} -> {artifact}")
+```
+
+**What gets logged**
+- **Metrics** (built-in + custom): MAE, MSE, RMSE, R², MAPE, `half_sum_on_target/value`, …
+- **Artifacts** (`custom_artifacts`): `residual_plot.png`, `predicted_vs_actual.png`
+- **SHAP** (default when installed): `shap` + `matplotlib` → beeswarm / summary / feature-importance plots 
+
+<Figure
+    src="/learn/mlops/mlflow/residual.png"
+    alt="Residual plot"
+    caption="Residual plot"
+    width="960"
+/>
+
+## Validation Thresholds and Baseline Comparison
+
+**MLflow 2.18+ / 3.x:** validation moved out of `evaluate()` into `mlflow.validate_evaluation_results()`. Promotion-gate kwargs like `baseline_model=` were removed from `evaluate()`. Use `greater_is_better` (not `higher_is_better`).
+
+### `MetricThreshold`
+
+| Parameter | Description |
+|---|---|
+| `threshold` | Absolute cutoff (`>=` if greater is better) |
+| `min_absolute_change` | Minimum absolute improvement vs baseline |
+| `min_relative_change` | Minimum relative improvement (fraction of baseline) |
+| `greater_is_better` | Required direction flag |
+
+
+### Full example: champion vs candidate
+
+Train a weak **champion** and a stronger **candidate**, evaluate both on the same holdout set, then gate promotion with `validate_evaluation_results`.
+
+Raises `ModelValidationFailedException` (from `mlflow.models.evaluation.validation`) if any threshold fails — not `mlflow.exceptions.*`.
+
+```python
+import mlflow
+import xgboost as xgb
+from mlflow.models import MetricThreshold, infer_signature
+from mlflow.models.evaluation.validation import ModelValidationFailedException
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+# Same holdout for both models (fair comparison)
+holdout_df = X_test.copy()
+holdout_df["label"] = y_test
+
+# Champion (baseline): intentionally weak "production" model
+champion = DecisionTreeClassifier(max_depth=1, random_state=42).fit(
+    X_train, y_train
+)
+
+# Candidate: stronger model we want to promote
+candidate_model = xgb.XGBClassifier(
+    n_estimators=100, max_depth=4, learning_rate=0.1, random_state=42
+).fit(X_train, y_train)
+
+with mlflow.start_run(run_name="champion_baseline"):
+    champion_info = mlflow.sklearn.log_model(
+        champion,
+        name="model",
+        signature=infer_signature(X_test, champion.predict(X_test)),
+        skops_trusted_types=["sklearn.tree._tree.Tree"],
+    )
+    baseline = mlflow.models.evaluate(
+        champion_info.model_uri,
+        holdout_df,
+        targets="label",
+        model_type="classifier",
+        evaluator_config={"log_model_explainability": False},
+    )
+    print(
+        f"Champion  accuracy={baseline.metrics['accuracy_score']:.4f} "
+        f"f1={baseline.metrics['f1_score']:.4f}"
+    )
+
+with mlflow.start_run(run_name="candidate_challenger"):
+    candidate_info = mlflow.xgboost.log_model(
+        candidate_model,
+        name="model",
+        signature=infer_signature(X_test, candidate_model.predict(X_test)),
+    )
+    candidate = mlflow.models.evaluate(
+        candidate_info.model_uri,
+        holdout_df,
+        targets="label",
+        model_type="classifier",
+        evaluator_config={"log_model_explainability": False},
+    )
+    print(
+        f"Candidate accuracy={candidate.metrics['accuracy_score']:.4f} "
+        f"f1={candidate.metrics['f1_score']:.4f}"
+    )
+
+# Absolute floor + improvement vs champion
+thresholds = {
+    "accuracy_score": MetricThreshold(
+        threshold=0.90,            # absolute bar
+        min_relative_change=0.01,  # ≥1% relative lift vs champion
+        greater_is_better=True,
+    ),
+    "f1_score": MetricThreshold(
+        min_absolute_change=0.01,  # ≥0.01 F1 lift vs champion
+        greater_is_better=True,
+    ),
+    "log_loss": MetricThreshold(
+        threshold=0.5,
+        greater_is_better=False,   # lower is better
+    ),
+}
+
+try:
+    mlflow.validate_evaluation_results(
+        candidate_result=candidate,
+        baseline_result=baseline,
+        validation_thresholds=thresholds,
+    )
+    print("✓ Candidate meets all thresholds — ready for promotion")
+except ModelValidationFailedException as e:
+    print(f"✗ Validation failed:\n{e}")
+```
+
+Natural CI gate before `copy_model_version` promotion.
+
+### How this can be used
+
+1. **Load the Production champion** from the Model Registry (or an older run URI) and **train/log a candidate** in a new run.
+2. **Evaluate both** with `mlflow.models.evaluate()` on the **same** holdout DataFrame so metrics are comparable.
+3. **Define gates** with `MetricThreshold` — absolute floors (`threshold`), lift vs champion (`min_absolute_change` / `min_relative_change`), and direction (`greater_is_better`).
+4. **Call** `mlflow.validate_evaluation_results(candidate_result=..., baseline_result=..., validation_thresholds=...)`.
+5. **On success** → promote (`copy_model_version` / set alias `champion`); **on** `ModelValidationFailedException` → fail the CI job and keep Production unchanged.
+
+Typical wiring: GitHub Actions / Kubeflow step runs the script above after training; the pipeline exits non‑zero if validation fails.
+
+---
+
+
+## Dataset Evaluation (Pre-computed Predictions)
+
+Evaluate pre-computed predictions without re-running the model — useful for offline or external scoring.
+
+```python
+import mlflow
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+X, y = make_classification(
+    n_samples=1000, n_features=20, n_classes=2, random_state=42
+)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+predictions = model.predict(X_test)
+prediction_probabilities = model.predict_proba(X_test)[:, 1]
+
+eval_dataset = pd.DataFrame({
+    "prediction": predictions,
+    "prediction_proba": prediction_probabilities,  # For ROC-AUC
+    "target": y_test,
+})
+
+with mlflow.start_run():
+    result = mlflow.models.evaluate(
+        data=eval_dataset,
+        predictions="prediction",
+        targets="target",
+        model_type="classifier",
+    )
+
+    print(f"Accuracy: {result.metrics['accuracy_score']:.3f}")
+    print(f"F1 Score: {result.metrics['f1_score']:.3f}")
+    print(f"ROC AUC: {result.metrics['roc_auc']:.3f}")
+```
+
+**Parameters:**
+- `data`: DataFrame with predictions and targets
+- `predictions`: Column of model predictions
+- `targets`: Column of ground truth
+- `model_type`: `"classifier"` or `"regressor"`
+
+For classification metrics that need scores (ROC-AUC), include a probability column.
+
+---
+
+## Function Evaluation
+
+Evaluate a Python callable without logging a model first — good for prototyping.
+
+```python
+import mlflow
+import pandas as pd
+from sklearn.datasets import make_classification
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+X, y = make_classification(
+    n_samples=1000, n_features=20, n_classes=2, random_state=42
+)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+
+def predict_function(input_data):
+    return model.predict(input_data)
+
+
+eval_data = pd.DataFrame(X_test)
+eval_data["target"] = y_test
+
+with mlflow.start_run():
+    result = mlflow.models.evaluate(
+        predict_function,
+        eval_data,
+        targets="target",
+        model_type="classifier",
+    )
+
+    print(f"Accuracy: {result.metrics['accuracy_score']:.3f}")
+    print(f"F1 Score: {result.metrics['f1_score']:.3f}")
+```
+
+**Function requirements:**
+- First argument is the input data
+- Returns predictions compatible with `model_type`
+- No extra required args beyond the input
+
+---
+
+
+## Plugin Evaluators
+
+### Giskard
+
+Scans for bias, robustness, over/underconfidence, leakage, and related issues.
+
+Install: `pip install giskard` (or add `giskard` to `requirements.txt`). Importing `giskard` registers the evaluator — check with `mlflow.models.list_evaluators()`.
+
+For classifiers, log with `pyfunc_predict_fn="predict_proba"` and pass `classification_labels`. In **MLflow 3**, nest config under the evaluator name:
+
+```python
+import mlflow
+import giskard  # registers evaluators="giskard"
+from mlflow.models import infer_signature
+from sklearn.datasets import load_breast_cancer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+X, y = load_breast_cancer(return_X_y=True, as_frame=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42
+)
+model = RandomForestClassifier(n_estimators=50, random_state=42).fit(X_train, y_train)
+
+eval_data = X_test.copy()
+eval_data["label"] = y_test
+
+giskard_config = {
+    "model_config": {
+        "name": "breast_cancer_rf",
+        "classification_labels": [0, 1],
+    },
+    "dataset_config": {"name": "breast_cancer_holdout"},
+    "scan_config": {"only": ["performance", "robustness"]},
+}
+
+with mlflow.start_run(run_name="giskard_scan"):
+    model_info = mlflow.sklearn.log_model(
+        model,
+        name="model",
+        signature=infer_signature(X_test, model.predict_proba(X_test)),
+        pyfunc_predict_fn="predict_proba",
+        skops_trusted_types=["sklearn.tree._tree.Tree"],
+    )
+    result = mlflow.models.evaluate(
+        model_info.model_uri,
+        eval_data,
+        targets="label",
+        model_type="classifier",
+        evaluators="giskard",
+        evaluator_config={"giskard": giskard_config},
+    )
+```
+
+**Docs:** [Giskard–MLflow integration](https://docs.giskard.ai/en/latest/integrations/mlflow/index.html)
+
+## Best Practices (MLflow 3.17+)
+
+| Practice | Recommendation |
+|---|---|
+| **Correct API** | Classical ML → `mlflow.models.evaluate()`; GenAI → `mlflow.genai.evaluate()` |
+| **Separate validation** | Use `mlflow.validate_evaluation_results()`, not `evaluate()` kwargs |
+| **Baseline comparison** | Evaluate candidate and champion separately, then validate |
+| **Custom metrics** | `make_metric()` + `extra_metrics` (not the old `custom_metrics` list of raw fns) |
+| **Custom plots for regressors** | Pass `custom_artifacts` for residual / predicted-vs-actual (not built-in) |
+| **SHAP** | Install **`shap` and `matplotlib`** or explainability plots are skipped |
+| **Dataset / function modes** | Offline preds → `predictions=`; prototypes → pass a callable |
+| **Plugins** | Giskard for vulnerability scans; Trubrics for business rules |
+| **Lineage** | Pass `model_id=` for LoggedModel linkage in MLflow 3 |

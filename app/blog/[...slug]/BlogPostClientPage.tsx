@@ -12,16 +12,22 @@ import { TableOfContents } from '@/components/table-of-contents';
 import Header from '@/components/Header';
 import { PageTopGlow } from '@/components/page-top-glow';
 import { MdxContentSkeleton } from '@/components/loading-skeleton';
-import { MdxExcerpt } from '@/components/mdx/excerpt';
+import { ClientMdxExcerpt } from '@/components/mdx/client-excerpt';
 import { ViewTransition } from 'react';
 
-const ClientMDXRenderer = dynamic(() => import('@/components/ClientMDXRenderer'), {
-  ssr: false,
-  loading: () => <MdxContentSkeleton />,
-});
+const MdxRenderer = dynamic(
+  () => import('@/components/mdx/renderer').then((mod) => mod.MdxRenderer),
+  {
+    ssr: false,
+    loading: () => <MdxContentSkeleton />,
+  }
+);
+
+type BlogPostNavItem = Pick<BlogPost, 'slug' | 'title' | 'tags' | 'readingTime'>;
+
 interface BlogPostPageProps {
   post?: BlogPost;
-  allPosts: BlogPost[];
+  allPosts: BlogPostNavItem[];
 }
 
 export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps) {
@@ -98,7 +104,7 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
             {/* Excerpt */}
             {post.excerptMdxSource && (
               <ViewTransition name={`post-excerpt-${transitionSlug}`} share="post-excerpt">
-                <MdxExcerpt
+                <ClientMdxExcerpt
                   mdxSource={post.excerptMdxSource}
                   className="mb-6 text-xl leading-relaxed text-muted-foreground"
                 />
@@ -157,8 +163,8 @@ export default function BlogPostClientPage({ post, allPosts }: BlogPostPageProps
           <div className="min-w-0">
             <article className="prose prose-lg max-w-none mdx-content">
               {/* Render MDX */}
-              {/* Use a dedicated client-only renderer to keep next-mdx-remote out of the SSR bundle */}
-              {post.mdxSource ? <ClientMDXRenderer mdxSource={post.mdxSource} /> : null}
+              {/* Keep next-mdx-remote out of the SSR bundle */}
+              {post.mdxSource ? <MdxRenderer mdxSource={post.mdxSource} variant="blog" /> : null}
             </article>
 
             <div className="mt-12 pt-8 border-t border-border">
