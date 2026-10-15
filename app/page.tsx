@@ -16,6 +16,7 @@ import { constructMetadata, getPersonSchema } from '@/lib/seo';
 import {
   ArrowRight,
   Binary,
+  BookOpen,
   BrainCircuit,
   Network,
   Workflow,
